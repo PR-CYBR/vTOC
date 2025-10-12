@@ -1,0 +1,11 @@
+# Docker configuration
+docker_host = "unix:///var/run/docker.sock"
+
+# Network configuration
+network_name = "vtoc-network"
+
+# Volume configuration
+volumes = {
+  postgres = "vtoc_postgres_data"
+  n8n      = "vtoc_n8n_data"
+}

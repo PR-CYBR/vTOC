@@ -1,0 +1,85 @@
+---
+# Ansible playbook for vTOC deployment
+
+- name: Deploy vTOC infrastructure
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: yes
+
+  vars:
+    vtoc_home: "{{ ansible_env.HOME }}/vtoc"
+    docker_compose_version: "2.23.0"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Install required packages
+      package:
+        name:
+          - docker.io
+          - docker-compose
+          - python3-pip
+          - git
+        state: present
+
+    - name: Install Docker Python library
+      pip:
+        name:
+          - docker
+          - docker-compose
+        state: present
+
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Create vTOC directory
+      file:
+        path: "{{ vtoc_home }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy vTOC files
+      copy:
+        src: "{{ playbook_dir }}/../../"
+        dest: "{{ vtoc_home }}"
+        mode: '0755'
+
+    - name: Create .env file from example
+      copy:
+        src: "{{ vtoc_home }}/.env.example"
+        dest: "{{ vtoc_home }}/.env"
+        force: no
+
+    - name: Deploy vTOC with Docker Compose
+      docker_compose:
+        project_src: "{{ vtoc_home }}"
+        state: present
+        pull: yes
+      register: output
+
+    - name: Show deployment output
+      debug:
+        var: output
+
+    - name: Wait for services to be healthy
+      wait_for:
+        host: localhost
+        port: 80
+        delay: 10
+        timeout: 300
+
+    - name: Display access information
+      debug:
+        msg:
+          - "vTOC has been deployed successfully!"
+          - "Access the application at: http://localhost"
+          - "Traefik Dashboard: http://localhost:8080"
+          - "n8n Workflows: http://localhost/n8n"

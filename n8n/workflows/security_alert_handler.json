@@ -1,0 +1,109 @@
+{
+  "name": "vTOC Security Alert Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "security-alert",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "vtoc-security-alert"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "alert_type",
+              "value": "={{$json[\"body\"][\"alert_type\"]}}"
+            },
+            {
+              "name": "severity",
+              "value": "={{$json[\"body\"][\"severity\"]}}"
+            },
+            {
+              "name": "message",
+              "value": "={{$json[\"body\"][\"message\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Parse Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"severity\"]}}",
+              "operation": "equals",
+              "value2": "critical"
+            }
+          ]
+        }
+      },
+      "name": "Check Severity",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://backend:8000/api/intel/",
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={{ { \"title\": \"Security Alert: \" + $json[\"alert_type\"], \"content\": $json[\"message\"], \"classification\": \"confidential\", \"reliability\": \"verified\", \"reported_by\": \"Wazuh Security System\" } }}"
+      },
+      "name": "Create Intel Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [850, 200]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Alert": {
+      "main": [
+        [
+          {
+            "node": "Check Severity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Severity": {
+      "main": [
+        [
+          {
+            "node": "Create Intel Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "id": "2"
+}
