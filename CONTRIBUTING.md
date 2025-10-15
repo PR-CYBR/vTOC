@@ -41,6 +41,25 @@ git checkout -b feature/your-feature-name
 git checkout -b fix/bug-description
 ```
 
+### 4. Keep your branch active
+
+We automatically clean up long-lived feature branches to keep the repository tidy. A scheduled workflow runs every day at 03:00 UTC and deletes branches that:
+
+- Have not received any commits in the last 30 days (the default retention window).
+- Are not protected (e.g., `main`, `live`, or `release/*` branches).
+- Do not opt out of cleanup.
+
+The retention window and protected branch list can be tuned when running the workflow manually via **Actions → "Cleanup stale branches" → Run workflow**. The scheduled run uses the defaults above.
+
+#### Opt out of automated cleanup
+
+If you need to keep a branch around longer, you have two options:
+
+1. **Use an opt-out prefix.** Branches whose names start with `keep/` or `keep-` are skipped by the cleanup job.
+2. **Run the workflow manually** with a longer retention period while your branch remains active.
+
+Please remove the `keep/` or `keep-` prefix once the branch is ready to be cleaned up, so the automation can resume managing it.
+
 ## Development Guidelines
 
 ### Backend (Python/FastAPI)
