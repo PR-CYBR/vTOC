@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "vTOC setup configuration",
+  "type": "object",
+  "properties": {
+    "projectName": {
+      "type": "string",
+      "default": "vtoc"
+    },
+    "services": {
+      "type": "object",
+      "properties": {
+        "traefik": { "type": "boolean", "default": false },
+        "postgres": { "type": "boolean", "default": true },
+        "n8n": { "type": "boolean", "default": false },
+        "wazuh": { "type": "boolean", "default": false }
+      },
+      "additionalProperties": false
+    },
+    "cloud": {
+      "type": "object",
+      "properties": {
+        "provider": { "type": "string", "enum": ["aws", "gcp", "azure"] },
+        "region": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

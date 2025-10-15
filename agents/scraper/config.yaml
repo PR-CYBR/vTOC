@@ -1,0 +1,10 @@
+interval_seconds: 300
+feeds:
+  - name: Example Feed
+    url: https://www.nhc.noaa.gov/rss_examples/nhc_marine.xml
+    tags:
+      - weather
+      - marine
+    location:
+      latitude: 18.4663
+      longitude: -66.1057

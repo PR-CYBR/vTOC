@@ -1,20 +1,15 @@
-# Build stage
-FROM node:18-alpine as build
-
+# build stage
+FROM node:20-alpine AS build
 WORKDIR /app
-
-COPY package*.json ./
-RUN npm install
-
+RUN corepack enable
+COPY package.json pnpm-lock.yaml* ./
+RUN pnpm install --frozen-lockfile
 COPY . .
-RUN npm run build
+RUN pnpm build
 
-# Production stage
+# runtime stage
 FROM nginx:alpine
-
-COPY --from=build /app/build /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-
+EXPOSE 8081
 CMD ["nginx", "-g", "daemon off;"]

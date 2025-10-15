@@ -92,3 +92,5 @@ secrets/
 *.pem
 *.key
 *.crt
+
+docker-compose.generated.yml

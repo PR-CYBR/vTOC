@@ -1,284 +1,74 @@
-# vTOC - Virtual Tactical Operations Center
+# vTOC Platform
 
-A modular, cloud-native tactical operations management platform built with microservice architecture.
+vTOC is a virtual tactical operations center that ships with a FastAPI backend, a map-first Vite frontend, and automation agents for ingesting telemetry. The project now supports three deployment modes through a universal setup script and provides container images for local development, Swarm, and Fly.io.
 
-## 🏗️ Architecture
+![CI](https://github.com/PR-CYBR/vTOC/actions/workflows/ci.yml/badge.svg) ![Preview Deploy](https://github.com/PR-CYBR/vTOC/actions/workflows/preview-deploy.yml/badge.svg)
 
-vTOC is built using a modern microservice architecture with the following components:
-
-- **Backend API**: Python/FastAPI microservices for business logic
-- **Frontend**: React single-page application
-- **Database**: PostgreSQL for persistent data storage
-- **Reverse Proxy**: Traefik for routing and load balancing
-- **Workflow Automation**: n8n for automated workflows
-- **Security Monitoring**: Wazuh for runtime security
-- **Agent System**: Python-based automation agents
-- **Infrastructure as Code**: Terraform for provisioning
-- **Configuration Management**: Ansible for deployment automation
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Docker and Docker Compose
-- Git
-- (Optional) Terraform and Ansible for infrastructure management
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/PR-CYBR/vTOC.git
-cd vTOC
-```
-
-2. Copy the environment variables:
-```bash
-cp .env.example .env
-```
-
-3. Edit `.env` and configure your environment variables (especially change default passwords)
-
-4. Start the services:
-```bash
-docker-compose up -d
-```
-
-5. Access the application:
-   - **Frontend**: http://localhost
-   - **API Documentation**: http://localhost/api/docs
-   - **Traefik Dashboard**: http://localhost:8080
-   - **n8n Workflows**: http://localhost/n8n
-
-## 📦 Services
-
-### Backend API
-
-The backend is built with FastAPI and provides RESTful APIs for:
-
-- **Operations**: Manage tactical operations
-- **Missions**: Track mission objectives
-- **Assets**: Manage resources and equipment
-- **Intelligence**: Store and analyze intelligence reports
-- **Agents**: Control automation agents
-
-API Documentation is available at `/api/docs` (Swagger UI) and `/api/redoc` (ReDoc).
-
-### Frontend
-
-React-based single-page application with:
-
-- Dashboard with real-time statistics
-- Immersive geospatial dashboard with live telemetry map overlays
-- Operations management
-- Mission tracking
-- Asset inventory
-- Intelligence reports
-- Agent monitoring and control
-
-### Database
-
-PostgreSQL database with:
-
-- Automated initialization scripts
-- Data persistence via Docker volumes
-- Connection pooling
-- Database migrations support
-
-### Traefik Reverse Proxy
-
-- Automatic service discovery
-- Load balancing
-- SSL/TLS termination support
-- Dashboard for monitoring routes
-
-### n8n Workflow Automation
-
-Pre-configured workflows:
-
-- **Operations Monitor**: Scheduled monitoring of active operations
-- **Security Alert Handler**: Automated security alert processing
-
-### Automation Agents
-
-Three types of agents:
-
-1. **Monitor Agent**: System health and metrics monitoring
-2. **Analyzer Agent**: Intelligence and mission data analysis
-3. **Executor Agent**: Automated task execution
-
-## 🛠️ Development
-
-### Backend Development
+## Quick start
 
 ```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+make setup-local
+pnpm --dir frontend dev
 ```
 
-### Frontend Development
+The backend exposes `http://localhost:8080/healthz` and the frontend renders on `http://localhost:5173` during development (or `8081` when using the containerized stack).
+
+## Deployment modes
+
+| Mode       | Command                               | Description |
+|------------|----------------------------------------|-------------|
+| Local      | `make setup-local`                     | Installs dependencies, writes `.env.local`, and runs frontend build validation. |
+| Container  | `make setup-container`                 | Generates `docker-compose.generated.yml` (respecting optional services from the JSON schema) and starts the stack. |
+| Cloud      | `make setup-cloud`                     | Produces Terraform and Ansible scaffolding in `infra/` for infrastructure provisioning. |
+
+Supply configuration through `--config path.json` or `--config-json '{...}'`. See [`scripts/inputs.schema.json`](scripts/inputs.schema.json) for the accepted structure.
+
+Codex CLI is detected automatically: if the `codex` binary exists, the setup scripts use `codex interpolate` for variable expansion; otherwise the scripts fall back to standard Bash behaviour.
+
+## Containers and orchestration
+
+* `docker-compose.yml` — developer stack (Postgres, FastAPI backend, Vite frontend via nginx, telemetry scraper)
+* `docker-stack.yml` — Docker Swarm with Traefik routing (`vtoc.local` / `api.vtoc.local`) and optional integrations (ZeroTier, Tailscale, MediaMTX, TAK Server)
+* `fly.toml` — Fly.io deployment descriptor for the backend container
+
+Images are built and pushed to GHCR via GitHub Actions as part of the [`ci.yml`](.github/workflows/ci.yml) workflow:
+
+- `ghcr.io/<repo>/frontend` (Vite static bundle served by nginx)
+- `ghcr.io/<repo>/backend` (FastAPI + Uvicorn on port 8080)
+- `ghcr.io/<repo>/scraper` (RSS/HTML telemetry agent)
+
+A Fly.io dispatch workflow (`fly-deploy.yml`) deploys the backend using the prebuilt image when triggered manually or when tags matching `v*` are pushed.
+
+## Frontend
+
+The Vite/React frontend consumes the backend via `frontend/src/services/api.ts` and presents a Leaflet-powered operational map with a collapsible Intel panel. Environment configuration lives in [`frontend/.env.example`](frontend/.env.example) and is propagated through the setup scripts.
+
+Key scripts:
 
 ```bash
-cd frontend
-npm install
-npm start
+pnpm --dir frontend dev     # local dev server on 5173
+pnpm --dir frontend build   # generate production bundle
+pnpm --dir frontend test    # run vitest suite in CI mode
 ```
 
-#### Map configuration
+## Backend
 
-The dashboard map is powered by [Leaflet](https://leafletjs.com/) through `react-leaflet`. To enable the map and telemetry overlays:
+The FastAPI backend (`backend/app`) provides:
 
-1. Ensure the frontend is configured with the API endpoint that serves telemetry data using the `REACT_APP_API_URL` environment variable.
-2. Provide backend telemetry endpoints at:
-   - `GET /telemetry/assets/` — returns an array of asset objects with latitude/longitude (and optional `heading`, `speed`, `status`, `source`).
-   - `GET /telemetry/tracks/` — returns an array of track objects containing a `points`/`coordinates` collection with latitude/longitude pairs and an optional `source` identifier.
-3. Each unique `source` value is presented as a toggleable layer on the map, allowing operators to control visibility per feed.
+* `/healthz` — health probe
+* `/api/v1/telemetry/sources` — CRUD for telemetry sources
+* `/api/v1/telemetry/events` — Telemetry events with optional geospatial metadata
 
-If your telemetry payloads use different field names, adjust the adapter in `frontend/src/services/telemetryAdapter.js` to normalise them before they reach the map component.
-
-### Running Tests
-
-Backend:
-```bash
-cd backend
-pytest
-```
-
-Frontend:
-```bash
-cd frontend
-npm test
-```
-
-## 🏗️ Infrastructure as Code
-
-### Terraform
-
-Deploy infrastructure:
+Database connectivity is supplied through `DATABASE_URL`. SQLAlchemy models and Alembic migrations live under `backend/app` and `alembic/`. Run migrations with:
 
 ```bash
-cd infrastructure/terraform
-terraform init
-terraform plan
-terraform apply
+alembic upgrade head
 ```
 
-### Ansible
+## Telemetry scraper
 
-Deploy using Ansible:
+`agents/scraper` reads feeds from `config.yaml` and posts normalized telemetry to the backend. It supports RSS feeds and optional HTML selectors via Selectolax. Run locally with `make scraper-run` or containerize via the provided Dockerfile.
 
-```bash
-cd infrastructure/ansible
-ansible-playbook -i inventory.ini playbooks/deploy.yml
-```
+## Documentation
 
-## 🔒 Security
-
-### Built-in Security Features
-
-- **Wazuh**: Runtime security monitoring and intrusion detection
-- **Snyk**: Vulnerability scanning in CI/CD pipeline
-- **Traefik**: Secure routing with middleware support
-- **Environment Variables**: Sensitive data management
-- **CORS Configuration**: Controlled cross-origin access
-
-### Security Best Practices
-
-1. Change all default passwords in `.env`
-2. Use strong API secret keys
-3. Enable SSL/TLS in production
-4. Regularly update dependencies
-5. Review security alerts from Wazuh and Snyk
-
-## 🔄 CI/CD
-
-GitHub Actions workflows:
-
-- **CI/CD Pipeline**: Automated testing and deployment
-- **Security Scan**: Daily security vulnerability scanning
-- **Dependency Review**: Automated dependency updates
-
-## 📊 Monitoring
-
-- **Traefik Dashboard**: Service health and routing
-- **n8n Dashboard**: Workflow execution status
-- **Wazuh Manager**: Security events and alerts
-- **Agent Logs**: Automation agent activities
-
-## 📚 API Endpoints
-
-### Operations
-- `GET /api/operations/` - List all operations
-- `POST /api/operations/` - Create new operation
-- `GET /api/operations/{id}` - Get operation details
-- `PUT /api/operations/{id}` - Update operation
-- `DELETE /api/operations/{id}` - Delete operation
-
-### Missions
-- `GET /api/missions/` - List all missions
-- `POST /api/missions/` - Create new mission
-- `GET /api/missions/{id}` - Get mission details
-- `PUT /api/missions/{id}` - Update mission
-- `DELETE /api/missions/{id}` - Delete mission
-
-### Assets
-- `GET /api/assets/` - List all assets
-- `POST /api/assets/` - Register new asset
-- `GET /api/assets/{id}` - Get asset details
-- `PUT /api/assets/{id}` - Update asset
-- `DELETE /api/assets/{id}` - Delete asset
-
-### Intelligence
-- `GET /api/intel/` - List intelligence reports
-- `POST /api/intel/` - Create intelligence report
-- `GET /api/intel/{id}` - Get report details
-- `DELETE /api/intel/{id}` - Delete report
-
-### Agents
-- `GET /api/agents/` - List all agents
-- `POST /api/agents/` - Register new agent
-- `GET /api/agents/{id}` - Get agent details
-- `POST /api/agents/{id}/start` - Start agent
-- `POST /api/agents/{id}/stop` - Stop agent
-- `DELETE /api/agents/{id}` - Delete agent
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-For issues and questions:
-- Open an issue on GitHub
-- Check the documentation in `/docs`
-- Review API documentation at `/api/docs`
-
-## 🗺️ Roadmap
-
-- [ ] Advanced analytics dashboard
-- [ ] Real-time WebSocket updates
-- [ ] Mobile application
-- [ ] Multi-tenancy support
-- [ ] Advanced reporting features
-- [ ] Integration with external systems
-- [ ] Machine learning-based threat detection
-- [ ] Geographic information system (GIS) integration
-
-## 📝 Notes
-
-- This is a development setup. For production deployment, ensure proper security configurations.
-- Update all default passwords and secrets before deploying to production.
-- Configure SSL/TLS certificates for secure communication.
-- Set up proper backup and disaster recovery procedures.
-- Implement proper access control and authentication mechanisms.
+Additional deployment guidance is available in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) including Compose, Swarm, Fly.io, and sample `inputs.json` files for each setup mode.
