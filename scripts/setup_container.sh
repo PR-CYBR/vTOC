@@ -31,7 +31,11 @@ compose = {
             'build': {'context': './backend'},
             'ports': ['8080:8080'],
             'environment': {
-                'DATABASE_URL': 'postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc'
+                'DATABASE_URL': 'postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc',
+                'DATABASE_URL_TOC_S1': 'postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s1',
+                'DATABASE_URL_TOC_S2': 'postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s2',
+                'DATABASE_URL_TOC_S3': 'postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s3',
+                'DATABASE_URL_TOC_S4': 'postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s4',
             },
             'depends_on': ['database'],
         },
@@ -58,7 +62,10 @@ if postgres_enabled:
             'POSTGRES_USER': 'vtoc',
             'POSTGRES_PASSWORD': 'vtocpass',
         },
-        'volumes': ['postgres_data:/var/lib/postgresql/data'],
+        'volumes': [
+            'postgres_data:/var/lib/postgresql/data',
+            './database/init:/docker-entrypoint-initdb.d'
+        ],
         'ports': ['5432:5432'],
     }
 else:

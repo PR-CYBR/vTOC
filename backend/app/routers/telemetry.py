@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
-from ..db import get_db
+from ..db import get_db, get_station_db
 
 router = APIRouter(prefix="/api/v1/telemetry", tags=["telemetry"])
 
@@ -68,7 +68,7 @@ def delete_source(source_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/events", response_model=List[schemas.TelemetryEventWithSource])
-def list_events(db: Session = Depends(get_db)):
+def list_events(db: Session = Depends(get_station_db)):
     query = (
         db.query(models.TelemetryEvent)
         .options(selectinload(models.TelemetryEvent.source))
@@ -83,7 +83,7 @@ def list_events(db: Session = Depends(get_db)):
     response_model=schemas.TelemetryEventRead,
     status_code=status.HTTP_201_CREATED,
 )
-def create_event(payload: schemas.TelemetryEventCreate, db: Session = Depends(get_db)):
+def create_event(payload: schemas.TelemetryEventCreate, db: Session = Depends(get_station_db)):
     source = None
     if payload.source_id is not None:
         source = db.get(models.TelemetrySource, payload.source_id)
@@ -107,6 +107,8 @@ def create_event(payload: schemas.TelemetryEventCreate, db: Session = Depends(ge
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown source")
     data = payload.model_dump(exclude={"source_id", "source_slug", "source_name"}, exclude_none=True)
     data["source_id"] = source.id
+    if source.station_id and "station_id" not in data:
+        data["station_id"] = source.station_id
     instance = models.TelemetryEvent(**data)
     db.add(instance)
     db.commit()

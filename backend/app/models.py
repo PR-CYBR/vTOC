@@ -19,10 +19,38 @@ from sqlalchemy.orm import relationship
 from .db import Base
 
 
+class Station(Base):
+    __tablename__ = "stations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String(100), nullable=False, unique=True, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    timezone = Column(String(100), nullable=False, default="UTC")
+    telemetry_schema = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    sources = relationship(
+        "TelemetrySource",
+        back_populates="station",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    assignments = relationship(
+        "StationAssignment",
+        back_populates="station",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    events = relationship("TelemetryEvent", back_populates="station")
+
+
 class TelemetrySource(Base):
     __tablename__ = "telemetry_sources"
 
     id = Column(Integer, primary_key=True, index=True)
+    station_id = Column(Integer, ForeignKey("stations.id", ondelete="SET NULL"), nullable=True)
     name = Column(String(255), nullable=False, unique=True)
     slug = Column(String(100), nullable=False, unique=True, index=True)
     source_type = Column(String(100), nullable=False)
@@ -34,6 +62,13 @@ class TelemetrySource(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    station = relationship("Station", back_populates="sources")
+    assignments = relationship(
+        "StationAssignment",
+        back_populates="source",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     events = relationship(
         "TelemetryEvent",
         back_populates="source",
@@ -47,6 +82,7 @@ class TelemetryEvent(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     source_id = Column(Integer, ForeignKey("telemetry_sources.id", ondelete="CASCADE"))
+    station_id = Column(Integer, ForeignKey("stations.id", ondelete="SET NULL"), nullable=True)
     event_time = Column(DateTime, default=datetime.utcnow, index=True)
     received_at = Column(DateTime, default=datetime.utcnow)
     latitude = Column(Float, nullable=True)
@@ -59,18 +95,19 @@ class TelemetryEvent(Base):
     status = Column(String(50), default="received")
 
     source = relationship("TelemetrySource", back_populates="events")
+    station = relationship("Station", back_populates="events")
 
 
-class AgentActionAudit(Base):
-    __tablename__ = "agent_action_audits"
+class StationAssignment(Base):
+    __tablename__ = "station_assignments"
 
     id = Column(Integer, primary_key=True, index=True)
-    action_id = Column(String(128), nullable=False, unique=True, index=True)
-    tool_name = Column(String(255), nullable=False)
-    status = Column(String(50), nullable=False, index=True)
-    request_payload = Column(JSON, nullable=True)
-    response_payload = Column(JSON, nullable=True)
-    error_message = Column(Text, nullable=True)
+    station_id = Column(Integer, ForeignKey("stations.id", ondelete="CASCADE"))
+    source_id = Column(Integer, ForeignKey("telemetry_sources.id", ondelete="CASCADE"))
+    role = Column(String(100), nullable=False, default="primary")
+    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    completed_at = Column(DateTime, nullable=True)
+
+    station = relationship("Station", back_populates="assignments")
+    source = relationship("TelemetrySource", back_populates="assignments")

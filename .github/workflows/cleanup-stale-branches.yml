@@ -1,0 +1,154 @@
+name: Cleanup stale branches
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      retention_days:
+        description: 'Delete branches older than this many days'
+        required: false
+        default: '30'
+      protected_branches:
+        description: 'Comma-separated list of protected branch names'
+        required: false
+        default: 'main,live'
+      protected_prefixes:
+        description: 'Comma-separated list of branch prefixes that should never be deleted'
+        required: false
+        default: 'release/'
+      opt_out_prefixes:
+        description: 'Comma-separated list of branch name prefixes that opt-out of cleanup'
+        required: false
+        default: 'keep/,keep-'
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    env:
+      RETENTION_DAYS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.retention_days || '30' }}
+      PROTECTED_BRANCHES: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.protected_branches || 'main,live' }}
+      PROTECTED_PREFIXES: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.protected_prefixes || 'release/' }}
+      OPT_OUT_PREFIXES: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.opt_out_prefixes || 'keep/,keep-' }}
+    steps:
+      - name: Delete stale branches
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const core = require('@actions/core');
+            const retentionDays = parseInt(process.env.RETENTION_DAYS, 10);
+            if (Number.isNaN(retentionDays) || retentionDays < 0) {
+              core.setFailed(`Invalid retention period: ${process.env.RETENTION_DAYS}`);
+              return;
+            }
+
+            const protectedBranches = (process.env.PROTECTED_BRANCHES || '')
+              .split(',')
+              .map((name) => name.trim())
+              .filter(Boolean);
+            const protectedPrefixes = (process.env.PROTECTED_PREFIXES || '')
+              .split(',')
+              .map((prefix) => prefix.trim())
+              .filter(Boolean);
+            const optOutPrefixes = (process.env.OPT_OUT_PREFIXES || '')
+              .split(',')
+              .map((prefix) => prefix.trim())
+              .filter(Boolean);
+
+            const retentionThreshold = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+            core.info(`Retention threshold: branches updated before ${retentionThreshold.toISOString()} will be removed.`);
+
+            const { owner, repo } = context.repo;
+
+            const branches = await github.paginate(github.rest.repos.listBranches, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+
+            const deleted = [];
+            const skipped = [];
+
+            for (const branch of branches) {
+              const branchName = branch.name;
+
+              if (branch.protected || protectedBranches.includes(branchName)) {
+                skipped.push({ name: branchName, reason: 'protected branch' });
+                continue;
+              }
+
+              const matchedProtectedPrefix = protectedPrefixes.find((prefix) => branchName.startsWith(prefix));
+              if (matchedProtectedPrefix) {
+                skipped.push({ name: branchName, reason: `protected prefix (${matchedProtectedPrefix})` });
+                continue;
+              }
+
+              const matchedOptOutPrefix = optOutPrefixes.find((prefix) => branchName.startsWith(prefix));
+              if (matchedOptOutPrefix) {
+                skipped.push({ name: branchName, reason: `opt-out prefix (${matchedOptOutPrefix})` });
+                continue;
+              }
+
+              const commit = branch.commit && branch.commit.commit;
+              const committedDate = commit && (commit.author?.date || commit.committer?.date);
+
+              if (!committedDate) {
+                skipped.push({ name: branchName, reason: 'no commit date available' });
+                continue;
+              }
+
+              const lastUpdated = new Date(committedDate);
+              if (Number.isNaN(lastUpdated.getTime())) {
+                skipped.push({ name: branchName, reason: 'invalid commit date' });
+                continue;
+              }
+
+              if (lastUpdated >= retentionThreshold) {
+                skipped.push({ name: branchName, reason: 'recent activity' });
+                continue;
+              }
+
+              try {
+                await github.rest.git.deleteRef({
+                  owner,
+                  repo,
+                  ref: `heads/${branchName}`,
+                });
+                core.info(`Deleted branch ${branchName}`);
+                deleted.push({ name: branchName, lastUpdated: lastUpdated.toISOString() });
+              } catch (error) {
+                core.warning(`Failed to delete ${branchName}: ${error.message}`);
+                skipped.push({ name: branchName, reason: 'delete failed' });
+              }
+            }
+
+            core.summary.addHeading('Stale branch cleanup', 2);
+            core.summary.addRaw(`Retention window: **${retentionDays} days** (before ${retentionThreshold.toISOString()})`);
+            core.summary.addBreak();
+
+            if (deleted.length === 0) {
+              core.summary.addRaw('No branches were deleted.');
+              core.summary.addBreak();
+            } else {
+              core.summary.addHeading('Deleted branches', 3);
+              core.summary.addTable([
+                [{ data: 'Branch', header: true }, { data: 'Last Updated', header: true }],
+                ...deleted.map((entry) => [entry.name, entry.lastUpdated]),
+              ]);
+            }
+
+            if (skipped.length > 0) {
+              core.summary.addHeading('Skipped branches', 3);
+              core.summary.addTable([
+                [{ data: 'Branch', header: true }, { data: 'Reason', header: true }],
+                ...skipped.map((entry) => [entry.name, entry.reason]),
+              ]);
+            }
+
+            await core.summary.write();
+            core.info(`Deleted ${deleted.length} branches; skipped ${skipped.length} branches.`);

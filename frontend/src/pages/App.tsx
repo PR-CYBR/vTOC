@@ -1,84 +1,48 @@
-import { useMemo, useState } from 'react';
-import { Outlet, Route, Routes, useOutletContext } from 'react-router-dom';
-import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
-import L, { type LatLngExpression } from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { Navigate, NavLink, Route, Routes } from 'react-router-dom';
 
-import ChatKitWidget from '../components/chatkit/ChatKitWidget';
-import { useTelemetryEvents, type TelemetryEvent } from '../services/api';
+import TOCS1Dashboard from './stations/TOCS1';
+import TOCS2Dashboard from './stations/TOCS2';
+import TOCS3Dashboard from './stations/TOCS3';
+import TOCS4Dashboard from './stations/TOCS4';
 
-const DEFAULT_POSITION: LatLngExpression = [18.4663, -66.1057];
-
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
-
-export interface LayoutContextValue {
-  events: TelemetryEvent[];
-  isLoading: boolean;
-}
-
-const AppLayout = () => {
-  const [panelOpen, setPanelOpen] = useState(true);
-  const [assistantOpen, setAssistantOpen] = useState(true);
-  const { data: events = [], isLoading } = useTelemetryEvents();
-
-  const lastEventTimestamp = useMemo(() => {
-    if (!events.length) {
-      return undefined;
-    }
-    const mostRecent = events
-      .map((event) => new Date(event.event_time ?? event.received_at).getTime())
-      .sort((a, b) => b - a)[0];
-    return new Date(mostRecent).toISOString();
-  }, [events]);
-
-  const telemetryContext = useMemo(
-    () => ({
-      events,
-      lastEventTimestamp,
-      defaultStation: import.meta.env.VITE_AGENTKIT_DEFAULT_STATION_CONTEXT ?? 'PR-SJU',
-    }),
-    [events, lastEventTimestamp],
-  );
+const StationNav = () => {
+  const items = [
+    { path: '/stations/toc-s1', label: 'TOC-S1' },
+    { path: '/stations/toc-s2', label: 'TOC-S2' },
+    { path: '/stations/toc-s3', label: 'TOC-S3' },
+    { path: '/stations/toc-s4', label: 'TOC-S4' }
+  ];
 
   return (
-    <div className="app">
-      <aside className={`intel-panel ${panelOpen ? 'open' : 'closed'}`}>
-        <header>
-          <h1>vTOC Intel Feed</h1>
-          <div className="panel-actions">
-            <button onClick={() => setAssistantOpen((value) => !value)}>
-              {assistantOpen ? 'Hide Co-Pilot' : 'Show Co-Pilot'}
-            </button>
-            <button onClick={() => setPanelOpen((value) => !value)}>
-              {panelOpen ? 'Hide' : 'Show'} Intel
-            </button>
-          </div>
-        </header>
-        <div className="intel-body">
-          {isLoading && <p>Loading telemetry…</p>}
-          {!isLoading && events.length === 0 && <p>No telemetry events available.</p>}
-          <ul>
-            {events.map((event) => (
-              <li key={event.id}>
-                <h2>{event.source.name}</h2>
-                <p>{new Date(event.event_time ?? event.received_at).toLocaleString()}</p>
-                <pre>{JSON.stringify(event.payload ?? {}, null, 2)}</pre>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <ChatKitWidget
-          open={assistantOpen}
-          telemetry={telemetryContext}
-          className="chatkit-assistant"
-        />
-      </aside>
-      <main className="map-container">
-        <Outlet context={{ events, isLoading }} />
+    <nav className="station-nav">
+      {items.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          className={({ isActive }) => `station-nav__link${isActive ? ' station-nav__link--active' : ''}`}
+        >
+          {item.label}
+        </NavLink>
+      ))}
+    </nav>
+  );
+};
+
+const App = () => {
+  return (
+    <div className="station-shell">
+      <header className="station-header">
+        <h1>vTOC Station Command</h1>
+        <StationNav />
+      </header>
+      <main className="station-content">
+        <Routes>
+          <Route path="/" element={<Navigate to="/stations/toc-s1" replace />} />
+          <Route path="/stations/toc-s1" element={<TOCS1Dashboard />} />
+          <Route path="/stations/toc-s2" element={<TOCS2Dashboard />} />
+          <Route path="/stations/toc-s3" element={<TOCS3Dashboard />} />
+          <Route path="/stations/toc-s4" element={<TOCS4Dashboard />} />
+        </Routes>
       </main>
     </div>
   );

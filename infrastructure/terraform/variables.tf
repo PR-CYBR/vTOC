@@ -16,5 +16,9 @@ variable "volumes" {
   default = {
     postgres = "vtoc_postgres_data"
     n8n      = "vtoc_n8n_data"
+    station_toc_s1 = "vtoc_station_toc_s1"
+    station_toc_s2 = "vtoc_station_toc_s2"
+    station_toc_s3 = "vtoc_station_toc_s3"
+    station_toc_s4 = "vtoc_station_toc_s4"
   }
 }

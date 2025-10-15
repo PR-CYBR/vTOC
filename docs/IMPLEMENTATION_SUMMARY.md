@@ -1,43 +1,49 @@
 # vTOC Implementation Summary
 
-## Overview
+This summary captures the major components that make up the ChatKit-augmented vTOC platform. Use it alongside the
+[`docs/ARCHITECTURE.md`](ARCHITECTURE.md) reference for deeper dives.
 
-This iteration wires the ChatKit Co-Pilot into the existing telemetry dashboard. The React frontend now exposes a routed layout with a persistent assistant panel, while the FastAPI backend proxies AgentKit operations, logs action lifecycle data, and secures ChatKit webhooks.
+## Backend API (FastAPI)
 
-## Frontend Enhancements
+- Location: `backend/`
+- Exposes REST routers for telemetry, stations, and mission management (`/api/v1/*`).
+- Hosts `/api/v1/chatkit/webhook` for ChatKit event ingestion and `/api/v1/agentkit/runs` for internal job tracking.
+- Uses SQLAlchemy models synced via Alembic migrations (`alembic/`).
+- Integrates with ChatKit and AgentKit using environment variables documented in [`README.md`](../README.md).
+- Provides role-aware dependency overrides so that each station resolves its own Postgres database.
 
-- Introduced a router shell (`react-router-dom`) so the telemetry map renders via nested routes and the assistant remains mounted.
-- Added `ChatKitWidget` to encapsulate loading the ChatKit web component, bind telemetry context, and expose environment-driven configuration.
-- Implemented `services/agentActions.ts` providing React Query queries/mutations for AgentKit tools, audits, and optimistic execution flows.
-- Expanded styling to support a dedicated assistant container and interaction controls.
-- Added Vitest unit tests for the widget plus Playwright smoke coverage that boots a Vite preview build and toggles the assistant UI.
+## Frontend application (Vite + React + TypeScript)
 
-## Backend Enhancements
+- Location: `frontend/`
+- Offers dashboards for Operations, Intelligence, and Logistics stations with role-specific panels.
+- Includes a ChatKit console sidebar that streams mission threads and AgentKit status updates via the API.
+- Consumes the backend through `src/services/api.ts` and honors environment variables from `.env.station`.
+- Tested via Vitest (`pnpm --dir frontend test`).
 
-- Created `config.Settings` to manage AgentKit credentials, timeouts, and webhook secrets.
-- Added an `AgentKitClient` service for consistent HTTP interactions (tool listing, action execution, action lookup) with error surfacing.
-- Introduced the `/api/v1/agent-actions` router exposing:
-  - `GET /tools` – filtered tool metadata from AgentKit.
-  - `POST /execute` – executes AgentKit tools and records audit rows.
-  - `GET /audits` – surfaces recent action audit entries.
-  - `POST /webhook` – validates ChatKit HMAC signatures and updates audit records.
-- Added the `agent_action_audits` SQLAlchemy model and Alembic migration `20240210_0002_agent_actions`.
-- Wrote pytest coverage for the execution endpoint and webhook signature validation using an in-memory SQLite database and dependency overrides.
+## Telemetry ingestion layer
 
-## Tooling & CI
+- Location: `agents/` and `backend/app/telemetry`.
+- `agents/scraper` pulls from ADS-B, AIS, APRS, TLE, RTL-SDR, Meshtastic, GPS, and custom connectors defined in
+  [`docs/TELEMETRY_CONNECTORS.md`](TELEMETRY_CONNECTORS.md).
+- AgentKit playbooks reuse the same connector implementations through `agents/lib/connector_runner.py`.
+- Telemetry events persist to station-specific Postgres schemas and can be broadcast to ChatKit threads using
+  `TELEMETRY_BROADCAST_URL`.
 
-- Updated requirements to include `httpx`, `pytest`, and `pytest-asyncio` for backend testing, plus `@playwright/test` on the frontend.
-- Extended the GitHub Actions workflow to install Playwright browsers, run Playwright tests after the Vite build, and add a smoke assertion for the new `/api/v1/agent-actions/audits` endpoint.
+## Chat orchestration (ChatKit + AgentKit)
 
-## Configuration Summary
+- ChatKit organizes channels per station and threads per mission.
+- Backend webhook normalizes messages, applies station role policies, and schedules AgentKit runs.
+- AgentKit executes playbooks declared in `agents/config/agentkit.yml`, publishing summaries back to ChatKit and the mission log.
+- `scripts/setup.sh` provisions sandbox channels and stores their IDs inside `.env.station`.
 
-| Scope | Variable | Description |
-| --- | --- | --- |
-| Frontend | `VITE_CHATKIT_API_KEY` | Public ChatKit key required to render the assistant. |
-| Frontend | `VITE_AGENTKIT_ORG_ID` | AgentKit org id shared with the backend and widget. |
-| Frontend | `VITE_AGENTKIT_DEFAULT_STATION_CONTEXT` | Default mission/sector context passed to the assistant. |
-| Backend | `AGENTKIT_API_BASE_URL` | AgentKit REST base URL. |
-| Backend | `AGENTKIT_API_KEY` | AgentKit bearer token. |
-| Backend | `CHATKIT_WEBHOOK_SECRET` | Secret used to verify incoming ChatKit webhooks. |
+## Infrastructure & automation
 
-Populate these values locally using `scripts/setup_local.sh`, `.env.local`, or platform secrets before enabling the assistant in production.
+- Makefile targets (`setup-local`, `setup-container`, `setup-cloud`, `compose-up`, `compose-down`) provide consistent workflows.
+- `docs/DEPLOYMENT.md` covers Docker Compose, Swarm, Fly.io (`live` branch), and Terraform snippets for multi-station Postgres.
+- GitHub Actions pipelines build and push container images to GHCR.
+
+## Documentation & change management
+
+- Quick start, deployment, and architecture docs are synchronized with ChatKit/AgentKit requirements.
+- [`docs/CHANGELOG.md`](CHANGELOG.md) describes the migration path from the pre-ChatKit release.
+- [`CONTRIBUTING.md`](../CONTRIBUTING.md) outlines development standards and testing expectations.

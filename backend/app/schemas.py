@@ -2,9 +2,36 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class StationBase(BaseModel):
+    slug: str
+    name: str
+    description: Optional[str] = None
+    timezone: str = "UTC"
+    telemetry_schema: Optional[str] = None
+
+
+class StationCreate(StationBase):
+    pass
+
+
+class StationUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    timezone: Optional[str] = None
+    telemetry_schema: Optional[str] = None
+
+
+class StationRead(StationBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    updated_at: datetime
 
 
 class TelemetrySourceBase(BaseModel):
@@ -15,6 +42,7 @@ class TelemetrySourceBase(BaseModel):
     is_active: bool = True
     connection_mode: str = "online"
     configuration: Optional[dict] = None
+    station_id: Optional[int] = None
 
 
 class TelemetrySourceCreate(TelemetrySourceBase):
@@ -29,6 +57,7 @@ class TelemetrySourceUpdate(BaseModel):
     is_active: Optional[bool] = None
     connection_mode: Optional[str] = None
     configuration: Optional[dict] = None
+    station_id: Optional[int] = None
 
 
 class TelemetrySourceRead(TelemetrySourceBase):
@@ -38,6 +67,7 @@ class TelemetrySourceRead(TelemetrySourceBase):
     last_ingested_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+    station: Optional[StationRead] = None
 
 
 class TelemetryEventBase(BaseModel):
@@ -50,6 +80,7 @@ class TelemetryEventBase(BaseModel):
     payload: Optional[dict] = None
     raw_data: Optional[str] = None
     status: Optional[str] = 'received'
+    station_id: Optional[int] = None
 
 
 class TelemetryEventCreate(TelemetryEventBase):
@@ -79,45 +110,64 @@ class TelemetryEventRead(TelemetryEventBase):
 
 class TelemetryEventWithSource(TelemetryEventRead):
     source: TelemetrySourceRead
+    station: Optional[StationRead] = None
 
 
-class AgentTool(BaseModel):
-    name: str
-    description: str
-    signature: Dict[str, Any]
-    category: Optional[str] = None
+class StationAssignmentBase(BaseModel):
+    station_id: int
+    source_id: int
+    role: str = "primary"
+    is_active: bool = True
 
 
-class AgentActionExecuteRequest(BaseModel):
-    tool_name: str
-    action_input: Dict[str, Any]
-    metadata: Optional[Dict[str, Any]] = None
+class StationAssignmentCreate(StationAssignmentBase):
+    pass
 
 
-class AgentActionExecuteResponse(BaseModel):
-    action_id: str
-    status: str
-    result: Optional[Dict[str, Any]] = None
-    message: Optional[str] = None
-
-
-class AgentActionWebhookEvent(BaseModel):
-    action_id: str
-    status: str
-    result: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
-
-
-class AgentActionAuditRead(BaseModel):
+class StationAssignmentRead(StationAssignmentBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    action_id: str
-    tool_name: str
-    status: str
-    request_payload: Optional[Dict[str, Any]] = None
-    response_payload: Optional[Dict[str, Any]] = None
-    error_message: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    completed_at: Optional[datetime] = None
+    station: StationRead
+    source: TelemetrySourceRead
+
+
+class StationDashboardMetrics(BaseModel):
+    total_events: int
+    active_sources: int
+    last_event: Optional[TelemetryEventRead] = None
+
+
+class StationDashboard(BaseModel):
+    station: StationRead
+    metrics: StationDashboardMetrics
+
+
+class StationTask(BaseModel):
+    id: str
+    title: str
+    status: str
+    priority: str
+    created_at: datetime
+    due_at: Optional[datetime] = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class StationTaskQueue(BaseModel):
+    station: StationRead
+    tasks: List[StationTask]
+
+
+class AgentAction(BaseModel):
+    name: str
+    description: str
+    endpoint: str
+    method: str = "POST"
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class StationAgentCatalog(BaseModel):
+    station: StationRead
+    actions: List[AgentAction]
