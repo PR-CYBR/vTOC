@@ -69,6 +69,7 @@ API Documentation is available at `/api/docs` (Swagger UI) and `/api/redoc` (ReD
 React-based single-page application with:
 
 - Dashboard with real-time statistics
+- Immersive geospatial dashboard with live telemetry map overlays
 - Operations management
 - Mission tracking
 - Asset inventory
@@ -123,6 +124,18 @@ cd frontend
 npm install
 npm start
 ```
+
+#### Map configuration
+
+The dashboard map is powered by [Leaflet](https://leafletjs.com/) through `react-leaflet`. To enable the map and telemetry overlays:
+
+1. Ensure the frontend is configured with the API endpoint that serves telemetry data using the `REACT_APP_API_URL` environment variable.
+2. Provide backend telemetry endpoints at:
+   - `GET /telemetry/assets/` — returns an array of asset objects with latitude/longitude (and optional `heading`, `speed`, `status`, `source`).
+   - `GET /telemetry/tracks/` — returns an array of track objects containing a `points`/`coordinates` collection with latitude/longitude pairs and an optional `source` identifier.
+3. Each unique `source` value is presented as a toggleable layer on the map, allowing operators to control visibility per feed.
+
+If your telemetry payloads use different field names, adjust the adapter in `frontend/src/services/telemetryAdapter.js` to normalise them before they reach the map component.
 
 ### Running Tests
 

@@ -58,4 +58,9 @@ export const agentsAPI = {
   delete: (id) => api.delete(`/agents/${id}`),
 };
 
+export const telemetryAPI = {
+  getAssetLocations: (params = {}) => api.get('/telemetry/assets/', { params }),
+  getTracks: (params = {}) => api.get('/telemetry/tracks/', { params }),
+};
+
 export default api;
