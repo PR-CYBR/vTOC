@@ -24,6 +24,7 @@ services:
       POSTGRES_PASSWORD: vtocpass
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
     networks:
       - overlay
 
@@ -31,6 +32,10 @@ services:
     image: ghcr.io/pr-cybr/vtoc/backend:latest
     environment:
       DATABASE_URL: postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc
+      DATABASE_URL_TOC_S1: postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s1
+      DATABASE_URL_TOC_S2: postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s2
+      DATABASE_URL_TOC_S3: postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s3
+      DATABASE_URL_TOC_S4: postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s4
     networks:
       - overlay
       - edge
