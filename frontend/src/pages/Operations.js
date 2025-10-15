@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { operationsAPI } from '../services/api';
+import { useApi } from '../services/api';
 
 function Operations() {
-  const [operations, setOperations] = useState([]);
+  const { operations } = useApi();
+  const [operationsList, setOperationsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchOperations();
-  }, []);
+    const fetchOperations = async () => {
+      try {
+        const response = await operations.getAll();
+        setOperationsList(response.data);
+      } catch (error) {
+        console.error('Error fetching operations:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchOperations = async () => {
-    try {
-      const response = await operationsAPI.getAll();
-      setOperations(response.data);
-    } catch (error) {
-      console.error('Error fetching operations:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchOperations();
+  }, [operations]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -36,7 +37,7 @@ function Operations() {
           <button className="button">+ New Operation</button>
         </div>
 
-        {operations.length === 0 ? (
+        {operationsList.length === 0 ? (
           <p>No operations found. Create your first operation to get started.</p>
         ) : (
           <table>
@@ -51,7 +52,7 @@ function Operations() {
               </tr>
             </thead>
             <tbody>
-              {operations.map((op) => (
+              {operationsList.map((op) => (
                 <tr key={op.id}>
                   <td>{op.code_name}</td>
                   <td>{op.name}</td>
