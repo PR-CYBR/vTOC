@@ -13,6 +13,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install flyctl
         uses: superfly/flyctl-actions/setup-flyctl@v1
+      - name: Authenticate Fly remote builder with GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_DEPLOY_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          AUTH_VALUE=$(echo -n "${GHCR_USER}:${GHCR_TOKEN}" | base64)
+          echo "DOCKER_AUTH_CONFIG={\"auths\":{\"ghcr.io\":{\"auth\":\"${AUTH_VALUE}\"}}}" >> "$GITHUB_ENV"
       - name: Deploy to Fly.io
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
