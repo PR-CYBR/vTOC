@@ -48,4 +48,40 @@ const App = () => {
   );
 };
 
+const DashboardRoute = () => {
+  const { events, isLoading } = useOutletContext<LayoutContextValue>();
+
+  const markers = useMemo(() => {
+    return events.filter((event) => event.latitude && event.longitude);
+  }, [events]);
+
+  return (
+    <>
+      {isLoading && <p className="sr-only">Map is syncing telemetry…</p>}
+      <MapContainer center={DEFAULT_POSITION} zoom={8} scrollWheelZoom>
+        <TileLayer
+          url={import.meta.env.VITE_MAP_TILES_URL}
+          attribution={import.meta.env.VITE_MAP_ATTRIBUTION}
+        />
+        {markers.map((event) => (
+          <Marker key={event.id} position={[event.latitude!, event.longitude!] as LatLngExpression}>
+            <Popup>
+              <strong>{event.source.name}</strong>
+              <div>{new Date(event.event_time ?? event.received_at).toLocaleString()}</div>
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
+    </>
+  );
+};
+
+const App = () => (
+  <Routes>
+    <Route element={<AppLayout />}>
+      <Route index element={<DashboardRoute />} />
+    </Route>
+  </Routes>
+);
+
 export default App;
