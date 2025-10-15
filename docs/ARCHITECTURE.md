@@ -1,305 +1,105 @@
 # vTOC Architecture Overview
 
-## System Architecture
+The vTOC platform combines a map-centric operations UI, a FastAPI backend, ChatKit collaboration channels, and AgentKit
+playbooks orchestrating telemetry workflows. Stations are isolated by role yet share a common multi-tenant Postgres cluster and
+ChatKit organization. This document describes the high-level architecture and the data flows that connect these components.
 
-vTOC follows a microservice architecture pattern with the following components:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Traefik Proxy                         │
-│                   (Reverse Proxy / Load Balancer)           │
-└────────┬─────────────────────────────────────────┬──────────┘
-         │                                         │
-         │                                         │
-    ┌────▼─────┐                            ┌─────▼──────┐
-    │ Frontend │                            │  Backend   │
-    │  React   │◄───────────────────────────┤   FastAPI  │
-    │   SPA    │      API Calls             │    API     │
-    └──────────┘                            └─────┬──────┘
-                                                  │
-                                                  │
-                                            ┌─────▼──────┐
-                                            │ PostgreSQL │
-                                            │  Database  │
-                                            └─────┬──────┘
-                                                  │
-    ┌─────────────────────────────────────────────┤
-    │                                             │
-┌───▼────────┐  ┌──────────────┐  ┌─────────────▼─┐
-│   n8n      │  │    Wazuh     │  │     Agents    │
-│ Workflows  │  │   Security   │  │   Automation  │
-└────────────┘  └──────────────┘  └───────────────┘
-```
-
-## Component Details
-
-### 1. Frontend (React)
-
-**Technology Stack:**
-- React 18.x
-- React Router for navigation
-- Axios for API communication
-- Custom CSS for styling
-
-**Key Features:**
-- Single Page Application (SPA)
-- Responsive design
-- Real-time data updates
-- Intuitive dashboard
-
-**Pages:**
-- Dashboard: Overview and statistics
-- Operations: Manage tactical operations
-- Missions: Track mission objectives
-- Assets: Resource management
-- Intelligence: Reports and analysis
-- Agents: Automation control
-
-### 2. Backend (FastAPI)
-
-**Technology Stack:**
-- Python 3.11
-- FastAPI framework
-- SQLAlchemy ORM
-- Pydantic for data validation
-- Uvicorn ASGI server
-
-**Database Models:**
-- Operations
-- Missions
-- Assets
-- Intelligence Reports
-- Agents
-
-**API Features:**
-- RESTful endpoints
-- Automatic OpenAPI documentation
-- Data validation
-- Database transactions
-- Error handling
-
-### 3. Database (PostgreSQL)
-
-**Features:**
-- Relational data storage
-- ACID compliance
-- Connection pooling
-- Automatic backups via volumes
-
-**Tables:**
-- operations
-- missions
-- assets
-- intel_reports
-- agents
-
-### 4. Reverse Proxy (Traefik)
-
-**Features:**
-- Automatic service discovery
-- Load balancing
-- SSL/TLS termination
-- Dashboard monitoring
-- Middleware support
-
-**Routing:**
-- `/` → Frontend
-- `/api/*` → Backend API
-- `/n8n/*` → n8n workflows
-- `:8080` → Traefik dashboard
-
-### 5. Workflow Automation (n8n)
-
-**Purpose:**
-- Automate repetitive tasks
-- Integrate external services
-- Schedule operations
-- Process webhooks
-
-**Pre-configured Workflows:**
-- Operations monitoring
-- Security alert handling
-- Data synchronization
-
-### 6. Security (Wazuh)
-
-**Features:**
-- Intrusion detection
-- Log analysis
-- File integrity monitoring
-- Vulnerability detection
-- Security compliance
-
-### 7. Automation Agents
-
-**Agent Types:**
-
-1. **Monitor Agent**
-   - System health checks
-   - Metrics collection
-   - Status monitoring
-   - Runs every 5 minutes
-
-2. **Analyzer Agent**
-   - Data analysis
-   - Pattern recognition
-   - Intelligence correlation
-   - Runs every 10 minutes
-
-3. **Executor Agent**
-   - Task execution
-   - Workflow automation
-   - Resource allocation
-   - Runs every 15 minutes
-
-## Data Flow
-
-### 1. User Request Flow
+## System architecture
 
 ```
-User → Frontend → Traefik → Backend API → Database
-                                ↓
-                            Response
-                                ↓
-User ← Frontend ← Traefik ← Backend API
+┌───────────────────────────────┐      ┌────────────────────────────┐
+│   ChatKit Organization        │◄────►│   FastAPI Backend          │
+│ - Shared channels per station │ Web  │ - REST/WS APIs             │
+│ - Threaded ops logs           │hooks │ - ChatKit webhook handler  │
+└─────────────┬─────────────────┘      │ - AgentKit dispatcher      │
+              │                        └────────────┬───────────────┘
+      Station messages                            │
+              │                                   │ SQLAlchemy
+┌─────────────▼──────────────┐           ┌────────▼──────────────┐
+│   AgentKit Control Plane   │  Jobs     │   Postgres Cluster    │
+│ - Role aware playbooks     ├──────────►│ - station_<role> DBs  │
+│ - Telemetry connector shim │           │ - Timescale ext (opt) │
+└─────────────┬──────────────┘           └────────▲──────────────┘
+              │                            │      │
+      Task invocations                      │      │
+              │                     ┌───────┴┐  ┌──┴────────┐
+┌─────────────▼───────────┐        │ Backend │  │ Telemetry │
+│ Frontend (Vite/React)   │        │  API    │  │  Scraper  │
+│ - Mission map overlays   │ REST   │ Routers │  │ + Agents  │
+│ - Chat console sidebar  ◄────────┴─────────┘  └───────────┘
+│ - Station dashboards     │         ▲  ▲
+└──────────────────────────┘         │  │
+                                     │  │
+                          ┌──────────┘  └───────────┐
+                          │ External telemetry feeds │
+                          └──────────────────────────┘
 ```
 
-### 2. Agent Automation Flow
+### Component summary
 
-```
-Schedule → Agent Service → Backend API → Database
-              ↓
-         Log/Action
-              ↓
-          n8n Workflow (optional)
-```
+- **Frontend** — Vite + React application consuming backend APIs. Displays station status, mission overlays, and a ChatKit-driven
+  mission console. Reads `STATION_CALLSIGN` and `POSTGRES_STATION_ROLE` from `.env.station`.
+- **Backend** — FastAPI service exposing REST endpoints, ChatKit webhook listeners, and telemetry ingestion APIs. It maps channel
+  events to AgentKit playbooks based on the station role and persists results to Postgres.
+- **Postgres Cluster** — Multi-database cluster provisioned per station (`vtoc_ops`, `vtoc_intel`, `vtoc_logistics`). Optional
+  TimescaleDB extensions can be enabled for telemetry rollups. Connection details live in the generated `.env.local` file.
+- **ChatKit Organization** — Shared chat fabric for operators and automated agents. Each station owns a default channel named
+  after `STATION_CALLSIGN`. Channels contain threads for missions and telemetry alerts.
+- **AgentKit** — Workflow runner that executes playbooks. Playbooks call telemetry connectors and use the backend APIs to log
+  mission updates. Authentication uses `AGENTKIT_CLIENT_ID` / `AGENTKIT_CLIENT_SECRET`.
+- **Telemetry connectors** — AgentKit tasks and scraper modules that ingest from ADS-B, AIS, APRS, etc. The connectors share the
+  same configuration schema so they can be triggered manually or through ChatKit commands.
 
-### 3. Security Alert Flow
+## Station roles
 
-```
-Wazuh → Security Alert → n8n Webhook → Backend API → Database
-                                            ↓
-                                    Intelligence Report
-```
+Stations isolate operator concerns:
 
-## Deployment Architecture
+| Role | Primary responsibilities | Default playbooks |
+| --- | --- | --- |
+| Operations (`ops`) | Mission coordination, asset deployment, chat command hub. | `op_order_frag`, `op_airtrack_merge`. |
+| Intelligence (`intel`) | Sensor fusion, data enrichment, report generation. | `intel_sigint_rollup`, `intel_rfi_summary`. |
+| Logistics (`logistics`) | Supply tracking, requisitions, status boards. | `log_restock_check`, `log_mission_loadout`. |
 
-### Docker Compose Stack
+Playbook identifiers are defined under `agents/config/agentkit.yml`. The backend exposes them via `/api/v1/stations/<id>/playbooks`.
 
-All services run as Docker containers orchestrated by Docker Compose:
+## Data flows
 
-1. **Networks**: Single bridge network for inter-service communication
-2. **Volumes**: Persistent storage for database and n8n data
-3. **Health Checks**: Automatic service health monitoring
-4. **Dependencies**: Proper startup order with depends_on
+### Operator coordination
 
-### Infrastructure as Code
+1. Operator sends a message in the station ChatKit channel.
+2. ChatKit forwards the event to `/api/v1/chatkit/webhook`.
+3. Backend validates the signature, resolves the station role, and queues an AgentKit job.
+4. AgentKit executes the playbook, optionally invoking telemetry connectors.
+5. Results are stored in Postgres and posted back to ChatKit. Frontend receives updates through the standard REST polling cycle.
 
-**Terraform:**
-- Docker network provisioning
-- Volume management
-- Resource configuration
+### Telemetry ingestion
 
-**Ansible:**
-- System package installation
-- Docker deployment
-- Configuration management
-- Service orchestration
+1. Telemetry connector (standalone agent or AgentKit task) fetches external data.
+2. Connector posts normalized payloads to `/api/v1/telemetry/events`.
+3. Backend writes events to the station-specific Postgres database and publishes notifications to ChatKit threads.
+4. Frontend refreshes map overlays and mission intel panels.
 
-## Security Architecture
+### Station provisioning
 
-### Network Security
+1. Operator runs `make setup-local` or `make setup-container`.
+2. Setup script reads `scripts/inputs.schema.json`, requests ChatKit/AgentKit credentials, and generates `.env.local` and
+   `.env.station`.
+3. When `--apply` is used, the script also bootstraps databases (`station_<role>`), registers roles in Postgres, and seeds
+   default ChatKit channels.
+4. Generated artefacts are referenced by Compose services and by `make compose-up`/`make compose-down` workflows.
 
-- All services on isolated Docker network
-- Traefik as single entry point
-- Internal service communication only
+## Security considerations
 
-### Application Security
+- **Secrets management** — Setup script writes environment files with restricted permissions. Rotate ChatKit/AgentKit credentials
+  regularly and supply them via your preferred secret store in production.
+- **Webhook signing** — ChatKit webhook handler expects the `X-ChatKit-Signature` header. Configure the secret in
+  `CHATKIT_WEBHOOK_SECRET` (optional override).
+- **Database isolation** — Use separate Postgres roles per station when deploying to shared clusters. See
+  [`docs/DEPLOYMENT.md`](DEPLOYMENT.md#multi-station-postgres) for Terraform snippets.
+- **Network segmentation** — Traefik routes external traffic while AgentKit and telemetry connectors run on internal networks.
 
-- Environment variable management
-- API authentication (ready for implementation)
-- CORS configuration
-- Input validation
+## Related documentation
 
-### Monitoring & Alerting
-
-- Wazuh for runtime security
-- Snyk for dependency scanning
-- Traefik for access logs
-- n8n for alert automation
-
-## Scalability Considerations
-
-### Horizontal Scaling
-
-- Stateless backend services
-- Load balancing via Traefik
-- Database connection pooling
-- Shared session storage (Redis ready)
-
-### Vertical Scaling
-
-- Resource limits in Docker Compose
-- Database tuning
-- Connection pool sizing
-- Cache implementation
-
-## High Availability
-
-### Data Persistence
-
-- PostgreSQL volume backups
-- n8n workflow exports
-- Configuration as code
-
-### Service Recovery
-
-- Docker restart policies
-- Health check monitoring
-- Automatic failover (Traefik)
-
-## Performance Optimization
-
-### Backend
-
-- Async/await patterns
-- Database query optimization
-- Connection pooling
-- Caching strategy (ready)
-
-### Frontend
-
-- Code splitting
-- Lazy loading
-- Asset optimization
-- CDN ready
-
-### Database
-
-- Indexed columns
-- Query optimization
-- Connection pooling
-- Read replicas (future)
-
-## Monitoring & Observability
-
-### Logs
-
-- Centralized logging
-- Structured log format
-- Log aggregation ready
-- Real-time log streaming
-
-### Metrics
-
-- API endpoint metrics
-- Service health metrics
-- Agent execution metrics
-- Database performance
-
-### Tracing
-
-- Request tracing ready
-- Performance profiling
-- Error tracking
-- User analytics ready
+- [`docs/DIAGRAMS.md`](DIAGRAMS.md) — visual diagrams describing the same flows.
+- [`docs/TELEMETRY_CONNECTORS.md`](TELEMETRY_CONNECTORS.md) — connector catalog with AgentKit notes.
+- [`docs/CHANGELOG.md`](CHANGELOG.md) — migration guidance for ChatKit/AgentKit rollout.

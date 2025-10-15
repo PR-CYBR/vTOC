@@ -1,261 +1,97 @@
-# vTOC Architecture Diagram
+# vTOC Architecture Diagrams
+
+The diagrams below complement the narrative found in [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) and highlight how ChatKit and
+AgentKit integrate with the platform.
+
+## High-level topology
 
 ```
-                                    ╔═══════════════════════════════════════╗
-                                    ║         External Users / Clients       ║
-                                    ╚═══════════════════════════════════════╝
-                                                     │
-                                                     ▼
-                                    ┌─────────────────────────────────────┐
-                                    │    Traefik Reverse Proxy            │
-                                    │    - Load Balancer                  │
-                                    │    - SSL/TLS Termination            │
-                                    │    - Service Discovery              │
-                                    │    Port: 80, 443, 8080 (dashboard)  │
-                                    └─────────────────────────────────────┘
-                                         │              │              │
-                    ┌────────────────────┴──────┬───────┴─────────────┘
-                    │                           │
-                    ▼                           ▼
-        ┌──────────────────────┐   ┌──────────────────────────────┐
-        │   Frontend (React)   │   │   Backend API (FastAPI)       │
-        │   - SPA UI           │   │   - REST API                  │
-        │   - 6 Pages          │   │   - 5 Routers                 │
-        │   - Responsive       │   │   - Business Logic            │
-        │   Port: 80 (internal)│   │   Port: 8000 (internal)       │
-        └──────────────────────┘   └──────────────────────────────┘
-                                                   │
-                                                   │ Database Queries
-                                                   ▼
-                                    ┌──────────────────────────────┐
-                                    │   PostgreSQL Database        │
-                                    │   - 5 Tables                 │
-                                    │   - Data Persistence         │
-                                    │   - ACID Transactions        │
-                                    │   Port: 5432 (internal)      │
-                                    └──────────────────────────────┘
-                                                   │
-        ┌──────────────────────────────────────────┼───────────────────────────────┐
-        │                                          │                               │
-        ▼                                          ▼                               ▼
-┌────────────────────┐              ┌────────────────────────┐    ┌─────────────────────┐
-│ Automation Agents  │              │  n8n Workflows         │    │  Wazuh Security     │
-│ - Monitor Agent    │              │  - Operations Monitor  │    │  - Intrusion Detect │
-│ - Analyzer Agent   │              │  - Security Handler    │    │  - Log Analysis     │
-│ - Executor Agent   │              │  - Event Processing    │    │  - File Integrity   │
-│ Port: N/A (cron)   │              │  Port: 5678 (internal) │    │  Port: 1514, 1515   │
-└────────────────────┘              └────────────────────────┘    └─────────────────────┘
-
-═════════════════════════════════════════════════════════════════════════════════════════
-                                  Docker Network (vtoc-network)
-═════════════════════════════════════════════════════════════════════════════════════════
-
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                              Docker Volumes (Persistent Storage)                     │
-│                                                                                       │
-│   postgres_data        n8n_data           wazuh_logs        wazuh_etc               │
-│   (Database)           (Workflows)        (Security Logs)   (Config)                │
-└─────────────────────────────────────────────────────────────────────────────────────┘
-
-═════════════════════════════════════════════════════════════════════════════════════════
-                            Infrastructure Management Layer
-═════════════════════════════════════════════════════════════════════════════════════════
-
-┌──────────────────────┐    ┌──────────────────────┐    ┌─────────────────────────┐
-│   Terraform          │    │   Ansible            │    │   GitHub Actions        │
-│   - Infrastructure   │    │   - Configuration    │    │   - CI/CD Pipeline      │
-│   - Provisioning     │    │   - Deployment       │    │   - Testing             │
-│   - Resource Mgmt    │    │   - Orchestration    │    │   - Security Scanning   │
-└──────────────────────┘    └──────────────────────┘    └─────────────────────────┘
+                       External Operators & Sensors
+                                   │
+                                   ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                            ChatKit Organization                           │
+│ ┌──────────────────────┐   ┌──────────────────────┐   ┌─────────────────┐ │
+│ │ Ops Station Channel  │   │ Intel Station Channel│   │ Logistics Chan. │ │
+│ └──────────┬───────────┘   └──────────┬───────────┘   └──────────┬──────┘ │
+└────────────┼──────────────────────────┼───────────────────────────┼────────┘
+             │                          │                           │
+             ▼                          ▼                           ▼
+      ┌────────────┐             ┌────────────┐               ┌────────────┐
+      │ FastAPI    │◄────────────┤ Webhook    ├──────────────►│ AgentKit    │
+      │ Backend    │  REST / WS  │ Router     │    Jobs        │ Control     │
+      └─────┬──────┘             └─────┬──────┘               └────┬───────┘
+            │                          │                           │
+            │                          │                           │
+            ▼                          │                           ▼
+   ┌────────────────┐                  │                 ┌──────────────────┐
+   │ Postgres       │◄─────────────────┴─────────────────┤ Telemetry Agents │
+   │ station_ops    │    SQLAlchemy                      │ & Connectors     │
+   │ station_intel  │                                   └──────────────────┘
+   │ station_log    │
+   └────────────────┘
+            ▲
+            │ REST
+            ▼
+   ┌────────────────────┐
+   │ Vite/React Frontend│
+   │ - Map overlays     │
+   │ - Chat console     │
+   │ - Station metrics  │
+   └────────────────────┘
 ```
 
-## Data Flow Diagrams
-
-### User Request Flow
+## Multi-station topology
 
 ```
-User → Frontend → Traefik → Backend API → Database
-                                ↓
-                            Response
-                                ↓
-User ← Frontend ← Traefik ← Backend API
+┌────────────────────────────────────────────────────┐
+│                 Postgres Instance                  │
+│  ┌─────────────────────┬─────────────────────┬────┐│
+│  │ vtoc_ops (DB + role)│ vtoc_intel          │ ...││
+│  │ - ops_user          │ - intel_user        │    ││
+│  │ - migrations        │ - migrations        │    ││
+│  └──────────┬──────────┴──────────┬──────────┴────┘│
+└─────────────┼─────────────────────┼────────────────┘
+              │                     │
+              │                     │
+      ┌───────▼────────┐    ┌───────▼────────┐
+      │ Ops Station    │    │ Intel Station  │
+      │ Backend Pod    │    │ Backend Pod    │
+      │ DATABASE_URL → │    │ DATABASE_URL → │
+      │ vtoc_ops       │    │ vtoc_intel     │
+      └───────┬────────┘    └───────┬────────┘
+              │                     │
+              ▼                     ▼
+      ChatKit Channel         ChatKit Channel
+      AgentKit Playbooks      AgentKit Playbooks
 ```
 
-### Agent Automation Flow
+## ChatKit event flow
 
 ```
-Scheduler → Agent Service → Backend API → Database
-               ↓
-          Log/Action
-               ↓
-         n8n Workflow (optional)
-               ↓
-         Backend API (update)
+Operator message → ChatKit channel → Webhook (FastAPI) → AgentKit run →
+Telemetry connector (optional) → Postgres event store → ChatKit thread update →
+Frontend refresh
 ```
 
-### Security Alert Flow
+## Deployment pipeline
 
 ```
-Wazuh → Alert Generated → n8n Webhook → Backend API → Database
-                                             ↓
-                                     Intelligence Report Created
-                                             ↓
-                                      Frontend (display)
+Developer commits → GitHub Actions (build/test) → GHCR images →
+├── Docker Compose (make compose-up)
+├── Docker Swarm (docker stack deploy)
+└── Fly.io (git checkout live && flyctl deploy)
 ```
 
-## Service Communication Matrix
+## Secrets lifecycle
 
 ```
-┌──────────┬─────────┬──────────┬──────────┬─────┬────────┬────────┐
-│ Service  │ Traefik │ Backend  │ Database │ n8n │ Agents │ Wazuh  │
-├──────────┼─────────┼──────────┼──────────┼─────┼────────┼────────┤
-│ Frontend │    ✓    │          │          │     │        │        │
-│ Backend  │    ✓    │    ✓     │    ✓     │  ✓  │   ✓    │   ✓    │
-│ Database │         │    ✓     │    ✓     │     │   ✓    │        │
-│ n8n      │    ✓    │    ✓     │          │  ✓  │        │        │
-│ Agents   │         │    ✓     │          │     │   ✓    │        │
-│ Wazuh    │         │    ✓     │          │  ✓  │        │   ✓    │
-└──────────┴─────────┴──────────┴──────────┴─────┴────────┴────────┘
+make setup-local → prompt for ChatKit/AgentKit creds → write .env.local/.env.station
+         │
+         ├─ optional: Terraform renders secret manager references
+         │
+         └─ make setup-container --apply → inject secrets into generated compose file
 ```
 
-## Port Mapping
-
-```
-External Port → Internal Port → Service
-─────────────────────────────────────────
-80            → 80             → Traefik (HTTP)
-443           → 443            → Traefik (HTTPS)
-8080          → 8080           → Traefik (Dashboard)
-              → 8000           → Backend API
-              → 80             → Frontend (Nginx)
-              → 5432           → PostgreSQL
-              → 5678           → n8n
-              → 1514           → Wazuh (Syslog)
-              → 1515           → Wazuh (API)
-```
-
-## Technology Stack Layers
-
-```
-┌──────────────────────────────────────────────────────────┐
-│                    Presentation Layer                     │
-│                                                           │
-│  React 18 │ React Router │ Axios │ Custom CSS            │
-└──────────────────────────────────────────────────────────┘
-                            │
-┌──────────────────────────────────────────────────────────┐
-│                    Application Layer                      │
-│                                                           │
-│  FastAPI │ Pydantic │ Python 3.11 │ Uvicorn              │
-└──────────────────────────────────────────────────────────┘
-                            │
-┌──────────────────────────────────────────────────────────┐
-│                    Data Access Layer                      │
-│                                                           │
-│  SQLAlchemy │ psycopg2 │ Alembic Migrations              │
-└──────────────────────────────────────────────────────────┘
-                            │
-┌──────────────────────────────────────────────────────────┐
-│                      Data Layer                           │
-│                                                           │
-│  PostgreSQL 15 │ JSON │ Indexes │ Constraints            │
-└──────────────────────────────────────────────────────────┘
-```
-
-## Deployment Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                   Development                            │
-│                                                          │
-│  Local Machine → docker-compose up -d                   │
-└─────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────┐
-│                    CI/CD Pipeline                        │
-│                                                          │
-│  GitHub → Actions → Test → Build → Security Scan        │
-└─────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────┐
-│                   Production                             │
-│                                                          │
-│  Terraform → Ansible → Docker Swarm/K8s (optional)      │
-└─────────────────────────────────────────────────────────┘
-```
-
-## Security Layers
-
-```
-┌──────────────────────────────────────────────────────────┐
-│ Layer 1: Network Security                                │
-│ - Docker Network Isolation                               │
-│ - Traefik as Single Entry Point                          │
-│ - Internal Service Communication Only                    │
-└──────────────────────────────────────────────────────────┘
-                            │
-┌──────────────────────────────────────────────────────────┐
-│ Layer 2: Application Security                            │
-│ - Environment Variables                                   │
-│ - CORS Configuration                                      │
-│ - Input Validation (Pydantic)                            │
-│ - SQL Injection Prevention (SQLAlchemy)                  │
-└──────────────────────────────────────────────────────────┘
-                            │
-┌──────────────────────────────────────────────────────────┐
-│ Layer 3: Runtime Security                                │
-│ - Wazuh Monitoring                                       │
-│ - Log Analysis                                           │
-│ - Intrusion Detection                                    │
-│ - File Integrity Monitoring                              │
-└──────────────────────────────────────────────────────────┘
-                            │
-┌──────────────────────────────────────────────────────────┐
-│ Layer 4: Supply Chain Security                           │
-│ - Snyk Vulnerability Scanning                            │
-│ - Dependency Checking                                    │
-│ - Container Image Scanning                               │
-│ - Automated Updates                                      │
-└──────────────────────────────────────────────────────────┘
-```
-
-## Scalability Architecture
-
-```
-                  ┌─────────────────┐
-                  │  Load Balancer  │
-                  │    (Traefik)    │
-                  └────────┬────────┘
-                           │
-        ┌──────────────────┼──────────────────┐
-        │                  │                  │
-        ▼                  ▼                  ▼
-  ┌──────────┐      ┌──────────┐      ┌──────────┐
-  │ Backend  │      │ Backend  │      │ Backend  │
-  │ Instance │      │ Instance │      │ Instance │
-  │    #1    │      │    #2    │      │    #3    │
-  └─────┬────┘      └─────┬────┘      └─────┬────┘
-        │                  │                  │
-        └──────────────────┼──────────────────┘
-                           │
-                    ┌──────▼──────┐
-                    │  PostgreSQL │
-                    │   Primary   │
-                    └──────┬──────┘
-                           │
-                    ┌──────▼──────┐
-                    │  PostgreSQL │
-                    │   Replica   │
-                    │  (Optional) │
-                    └─────────────┘
-```
-
----
-
-**Legend:**
-- `│` `─` `┌` `└` `┐` `┘` : Box drawing
-- `→` : Data/Request flow
-- `▼` : Downward flow
-- `✓` : Communication enabled
+Refer back to [`docs/DEPLOYMENT.md`](DEPLOYMENT.md) for command examples and to [`docs/TELEMETRY_CONNECTORS.md`](TELEMETRY_CONNECTORS.md)
+for connector-specific diagrams.
