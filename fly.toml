@@ -1,0 +1,11 @@
+app = "vtoc-app"
+primary_region = "iad"
+
+[build]
+  image = "ghcr.io/pr-cybr/vtoc/backend:latest"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true

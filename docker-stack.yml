@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v2.11
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - edge
+
+  database:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: vtoc
+      POSTGRES_USER: vtoc
+      POSTGRES_PASSWORD: vtocpass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - overlay
+
+  backend:
+    image: ghcr.io/pr-cybr/vtoc/backend:latest
+    environment:
+      DATABASE_URL: postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc
+    networks:
+      - overlay
+      - edge
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.backend.rule=Host(`api.vtoc.local`)
+        - traefik.http.routers.backend.entrypoints=web
+        - traefik.http.services.backend.loadbalancer.server.port=8080
+
+  frontend:
+    image: ghcr.io/pr-cybr/vtoc/frontend:latest
+    networks:
+      - edge
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.frontend.rule=Host(`vtoc.local`)
+        - traefik.http.routers.frontend.entrypoints=web
+        - traefik.http.services.frontend.loadbalancer.server.port=8081
+
+  scraper:
+    image: ghcr.io/pr-cybr/vtoc/scraper:latest
+    environment:
+      BACKEND_BASE_URL: http://backend:8080
+    networks:
+      - overlay
+
+  # Optional integrations can be enabled by removing the surrounding comments and providing secrets.
+  # zerotier:
+  #   image: zerotier/zerotier:latest
+  #   environment:
+  #     - ZEROTIER_NETWORK_ID=${ZEROTIER_NETWORK_ID}
+  #   networks:
+  #     - edge
+  # tailscale:
+  #   image: tailscale/tailscale:latest
+  #   environment:
+  #     - TS_AUTHKEY=${TS_AUTHKEY}
+  #   networks:
+  #     - edge
+  # mediamtx:
+  #   image: bluenviron/mediamtx:latest
+  #   networks:
+  #     - overlay
+  # takserver:
+  #   image: atakmap/takserver:latest
+  #   networks:
+  #     - overlay
+
+networks:
+  edge:
+    driver: overlay
+  overlay:
+    driver: overlay
+
+volumes:
+  postgres_data:

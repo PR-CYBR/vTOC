@@ -1,0 +1,9 @@
+{
+  "projectName": "vtoc",
+  "services": {
+    "traefik": true,
+    "postgres": true,
+    "n8n": false,
+    "wazuh": false
+  }
+}

@@ -1,1 +1,4 @@
-# Empty file to make this a Python package
+"""vTOC backend package."""
+from .main import app
+
+__all__ = ["app"]
