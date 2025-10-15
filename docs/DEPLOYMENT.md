@@ -105,6 +105,8 @@ The Fly deployment ships the backend container using the `live` branch as the so
 5. In AgentKit, register client credentials and map playbooks to the same station roles used in ChatKit. Update
    `agents/config/agentkit.yml` accordingly.
 
+For visibility into what is currently running in production, use the GitHub Discussion **Deployment Strategy: live branch**. Copy the [live branch operations guide](communications/live-branch.md) into the discussion to seed it if it does not exist, and post deployment or rollback updates there so operators can subscribe to changes.
+
 ## Sample configuration inputs
 
 Example `inputs.json` enabling Traefik, specifying station roles, and seeding ChatKit automation:

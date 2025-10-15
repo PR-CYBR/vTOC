@@ -130,4 +130,4 @@ or containerize via the provided Dockerfile.
 * [`docs/DIAGRAMS.md`](docs/DIAGRAMS.md) — updated system diagrams referencing ChatKit and station boundaries.
 * [`docs/CHANGELOG.md`](docs/CHANGELOG.md) — migration notes for existing operators.
 
-For contribution guidelines and test plans visit [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Additional deployment guidance is available in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) including Compose, Swarm, Fly.io, and sample `inputs.json` files for each setup mode. For production status updates and release notes, subscribe to the GitHub Discussion **Deployment Strategy: live branch** (link in the deployment guide) so you know when `live` has been updated and whether a rollback or hotfix is in flight.
