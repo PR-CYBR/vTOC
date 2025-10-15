@@ -6,8 +6,24 @@ from typing import List, Optional
 import logging
 
 from app.database import engine, get_db, Base
-from app.routers import operations, missions, assets, intel, agents
-from app.models import Operation, Mission, Asset, IntelReport
+from app.routers import (
+    operations,
+    missions,
+    assets,
+    intel,
+    agents,
+    telemetry_sources,
+    telemetry_events,
+    telemetry_ingest,
+)
+from app.models import (
+    Operation,
+    Mission,
+    Asset,
+    IntelReport,
+    TelemetryEvent,
+    TelemetrySource,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +57,21 @@ app.include_router(missions.router, prefix="/api/missions", tags=["missions"])
 app.include_router(assets.router, prefix="/api/assets", tags=["assets"])
 app.include_router(intel.router, prefix="/api/intel", tags=["intelligence"])
 app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
+app.include_router(
+    telemetry_sources.router,
+    prefix="/api/telemetry/sources",
+    tags=["telemetry"],
+)
+app.include_router(
+    telemetry_events.router,
+    prefix="/api/telemetry/events",
+    tags=["telemetry"],
+)
+app.include_router(
+    telemetry_ingest.router,
+    prefix="/api/telemetry/ingest",
+    tags=["telemetry"],
+)
 
 @app.get("/")
 async def root():
@@ -69,7 +100,10 @@ async def metrics():
             "/api/missions",
             "/api/assets",
             "/api/intel",
-            "/api/agents"
+            "/api/agents",
+            "/api/telemetry/sources",
+            "/api/telemetry/events",
+            "/api/telemetry/ingest",
         ]
     }
 
