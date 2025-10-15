@@ -71,4 +71,4 @@ alembic upgrade head
 
 ## Documentation
 
-Additional deployment guidance is available in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) including Compose, Swarm, Fly.io, and sample `inputs.json` files for each setup mode.
+Additional deployment guidance is available in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) including Compose, Swarm, Fly.io, and sample `inputs.json` files for each setup mode. For production status updates and release notes, subscribe to the GitHub Discussion **Deployment Strategy: live branch** (link in the deployment guide) so you know when `live` has been updated and whether a rollback or hotfix is in flight.

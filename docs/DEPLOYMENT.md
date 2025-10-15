@@ -60,6 +60,8 @@ flyctl deploy --image ghcr.io/<repo>/backend:<sha> --remote-only
 
 A GitHub Actions workflow (`fly-deploy.yml`) runs the same command when triggered manually or on version tags starting with `v`.
 
+For visibility into what is currently running in production, use the GitHub Discussion **Deployment Strategy: live branch**. Copy the [live branch operations guide](communications/live-branch.md) into the discussion to seed it if it does not exist, and post deployment or rollback updates there so operators can subscribe to changes.
+
 ## Sample configuration inputs
 
 Example `inputs.json` enabling Traefik in container mode and customizing the cloud provider:
