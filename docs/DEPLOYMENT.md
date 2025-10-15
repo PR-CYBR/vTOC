@@ -86,13 +86,34 @@ The Fly deployment ships the backend container using the `live` branch as the so
 
 1. Ensure `fly.toml` has `primary_region`, `app`, and `[env]` entries for ChatKit/AgentKit secrets or references to Fly secrets.
 2. Authenticate: `flyctl auth login` (or set `FLY_API_TOKEN`).
-3. Deploy the current `live` branch:
+3. Generate a **read-only** GitHub Container Registry token:
+   - Navigate to <https://github.com/settings/tokens?type=beta>.
+   - Create a fine-grained personal access token scoped to the `PR-CYBR/vTOC` repository with **read-only** permissions for
+     GitHub Packages.
+   - Record the username (usually your GitHub handle) and the token value.
+4. Export registry credentials for the remote Fly builder:
+   ```bash
+   export GHCR_USERNAME=<github-handle>
+   export GHCR_TOKEN=<read-only-ghcr-pat>
+   AUTH=$(printf '%s:%s' "$GHCR_USERNAME" "$GHCR_TOKEN" | base64 | tr -d '\n')
+   cat <<EOF > docker-auth.json
+{"auths":{"ghcr.io":{"auth":"$AUTH"}}}
+EOF
+   export DOCKER_AUTH_CONFIG=$(cat docker-auth.json)
+   rm docker-auth.json
+   ```
+   The inline auth export mirrors `docker login ghcr.io` and ensures the remote-only build step can pull the private image.
+   Alternatively, run `docker login ghcr.io` and export `DOCKER_CONFIG` pointing to your Docker config directory before
+   invoking `flyctl deploy`.
+5. Deploy the current `live` branch with the prebuilt image:
    ```bash
    git checkout live
    flyctl deploy --remote-only
    ```
-4. GitHub Actions triggers (`fly-deploy.yml`) automatically deploy when `live` updates or when `v*` tags are pushed.
-5. Post-deployment, verify health: `flyctl status`, `flyctl logs`, and `curl https://<app>.fly.dev/healthz`.
+   Operators can use the helper script `scripts/fly_deploy.sh` to automate the auth JSON handoff when running promotions from
+   their workstation.
+6. GitHub Actions triggers (`fly-deploy.yml`) automatically deploy when `live` updates or when `v*` tags are pushed.
+7. Post-deployment, verify health: `flyctl status`, `flyctl logs`, and `curl https://<app>.fly.dev/healthz`.
 
 ## ChatKit configuration steps
 

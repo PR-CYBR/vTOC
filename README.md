@@ -83,7 +83,9 @@ Images are built and pushed to GHCR via GitHub Actions as part of [`ci.yml`](.gi
 - `ghcr.io/<repo>/scraper` (RSS/HTML telemetry agent)
 
 A Fly.io dispatch workflow (`fly-deploy.yml`) deploys the backend using the prebuilt image when `live` receives new commits or
-when tags matching `v*` are pushed.
+when tags matching `v*` are pushed. Operators promoting builds manually can use [`scripts/fly_deploy.sh`](scripts/fly_deploy.sh)
+to export the required GitHub Container Registry credentials and run `flyctl deploy --remote-only` with the pinned backend
+image.
 
 ## Frontend
 
