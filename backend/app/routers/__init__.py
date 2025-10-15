@@ -1,4 +1,4 @@
 """API routers."""
-from . import telemetry
+from . import agent_actions, telemetry
 
-__all__ = ["telemetry"]
+__all__ = ["agent_actions", "telemetry"]

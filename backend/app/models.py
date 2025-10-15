@@ -3,7 +3,17 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    JSON,
+    String,
+    Text,
+)
 from sqlalchemy.orm import relationship
 
 from .db import Base
@@ -49,3 +59,18 @@ class TelemetryEvent(Base):
     status = Column(String(50), default="received")
 
     source = relationship("TelemetrySource", back_populates="events")
+
+
+class AgentActionAudit(Base):
+    __tablename__ = "agent_action_audits"
+
+    id = Column(Integer, primary_key=True, index=True)
+    action_id = Column(String(128), nullable=False, unique=True, index=True)
+    tool_name = Column(String(255), nullable=False)
+    status = Column(String(50), nullable=False, index=True)
+    request_payload = Column(JSON, nullable=True)
+    response_payload = Column(JSON, nullable=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -79,3 +79,45 @@ class TelemetryEventRead(TelemetryEventBase):
 
 class TelemetryEventWithSource(TelemetryEventRead):
     source: TelemetrySourceRead
+
+
+class AgentTool(BaseModel):
+    name: str
+    description: str
+    signature: Dict[str, Any]
+    category: Optional[str] = None
+
+
+class AgentActionExecuteRequest(BaseModel):
+    tool_name: str
+    action_input: Dict[str, Any]
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class AgentActionExecuteResponse(BaseModel):
+    action_id: str
+    status: str
+    result: Optional[Dict[str, Any]] = None
+    message: Optional[str] = None
+
+
+class AgentActionWebhookEvent(BaseModel):
+    action_id: str
+    status: str
+    result: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
+
+class AgentActionAuditRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    action_id: str
+    tool_name: str
+    status: str
+    request_payload: Optional[Dict[str, Any]] = None
+    response_payload: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    completed_at: Optional[datetime] = None
