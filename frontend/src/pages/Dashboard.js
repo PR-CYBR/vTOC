@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { operationsAPI, missionsAPI, assetsAPI, agentsAPI } from '../services/api';
+import { useApi } from '../services/api';
 
 function Dashboard() {
+  const { operations, missions, assets, agents } = useApi();
   const [stats, setStats] = useState({
     operations: 0,
     missions: 0,
@@ -13,18 +14,19 @@ function Dashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [operations, missions, assets, agents] = await Promise.all([
-          operationsAPI.getAll(),
-          missionsAPI.getAll(),
-          assetsAPI.getAll(),
-          agentsAPI.getAll(),
-        ]);
+        const [operationsResponse, missionsResponse, assetsResponse, agentsResponse] =
+          await Promise.all([
+            operations.getAll(),
+            missions.getAll(),
+            assets.getAll(),
+            agents.getAll(),
+          ]);
 
         setStats({
-          operations: operations.data.length,
-          missions: missions.data.length,
-          assets: assets.data.length,
-          agents: agents.data.length,
+          operations: operationsResponse.data.length,
+          missions: missionsResponse.data.length,
+          assets: assetsResponse.data.length,
+          agents: agentsResponse.data.length,
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -34,7 +36,7 @@ function Dashboard() {
     };
 
     fetchStats();
-  }, []);
+  }, [operations, missions, assets, agents]);
 
   if (loading) {
     return <div>Loading...</div>;

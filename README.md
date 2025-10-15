@@ -124,6 +124,20 @@ npm install
 npm start
 ```
 
+#### Mock data mode
+
+The frontend can operate without the backend by enabling the built-in mock API provider. This is useful for offline demos or showcasing the UI without provisioning the complete stack.
+
+```bash
+cd frontend
+npm install
+npm run start:mock
+```
+
+The `start:mock` script sets `REACT_APP_USE_MOCKS=true`, which activates an in-memory data service backed by `localStorage`. Any create or update actions performed in the UI are persisted locally so that state survives page reloads during the session. To reset the mock data, clear the browser's local storage for the application domain.
+
+> **Windows tip:** If you prefer running the command manually, use `set REACT_APP_USE_MOCKS=true && npm start` in `cmd.exe` or `$Env:REACT_APP_USE_MOCKS="true"; npm start` in PowerShell.
+
 ### Running Tests
 
 Backend:

@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { assetsAPI } from '../services/api';
+import { useApi } from '../services/api';
 
 function Assets() {
-  const [assets, setAssets] = useState([]);
+  const { assets } = useApi();
+  const [assetsList, setAssetsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAssets();
-  }, []);
+    const fetchAssets = async () => {
+      try {
+        const response = await assets.getAll();
+        setAssetsList(response.data);
+      } catch (error) {
+        console.error('Error fetching assets:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchAssets = async () => {
-    try {
-      const response = await assetsAPI.getAll();
-      setAssets(response.data);
-    } catch (error) {
-      console.error('Error fetching assets:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchAssets();
+  }, [assets]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -36,7 +37,7 @@ function Assets() {
           <button className="button">+ New Asset</button>
         </div>
 
-        {assets.length === 0 ? (
+        {assetsList.length === 0 ? (
           <p>No assets found. Register your first asset to get started.</p>
         ) : (
           <table>
@@ -51,7 +52,7 @@ function Assets() {
               </tr>
             </thead>
             <tbody>
-              {assets.map((asset) => (
+              {assetsList.map((asset) => (
                 <tr key={asset.id}>
                   <td>{asset.name}</td>
                   <td>{asset.asset_type}</td>

@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { missionsAPI } from '../services/api';
+import { useApi } from '../services/api';
 
 function Missions() {
-  const [missions, setMissions] = useState([]);
+  const { missions } = useApi();
+  const [missionsList, setMissionsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchMissions();
-  }, []);
+    const fetchMissions = async () => {
+      try {
+        const response = await missions.getAll();
+        setMissionsList(response.data);
+      } catch (error) {
+        console.error('Error fetching missions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchMissions = async () => {
-    try {
-      const response = await missionsAPI.getAll();
-      setMissions(response.data);
-    } catch (error) {
-      console.error('Error fetching missions:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchMissions();
+  }, [missions]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -36,7 +37,7 @@ function Missions() {
           <button className="button">+ New Mission</button>
         </div>
 
-        {missions.length === 0 ? (
+        {missionsList.length === 0 ? (
           <p>No missions found. Create your first mission to get started.</p>
         ) : (
           <table>
@@ -51,7 +52,7 @@ function Missions() {
               </tr>
             </thead>
             <tbody>
-              {missions.map((mission) => (
+              {missionsList.map((mission) => (
                 <tr key={mission.id}>
                   <td>{mission.name}</td>
                   <td>

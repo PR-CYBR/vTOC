@@ -1,29 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { agentsAPI } from '../services/api';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useApi } from '../services/api';
 
 function Agents() {
+  const { agents: agentsService } = useApi();
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchAgents();
-  }, []);
-
-  const fetchAgents = async () => {
+  const fetchAgents = useCallback(async () => {
     try {
-      const response = await agentsAPI.getAll();
+      const response = await agentsService.getAll();
       setAgents(response.data);
     } catch (error) {
       console.error('Error fetching agents:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [agentsService]);
+
+  useEffect(() => {
+    fetchAgents();
+  }, [fetchAgents]);
 
   const handleStartAgent = async (id) => {
     try {
-      await agentsAPI.start(id);
-      fetchAgents();
+      await agentsService.start(id);
+      await fetchAgents();
     } catch (error) {
       console.error('Error starting agent:', error);
     }
@@ -31,8 +32,8 @@ function Agents() {
 
   const handleStopAgent = async (id) => {
     try {
-      await agentsAPI.stop(id);
-      fetchAgents();
+      await agentsService.stop(id);
+      await fetchAgents();
     } catch (error) {
       console.error('Error stopping agent:', error);
     }
@@ -78,9 +79,7 @@ function Agents() {
                     </span>
                   </td>
                   <td>
-                    {agent.last_run
-                      ? new Date(agent.last_run).toLocaleString()
-                      : 'Never'}
+                    {agent.last_run ? new Date(agent.last_run).toLocaleString() : 'Never'}
                   </td>
                   <td>
                     {agent.status !== 'running' ? (

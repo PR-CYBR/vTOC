@@ -1,61 +1,81 @@
 import axios from 'axios';
+import { createMockProvider } from './mocks';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost/api';
+const USE_MOCKS = String(process.env.REACT_APP_USE_MOCKS || '').toLowerCase() === 'true';
 
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+const createAxiosProvider = () => {
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost/api';
 
-export const operationsAPI = {
-  getAll: () => api.get('/operations/'),
-  getById: (id) => api.get(`/operations/${id}`),
-  create: (data) => api.post('/operations/', data),
-  update: (id, data) => api.put(`/operations/${id}`, data),
-  delete: (id) => api.delete(`/operations/${id}`),
+  const client = axios.create({
+    baseURL: API_URL,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return {
+    mode: 'http',
+    client,
+    operations: {
+      getAll: () => client.get('/operations/'),
+      getById: (id) => client.get(`/operations/${id}`),
+      create: (data) => client.post('/operations/', data),
+      update: (id, data) => client.put(`/operations/${id}`, data),
+      delete: (id) => client.delete(`/operations/${id}`),
+    },
+    missions: {
+      getAll: (operationId = null) => {
+        const params = operationId ? { operation_id: operationId } : {};
+        return client.get('/missions/', { params });
+      },
+      getById: (id) => client.get(`/missions/${id}`),
+      create: (data) => client.post('/missions/', data),
+      update: (id, data) => client.put(`/missions/${id}`, data),
+      delete: (id) => client.delete(`/missions/${id}`),
+    },
+    assets: {
+      getAll: (assetType = null) => {
+        const params = assetType ? { asset_type: assetType } : {};
+        return client.get('/assets/', { params });
+      },
+      getById: (id) => client.get(`/assets/${id}`),
+      create: (data) => client.post('/assets/', data),
+      update: (id, data) => client.put(`/assets/${id}`, data),
+      delete: (id) => client.delete(`/assets/${id}`),
+    },
+    intel: {
+      getAll: (missionId = null) => {
+        const params = missionId ? { mission_id: missionId } : {};
+        return client.get('/intel/', { params });
+      },
+      getById: (id) => client.get(`/intel/${id}`),
+      create: (data) => client.post('/intel/', data),
+      delete: (id) => client.delete(`/intel/${id}`),
+    },
+    agents: {
+      getAll: () => client.get('/agents/'),
+      getById: (id) => client.get(`/agents/${id}`),
+      create: (data) => client.post('/agents/', data),
+      start: (id) => client.post(`/agents/${id}/start`),
+      stop: (id) => client.post(`/agents/${id}/stop`),
+      delete: (id) => client.delete(`/agents/${id}`),
+    },
+    telemetry: {
+      getAll: (filters = {}) => client.get('/telemetry/', { params: filters }),
+    },
+  };
 };
 
-export const missionsAPI = {
-  getAll: (operationId = null) => {
-    const params = operationId ? { operation_id: operationId } : {};
-    return api.get('/missions/', { params });
-  },
-  getById: (id) => api.get(`/missions/${id}`),
-  create: (data) => api.post('/missions/', data),
-  update: (id, data) => api.put(`/missions/${id}`, data),
-  delete: (id) => api.delete(`/missions/${id}`),
-};
+const provider = USE_MOCKS ? createMockProvider() : createAxiosProvider();
 
-export const assetsAPI = {
-  getAll: (assetType = null) => {
-    const params = assetType ? { asset_type: assetType } : {};
-    return api.get('/assets/', { params });
-  },
-  getById: (id) => api.get(`/assets/${id}`),
-  create: (data) => api.post('/assets/', data),
-  update: (id, data) => api.put(`/assets/${id}`, data),
-  delete: (id) => api.delete(`/assets/${id}`),
-};
+export const apiProvider = provider;
+export const useApi = () => provider;
 
-export const intelAPI = {
-  getAll: (missionId = null) => {
-    const params = missionId ? { mission_id: missionId } : {};
-    return api.get('/intel/', { params });
-  },
-  getById: (id) => api.get(`/intel/${id}`),
-  create: (data) => api.post('/intel/', data),
-  delete: (id) => api.delete(`/intel/${id}`),
-};
+export const operationsAPI = provider.operations;
+export const missionsAPI = provider.missions;
+export const assetsAPI = provider.assets;
+export const intelAPI = provider.intel;
+export const agentsAPI = provider.agents;
+export const telemetryAPI = provider.telemetry;
 
-export const agentsAPI = {
-  getAll: () => api.get('/agents/'),
-  getById: (id) => api.get(`/agents/${id}`),
-  create: (data) => api.post('/agents/', data),
-  start: (id) => api.post(`/agents/${id}/start`),
-  stop: (id) => api.post(`/agents/${id}/stop`),
-  delete: (id) => api.delete(`/agents/${id}`),
-};
-
-export default api;
+export default provider.client;

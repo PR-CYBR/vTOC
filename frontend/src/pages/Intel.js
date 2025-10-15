@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { intelAPI } from '../services/api';
+import { useApi } from '../services/api';
 
 function Intel() {
+  const { intel } = useApi();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchReports();
-  }, []);
+    const fetchReports = async () => {
+      try {
+        const response = await intel.getAll();
+        setReports(response.data);
+      } catch (error) {
+        console.error('Error fetching intelligence reports:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchReports = async () => {
-    try {
-      const response = await intelAPI.getAll();
-      setReports(response.data);
-    } catch (error) {
-      console.error('Error fetching intelligence reports:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchReports();
+  }, [intel]);
 
   if (loading) {
     return <div>Loading...</div>;
