@@ -69,6 +69,7 @@ API Documentation is available at `/api/docs` (Swagger UI) and `/api/redoc` (ReD
 React-based single-page application with:
 
 - Dashboard with real-time statistics
+- Immersive geospatial dashboard with live telemetry map overlays
 - Operations management
 - Mission tracking
 - Asset inventory
@@ -124,19 +125,17 @@ npm install
 npm start
 ```
 
-#### Mock data mode
+#### Map configuration
 
-The frontend can operate without the backend by enabling the built-in mock API provider. This is useful for offline demos or showcasing the UI without provisioning the complete stack.
+The dashboard map is powered by [Leaflet](https://leafletjs.com/) through `react-leaflet`. To enable the map and telemetry overlays:
 
-```bash
-cd frontend
-npm install
-npm run start:mock
-```
+1. Ensure the frontend is configured with the API endpoint that serves telemetry data using the `REACT_APP_API_URL` environment variable.
+2. Provide backend telemetry endpoints at:
+   - `GET /telemetry/assets/` — returns an array of asset objects with latitude/longitude (and optional `heading`, `speed`, `status`, `source`).
+   - `GET /telemetry/tracks/` — returns an array of track objects containing a `points`/`coordinates` collection with latitude/longitude pairs and an optional `source` identifier.
+3. Each unique `source` value is presented as a toggleable layer on the map, allowing operators to control visibility per feed.
 
-The `start:mock` script sets `REACT_APP_USE_MOCKS=true`, which activates an in-memory data service backed by `localStorage`. Any create or update actions performed in the UI are persisted locally so that state survives page reloads during the session. To reset the mock data, clear the browser's local storage for the application domain.
-
-> **Windows tip:** If you prefer running the command manually, use `set REACT_APP_USE_MOCKS=true && npm start` in `cmd.exe` or `$Env:REACT_APP_USE_MOCKS="true"; npm start` in PowerShell.
+If your telemetry payloads use different field names, adjust the adapter in `frontend/src/services/telemetryAdapter.js` to normalise them before they reach the map component.
 
 ### Running Tests
 

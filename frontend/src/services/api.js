@@ -78,4 +78,9 @@ export const intelAPI = provider.intel;
 export const agentsAPI = provider.agents;
 export const telemetryAPI = provider.telemetry;
 
-export default provider.client;
+export const telemetryAPI = {
+  getAssetLocations: (params = {}) => api.get('/telemetry/assets/', { params }),
+  getTracks: (params = {}) => api.get('/telemetry/tracks/', { params }),
+};
+
+export default api;
