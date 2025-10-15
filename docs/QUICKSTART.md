@@ -1,274 +1,157 @@
 # Quick Start Guide
 
-## Overview
-
-This guide will help you get vTOC up and running in 5 minutes.
+This guide helps station operators bring up vTOC with ChatKit + AgentKit integrations in five minutes. For a deeper architecture
+walkthrough visit [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) and for production rollouts consult [`docs/DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ## Prerequisites
 
 Ensure you have:
-- Docker (version 20.10+)
-- Docker Compose (version 2.0+)
+
+- Docker 24+
+- Docker Compose v2+
 - Git
+- `pnpm` (8+) for frontend development
+- Access to ChatKit and AgentKit credentials with sandbox permissions
 
-## Installation Steps
+## Station roles
 
-### 1. Clone Repository
+Every deployment declares at least one station role. The defaults ship with three profiles:
+
+| Role | Env value | Purpose |
+| --- | --- | --- |
+| Operations | `ops` | Mission command, map overlays, dispatching tasks. |
+| Intelligence | `intel` | Sensor fusion, telemetry enrichment, report drafting. |
+| Logistics | `logistics` | Resource tracking, requisitions, sustainment plans. |
+
+Set the desired role when prompted by the setup script or pre-fill it in a `--config` file under `stationRoles`.
+
+## Installation steps
+
+### 1. Clone repository
 
 ```bash
 git clone https://github.com/PR-CYBR/vTOC.git
 cd vTOC
 ```
 
-### 2. Configure Environment
+### 2. Generate environment files
+
+Use the unified setup script through the Makefile. The script creates `.env.local`, `.env.station`, and station-specific ChatKit
+channels.
 
 ```bash
-# Copy example environment file
-cp .env.example .env
-
-# Edit .env and change default passwords
-nano .env  # or use your preferred editor
+make setup-local
 ```
 
-**Important:** Change these values in `.env`:
-- `POSTGRES_PASSWORD`
-- `API_SECRET_KEY`
-- `TRAEFIK_DASHBOARD_PASSWORD`
-- `N8N_BASIC_AUTH_PASSWORD`
-- `WAZUH_API_PASSWORD`
+When prompted supply or confirm the following values:
 
-### 3. Start Services
+- `POSTGRES_STATION_ROLE`
+- `STATION_CALLSIGN`
+- `CHATKIT_API_KEY` and `CHATKIT_ORG_ID`
+- `AGENTKIT_CLIENT_ID` and `AGENTKIT_CLIENT_SECRET`
+- Optional `TELEMETRY_BROADCAST_URL`
+
+The script seeds `scripts/cache/` with the generated ChatKit channel IDs for reuse by other stations.
+
+### 3. Start services
 
 ```bash
-# Using Docker Compose
-docker-compose up -d
+# Terminal 1 – backend
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8080
 
-# Or using Makefile
-make up
+# Terminal 2 – frontend
+pnpm --dir frontend dev
 ```
 
-### 4. Verify Installation
+Or launch the containerized stack (includes Postgres) using the generated compose file:
 
-Wait 30 seconds for services to start, then check:
+```bash
+make setup-container
+make compose-up
+```
+
+### 4. Verify installation
 
 ```bash
 # Check service status
-docker-compose ps
+docker compose -f docker-compose.generated.yml ps
 
-# Check API health
-curl http://localhost/api/health
+# Backend health probe
+curl http://localhost:8080/healthz
+
+# ChatKit webhook echo test
+curl -X POST http://localhost:8080/api/v1/chatkit/webhook -H 'Content-Type: application/json' \
+  -d '{"channel":"'"${STATION_CALLSIGN}"'","text":"ping"}'
 ```
 
-### 5. Access Applications
+### 5. Access applications
 
-Open your browser and visit:
+- **Frontend**: http://localhost:5173 (dev) or http://localhost:8081 (compose)
+- **API Docs**: http://localhost:8080/docs
+- **ChatKit Console**: https://console.chatkit.example (replace with your tenant URL)
+- **Traefik Dashboard (optional)**: http://localhost:8080 when Traefik is enabled in container mode
 
-- **Frontend**: http://localhost
-- **API Docs**: http://localhost/api/docs
-- **Traefik Dashboard**: http://localhost:8080
-- **n8n Workflows**: http://localhost/n8n
+## First actions
 
-## First Steps
+1. **Register the station** via the UI: Settings → Stations → Register station. This stores `STATION_CALLSIGN` and ChatKit channel
+   IDs in the backend.
+2. **Create a mission** from the Operations pane. The mission timeline now includes ChatKit transcript references.
+3. **Subscribe telemetry connectors** using the Telemetry admin page, or push sample data with `make scraper-run`.
+4. **Trigger an AgentKit playbook** by posting `@agent run recon sweep` in the ChatKit channel. The backend webhook will launch
+   the matching playbook and post a summary back to ChatKit.
 
-### Create Your First Operation
+## Common commands
 
-1. Go to http://localhost/operations
-2. Click "New Operation"
-3. Fill in the details:
-   - Name: "Operation Alpha"
-   - Code Name: "ALPHA-001"
-   - Priority: "High"
-4. Click "Create"
-
-### Add Assets
-
-1. Go to http://localhost/assets
-2. Click "New Asset"
-3. Register equipment or personnel
-
-### Create Missions
-
-1. Go to http://localhost/missions
-2. Click "New Mission"
-3. Link to an operation
-4. Assign team members
-
-### Monitor Agents
-
-1. Go to http://localhost/agents
-2. View automation agents
-3. Start/stop agents as needed
-
-## Common Commands
-
-### Using Makefile
+### Make targets
 
 ```bash
-# View all available commands
-make help
-
-# View logs
-make logs
-
-# Restart services
-make restart
-
-# Backup database
-make backup-db
-
-# Check health
-make health
+make help            # list all supported targets
+make setup-local     # generate env files and local configs
+make setup-container # synthesize docker-compose.generated.yml and role secrets
+make compose-up      # start the generated compose stack
+make compose-down    # stop the stack and prune temp volumes
+make backend-test    # run FastAPI pytest suite
+make frontend-test   # run vitest suite (CI mode)
+make scraper-run     # execute telemetry scraper locally
 ```
 
-### Using Docker Compose
+### Cleanup workflow
 
-```bash
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
-
-# Restart a specific service
-docker-compose restart backend
-
-# Scale backend
-docker-compose up -d --scale backend=3
-```
+Run `make compose-down` to stop containers created by the generated Compose file. To reset ChatKit bindings remove the
+`.env.station` file and rerun `make setup-local`; the script keeps cached channel IDs in `scripts/cache/` so you can choose to
+reuse or recreate them.
 
 ## Troubleshooting
 
-### Services Won't Start
+### Services will not start
 
 ```bash
-# Check logs
-docker-compose logs
+# Inspect logs
+docker compose -f docker-compose.generated.yml logs --tail 100
 
-# Restart services
-docker-compose down
-docker-compose up -d
+# Recreate stack
+make compose-down
+make compose-up
 ```
 
-### Port Already in Use
+### ChatKit webhook fails with 401
 
-Edit `docker-compose.yml` and change the port mappings:
+Confirm `CHATKIT_API_KEY` and `CHATKIT_ORG_ID` in `.env.local`. Regenerate the key in the ChatKit console if the token has
+expired.
 
-```yaml
-ports:
-  - "8080:80"  # Change 80 to 8080 if port 80 is in use
-```
+### AgentKit playbook does not trigger
 
-### Database Connection Error
+Verify that the station role in `.env.station` matches a configured playbook ID under `agents/config/agentkit.yml`. The backend
+logs (see `backend/app/logging.py`) will include rejection reasons.
 
-```bash
-# Check database is running
-docker-compose ps postgres
+### Database connection errors
 
-# Check database logs
-docker-compose logs postgres
+Make sure Postgres is reachable and that the generated `DATABASE_URL` references the correct hostname. For multi-station
+setups, `make setup-container` adds suffixes such as `_ops`, `_intel`, `_logistics` to the default database names; confirm that
+your local Postgres instance contains those schemas.
 
-# Restart database
-docker-compose restart postgres
-```
+## Next steps
 
-### Cannot Access Frontend
-
-```bash
-# Check frontend logs
-docker-compose logs frontend
-
-# Check Traefik routing
-docker-compose logs traefik
-
-# Verify containers are running
-docker-compose ps
-```
-
-## Next Steps
-
-After installation:
-
-1. **Configure Security**
-   - Change all default passwords
-   - Review security settings
-   - Configure SSL/TLS for production
-
-2. **Explore Features**
-   - Create operations and missions
-   - Register assets
-   - Generate intelligence reports
-   - Configure automation agents
-
-3. **Set Up Workflows**
-   - Access n8n at http://localhost/n8n
-   - Import workflow templates
-   - Create custom workflows
-
-4. **Monitor Security**
-   - Check Wazuh dashboard
-   - Review security alerts
-   - Configure alert notifications
-
-5. **Customize**
-   - Modify agent configurations
-   - Add custom automation
-   - Integrate external systems
-
-## Additional Resources
-
-- [Full Documentation](README.md)
-- [Architecture Guide](docs/ARCHITECTURE.md)
-- [API Documentation](docs/API.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-
-## Getting Help
-
-If you encounter issues:
-
-1. Check the logs: `docker-compose logs`
-2. Review documentation in `/docs`
-3. Search GitHub issues
-4. Create a new issue with details
-
-## Production Deployment
-
-For production deployment, see the [Deployment Guide](docs/DEPLOYMENT.md).
-
-Key considerations:
-- Enable SSL/TLS
-- Configure firewall
-- Set up backups
-- Implement monitoring
-- Use strong passwords
-- Configure authentication
-
-## Updating
-
-To update to the latest version:
-
-```bash
-# Pull latest changes
-git pull
-
-# Update and restart
-docker-compose pull
-docker-compose up -d --build
-```
-
-## Uninstalling
-
-To completely remove vTOC:
-
-```bash
-# Stop and remove all containers, networks, and volumes
-docker-compose down -v
-
-# Remove images
-docker rmi $(docker images -q 'vtoc*')
-
-# Remove project directory
-cd ..
-rm -rf vTOC
-```
-
-**Warning:** This will delete all data!
+- Review [`docs/TELEMETRY_CONNECTORS.md`](TELEMETRY_CONNECTORS.md) for connector-specific options.
+- Plan your deployment strategy with [`docs/DEPLOYMENT.md`](DEPLOYMENT.md).
+- Track platform changes in [`docs/CHANGELOG.md`](CHANGELOG.md).
