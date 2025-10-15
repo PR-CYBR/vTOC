@@ -52,6 +52,17 @@
         dest: "{{ vtoc_home }}"
         mode: '0755'
 
+    - name: Ensure station directories exist
+      file:
+        path: "{{ vtoc_home }}/stations/{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - TOC-S1
+        - TOC-S2
+        - TOC-S3
+        - TOC-S4
+
     - name: Create .env file from example
       copy:
         src: "{{ vtoc_home }}/.env.example"
