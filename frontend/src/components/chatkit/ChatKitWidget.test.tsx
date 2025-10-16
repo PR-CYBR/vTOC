@@ -28,4 +28,30 @@ describe('ChatKitWidget', () => {
       expect(container.querySelector('chatkit-assistant')).not.toBeNull();
     });
   });
+
+  it('passes Supabase session data through data attributes', async () => {
+    vi.stubEnv('VITE_CHATKIT_API_KEY', 'test');
+    vi.stubEnv('VITE_AGENTKIT_ORG_ID', 'org');
+
+    const richTelemetry = {
+      ...telemetry,
+      channel: 'custom-channel',
+      credentials: {
+        accessToken: 'token-123',
+        refreshToken: 'refresh-123',
+        userId: 'user-123',
+      },
+    };
+
+    const { container } = render(<ChatKitWidget telemetry={richTelemetry} />);
+
+    await waitFor(() => {
+      const widget = container.querySelector('chatkit-assistant');
+      expect(widget).not.toBeNull();
+      expect(widget?.getAttribute('data-supabase-access-token')).toBe('token-123');
+      expect(widget?.getAttribute('data-supabase-refresh-token')).toBe('refresh-123');
+      expect(widget?.getAttribute('data-supabase-user-id')).toBe('user-123');
+      expect(widget?.getAttribute('data-telemetry-channel')).toBe('custom-channel');
+    });
+  });
 });
