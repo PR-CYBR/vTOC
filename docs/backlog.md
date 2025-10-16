@@ -79,8 +79,12 @@ When editing existing items:
 Codex and GitHub workflows will mutate the backlog with the following rules:
 
 - **Codex plan generation**: When a Codex plan is created from a backlog item,
-the automation writes the plan URL to `codex_plan_url`, appends the run identifier
-to `codex_run_ids`, and sets `last_updated_by` to `codex`.
+- the automation writes the plan URL to `codex_plan_url`, records a list of
+  generated tasks in `codex_plan_tasks`, appends the run identifier to
+  `codex_run_ids`, captures a timestamp in `codex_plan_generated_at`, and sets
+  `last_updated_by` to `codex`. Historical plans are appended to the
+  `plan_history` array with their generated timestamps so the team can audit
+  changes over time.
 - **GitHub Project sync**: A scheduled workflow syncs `project_item_id` with the
 canonical GitHub Project board. Items missing from the board remain `null`.
 - **Status enforcement**: Automations only advance states forward along the
