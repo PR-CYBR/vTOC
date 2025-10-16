@@ -1,0 +1,178 @@
+name: Main discussion summary
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  discussions: write
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.11-slim
+    env:
+      CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+      CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
+      DOCS_DISCUSSION_CATEGORY_ID: ${{ vars.DOCS_DISCUSSION_CATEGORY_ID }}
+      DOCS_DISCUSSION_LABELS: ${{ vars.DOCS_DISCUSSION_LABELS }}
+      DOCS_DISCUSSION_TITLE_PREFIX: ${{ vars.DOCS_DISCUSSION_TITLE_PREFIX }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Install required packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends git curl
+          rm -rf /var/lib/apt/lists/*
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine commit range
+        id: range
+        shell: bash
+        run: |
+          set -euo pipefail
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+
+          if [[ -z "${BEFORE}" || "${BEFORE}" == "0000000000000000000000000000000000000000" ]]; then
+            BEFORE=$(git rev-list --max-parents=0 "${AFTER}" | tail -n 1)
+          fi
+
+          if git diff --quiet "${BEFORE}" "${AFTER}"; then
+            echo "empty=true" >>"${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          echo "empty=false" >>"${GITHUB_OUTPUT}"
+          echo "before=${BEFORE}" >>"${GITHUB_OUTPUT}"
+          echo "after=${AFTER}" >>"${GITHUB_OUTPUT}"
+
+      - name: Run commit summary script
+        if: steps.range.outputs.empty == 'false'
+        id: summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          BEFORE="${{ steps.range.outputs.before }}"
+          AFTER="${{ steps.range.outputs.after }}"
+          python scripts/commit_summary.py "${BEFORE}" "${AFTER}" | tee discussion.md
+
+      - name: Upload discussion markdown
+        if: steps.range.outputs.empty == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: main-discussion-summary-${{ github.run_id }}
+          path: discussion.md
+
+      - name: Create or update discussion
+        if: steps.range.outputs.empty == 'false'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            const categoryId = process.env.DOCS_DISCUSSION_CATEGORY_ID;
+            if (!categoryId) {
+              core.setFailed('DOCS_DISCUSSION_CATEGORY_ID is required but was not provided.');
+              return;
+            }
+
+            const after = '${{ steps.range.outputs.after }}';
+            const titlePrefix = (process.env.DOCS_DISCUSSION_TITLE_PREFIX || 'Main discussion summary').trim();
+            const title = `${titlePrefix}${titlePrefix ? ' ' : ''}${after.slice(0, 12)}`;
+            const body = fs.readFileSync('discussion.md', 'utf8');
+            const labelsInput = process.env.DOCS_DISCUSSION_LABELS || '';
+            const labels = labelsInput
+              .split(',')
+              .map(label => label.trim())
+              .filter(label => label.length > 0);
+
+            const repoOwner = context.repo.owner;
+            const repoName = context.repo.repo;
+
+            const existing = await github.graphql(
+              `query($owner: String!, $name: String!, $categoryId: ID!, $title: String!) {
+                repository(owner: $owner, name: $name) {
+                  discussions(first: 50, categoryId: $categoryId, orderBy: {field: CREATED_AT, direction: DESC}) {
+                    nodes {
+                      id
+                      title
+                      url
+                    }
+                  }
+                }
+              }`,
+              {
+                owner: repoOwner,
+                name: repoName,
+                categoryId,
+                title,
+              },
+            );
+
+            const found = existing.repository.discussions.nodes.find((discussion) => discussion.title === title);
+            if (found) {
+              core.info(`Discussion already exists: ${found.url}`);
+              return;
+            }
+
+            const repositoryId = context.payload.repository.node_id;
+            if (!repositoryId) {
+              core.setFailed('Unable to determine repository node ID.');
+              return;
+            }
+
+            const response = await github.graphql(
+              `mutation($input: CreateDiscussionInput!) {
+                createDiscussion(input: $input) {
+                  discussion {
+                    id
+                    number
+                    url
+                  }
+                }
+              }`,
+              {
+                input: {
+                  repositoryId,
+                  categoryId,
+                  title,
+                  body,
+                  clientMutationId: after,
+                },
+              },
+            );
+
+            const created = response.createDiscussion?.discussion;
+            if (!created) {
+              core.setFailed('GitHub did not return the created discussion.');
+              return;
+            }
+
+            core.info(`Created discussion ${created.number}: ${created.url}`);
+
+            if (labels.length > 0) {
+              await github.graphql(
+                `mutation($discussionId: ID!, $labelNames: [String!]!) {
+                  updateDiscussion(input: {discussionId: $discussionId, addLabels: $labelNames}) {
+                    discussion { id }
+                  }
+                }`,
+                {
+                  discussionId: created.id,
+                  labelNames: labels,
+                },
+              );
+              core.info(`Applied labels: ${labels.join(', ')}`);
+            }
