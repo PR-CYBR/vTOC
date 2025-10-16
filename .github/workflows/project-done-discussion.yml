@@ -1,0 +1,491 @@
+name: Project done discussion
+
+on:
+  projects_v2_item:
+    types:
+      - edited
+      - converted
+
+permissions:
+  contents: read
+  discussions: write
+  issues: read
+  pull-requests: read
+  projects: read
+
+jobs:
+  post-discussion:
+    name: Create completion discussion
+    runs-on: ubuntu-latest
+    env:
+      DISCUSSION_CATEGORY_ID: ${{ vars.PROJECT_DONE_DISCUSSION_CATEGORY_ID }}
+      DISCUSSION_TITLE_PREFIX: ${{ vars.PROJECT_DONE_DISCUSSION_TITLE_PREFIX }}
+      DISCUSSION_LABELS: ${{ vars.PROJECT_DONE_DISCUSSION_LABELS }}
+      STATUS_FIELD_NAMES: ${{ vars.PROJECT_STATUS_FIELD_NAMES || vars.PROJECT_STATUS_FIELD_NAME || 'Status' }}
+      STATUS_DONE_VALUE: ${{ vars.PROJECT_DONE_STATUS_VALUE || 'Done' }}
+      BACKLOG_FIELD_NAMES: ${{ vars.PROJECT_BACKLOG_FIELD_NAMES || 'Backlog,Backlog URL,Backlog Entry' }}
+      CODEX_PLAN_FIELD_NAMES: ${{ vars.PROJECT_CODEX_PLAN_FIELD_NAMES || 'Codex Plan' }}
+      CODEX_RUN_FIELD_NAMES: ${{ vars.PROJECT_CODEX_RUN_FIELD_NAMES || 'Codex Run' }}
+      RELATED_PRS_FIELD_NAMES: ${{ vars.PROJECT_RELATED_PRS_FIELD_NAMES || 'Related PRs,PR Links,PRs' }}
+    steps:
+      - name: Post discussion
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const core = require('@actions/core');
+
+            const payload = context.payload || {};
+            const action = payload.action;
+            if (!['edited', 'converted'].includes(action)) {
+              core.info(`Unsupported action: ${action}`);
+              return;
+            }
+
+            const categoryId = process.env.DISCUSSION_CATEGORY_ID;
+            if (!categoryId) {
+              core.setFailed('PROJECT_DONE_DISCUSSION_CATEGORY_ID (discussion category) is required.');
+              return;
+            }
+
+            const itemNodeId = payload.projects_v2_item?.node_id;
+            if (!itemNodeId) {
+              core.setFailed('Project item node identifier missing from event payload.');
+              return;
+            }
+
+            const parseNames = (value) => {
+              if (!value) return [];
+              return value
+                .split(',')
+                .map((entry) => entry.trim())
+                .filter((entry) => entry.length > 0);
+            };
+
+            const statusFieldNames = parseNames(process.env.STATUS_FIELD_NAMES).map((name) => name.toLowerCase());
+            if (statusFieldNames.length === 0) {
+              statusFieldNames.push('status');
+            }
+
+            const doneValue = (process.env.STATUS_DONE_VALUE || 'Done').trim().toLowerCase();
+
+            const fieldQuery = `
+              query($itemId: ID!) {
+                node(id: $itemId) {
+                  ... on ProjectV2Item {
+                    id
+                    updatedAt
+                    project {
+                      title
+                      number
+                      url
+                      owner {
+                        __typename
+                        ... on Organization { login }
+                        ... on User { login }
+                      }
+                    }
+                    content {
+                      __typename
+                      ... on Issue {
+                        number
+                        title
+                        url
+                        body
+                        repository { nameWithOwner url }
+                        labels(first: 20) { nodes { name url } }
+                        assignees(first: 10) { nodes { login url } }
+                        milestone { title url }
+                      }
+                      ... on PullRequest {
+                        number
+                        title
+                        url
+                        repository { nameWithOwner url }
+                      }
+                    }
+                    fieldValues(first: 50) {
+                      nodes {
+                        __typename
+                        ... on ProjectV2ItemFieldSingleSelectValue {
+                          name
+                          optionId
+                          field { ... on ProjectV2FieldCommon { name } }
+                        }
+                        ... on ProjectV2ItemFieldTextValue {
+                          text
+                          field { ... on ProjectV2FieldCommon { name } }
+                        }
+                        ... on ProjectV2ItemFieldNumberValue {
+                          number
+                          field { ... on ProjectV2FieldCommon { name } }
+                        }
+                        ... on ProjectV2ItemFieldDateValue {
+                          date
+                          field { ... on ProjectV2FieldCommon { name } }
+                        }
+                        ... on ProjectV2ItemFieldIterationValue {
+                          title
+                          startDate
+                          duration
+                          field { ... on ProjectV2FieldCommon { name } }
+                        }
+                        ... on ProjectV2ItemFieldRepositoryValue {
+                          repository { nameWithOwner url }
+                          field { ... on ProjectV2FieldCommon { name } }
+                        }
+                        ... on ProjectV2ItemFieldPullRequestValue {
+                          pullRequests(first: 20) { nodes { number title url repository { nameWithOwner url } } }
+                          field { ... on ProjectV2FieldCommon { name } }
+                        }
+                        ... on ProjectV2ItemFieldIssueValue {
+                          issues(first: 20) { nodes { number title url repository { nameWithOwner url } } }
+                          field { ... on ProjectV2FieldCommon { name } }
+                        }
+                        ... on ProjectV2ItemFieldMilestoneValue {
+                          milestone { title url }
+                          field { ... on ProjectV2FieldCommon { name } }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const itemResponse = await github.graphql(fieldQuery, { itemId: itemNodeId });
+            const item = itemResponse?.node;
+            if (!item) {
+              core.setFailed('Unable to load project item from GraphQL.');
+              return;
+            }
+
+            const fieldNodes = item.fieldValues?.nodes ?? [];
+            const fieldMap = new Map();
+            for (const node of fieldNodes) {
+              const fieldName = node?.field?.name?.trim();
+              if (!fieldName) continue;
+              const key = fieldName.toLowerCase();
+              if (!fieldMap.has(key)) {
+                fieldMap.set(key, []);
+              }
+              fieldMap.get(key).push(node);
+            }
+
+            const getFieldNodes = (names) => {
+              for (const name of names) {
+                const key = name.toLowerCase();
+                if (fieldMap.has(key) && fieldMap.get(key).length > 0) {
+                  return fieldMap.get(key);
+                }
+              }
+              return [];
+            };
+
+            const statusNodes = statusFieldNames.length > 0 ? getFieldNodes(statusFieldNames) : [];
+            const statusNode = statusNodes.find((node) => node.__typename === 'ProjectV2ItemFieldSingleSelectValue');
+            const statusName = statusNode?.name?.trim().toLowerCase() || '';
+            if (statusName !== doneValue) {
+              core.info(`Status (${statusName || 'unset'}) does not match the done value (${doneValue}); skipping.`);
+              return;
+            }
+
+            const backlogFieldNames = parseNames(process.env.BACKLOG_FIELD_NAMES);
+            const codexPlanFieldNames = parseNames(process.env.CODEX_PLAN_FIELD_NAMES);
+            const codexRunFieldNames = parseNames(process.env.CODEX_RUN_FIELD_NAMES);
+            const relatedPrFieldNames = parseNames(process.env.RELATED_PRS_FIELD_NAMES);
+
+            const backlogNodes = backlogFieldNames.length > 0 ? getFieldNodes(backlogFieldNames) : [];
+            const planNodes = codexPlanFieldNames.length > 0 ? getFieldNodes(codexPlanFieldNames) : [];
+            const runNodes = codexRunFieldNames.length > 0 ? getFieldNodes(codexRunFieldNames) : [];
+            const relatedPrNodes = relatedPrFieldNames.length > 0 ? getFieldNodes(relatedPrFieldNames) : [];
+
+            const normalizeValue = (node) => {
+              if (!node) return null;
+              switch (node.__typename) {
+                case 'ProjectV2ItemFieldTextValue':
+                  return node.text?.trim() || null;
+                case 'ProjectV2ItemFieldSingleSelectValue':
+                  return node.name?.trim() || null;
+                case 'ProjectV2ItemFieldNumberValue':
+                  return typeof node.number === 'number' ? String(node.number) : null;
+                case 'ProjectV2ItemFieldDateValue':
+                  return node.date || null;
+                case 'ProjectV2ItemFieldIterationValue':
+                  return [node.title, node.startDate].filter(Boolean).join(' – ');
+                case 'ProjectV2ItemFieldRepositoryValue':
+                  return node.repository?.nameWithOwner
+                    ? `[${node.repository.nameWithOwner}](${node.repository.url})`
+                    : null;
+                case 'ProjectV2ItemFieldIssueValue':
+                  return (node.issues?.nodes || [])
+                    .map((issue) => issue?.url ? `[${issue.repository?.nameWithOwner ?? ''}#${issue.number}](${issue.url})` : null)
+                    .filter(Boolean)
+                    .join(', ');
+                case 'ProjectV2ItemFieldMilestoneValue':
+                  return node.milestone?.title ? `[${node.milestone.title}](${node.milestone.url})` : null;
+                case 'ProjectV2ItemFieldPullRequestValue':
+                  return (node.pullRequests?.nodes || [])
+                    .map((pr) => pr?.url ? `[${pr.repository?.nameWithOwner ?? ''}#${pr.number}](${pr.url})` : null)
+                    .filter(Boolean)
+                    .join(', ');
+                default:
+                  return null;
+              }
+            };
+
+            const collectValues = (nodes) => {
+              const values = [];
+              for (const node of nodes || []) {
+                const value = normalizeValue(node);
+                if (value) {
+                  for (const entry of value.split('\n')) {
+                    const trimmed = entry.trim();
+                    if (trimmed.length > 0) {
+                      values.push(trimmed);
+                    }
+                  }
+                }
+              }
+              return values;
+            };
+
+            const backlogValues = collectValues(backlogNodes);
+            const planValues = collectValues(planNodes);
+            const runValues = collectValues(runNodes);
+            const relatedPrValues = collectValues(relatedPrNodes);
+
+            const unique = (items) => {
+              const seen = new Set();
+              const result = [];
+              for (const item of items) {
+                if (!seen.has(item)) {
+                  seen.add(item);
+                  result.push(item);
+                }
+              }
+              return result;
+            };
+
+            const prLinks = new Map();
+            const addPr = (pr) => {
+              if (!pr) return;
+              const number = pr.number;
+              const repo = pr.repository?.nameWithOwner;
+              const url = pr.url;
+              if (!number || !repo || !url) return;
+              const key = `${repo}#${number}`;
+              if (!prLinks.has(key)) {
+                prLinks.set(key, { key, repo, number, url, title: pr.title || '' });
+              }
+            };
+
+            for (const node of fieldNodes) {
+              if (node.__typename === 'ProjectV2ItemFieldPullRequestValue') {
+                for (const pr of node.pullRequests?.nodes || []) {
+                  addPr(pr);
+                }
+              }
+            }
+
+            const urlRegex = /https?:\/\/github\.com\/(\S+?)\/pull\/(\d+)/gi;
+            for (const value of relatedPrValues) {
+              let match;
+              while ((match = urlRegex.exec(value)) !== null) {
+                const repo = match[1].replace(/\.$/, '');
+                const number = Number(match[2]);
+                if (!Number.isNaN(number)) {
+                  const prQuery = `query($owner: String!, $name: String!, $number: Int!) {
+                    repository(owner: $owner, name: $name) {
+                      pullRequest(number: $number) { number title url repository { nameWithOwner url } }
+                    }
+                  }`;
+                  const [owner, name] = repo.split('/');
+                  if (owner && name) {
+                    try {
+                      const data = await github.graphql(prQuery, { owner, name, number });
+                      const pr = data?.repository?.pullRequest;
+                      if (pr) {
+                        addPr(pr);
+                      }
+                    } catch (error) {
+                      core.warning(`Unable to resolve PR ${repo}#${number}: ${error.message}`);
+                    }
+                  }
+                }
+              }
+            }
+
+            if (item.content?.__typename === 'PullRequest') {
+              addPr(item.content);
+            }
+
+            const prList = Array.from(prLinks.values());
+
+            const issue = item.content?.__typename === 'Issue' ? item.content : null;
+            const project = item.project;
+            const ownerType = project?.owner?.__typename;
+            const ownerLogin = project?.owner?.login;
+            let projectBaseUrl = project?.url;
+            if (!projectBaseUrl && ownerLogin && project?.number) {
+              const prefix = ownerType === 'User' ? 'https://github.com/users' : 'https://github.com/orgs';
+              projectBaseUrl = `${prefix}/${ownerLogin}/projects/${project.number}`;
+            }
+
+            const cardUrl = projectBaseUrl ? `${projectBaseUrl}?pane=issue&itemId=${encodeURIComponent(item.id)}` : null;
+
+            const formatList = (values, fallback) => {
+              if (!values || values.length === 0) return fallback;
+              return values.map((value) => `- ${value}`).join('\n');
+            };
+
+            const planSection = formatList(unique(planValues), '- _(none recorded)_');
+            const runSection = formatList(unique(runValues), '- _(none recorded)_');
+
+            const backlogSectionLines = [];
+            if (issue) {
+              backlogSectionLines.push(`- **Issue**: [${issue.title}](${issue.url}) (${issue.repository?.nameWithOwner}#${issue.number})`);
+              const labels = issue.labels?.nodes?.map((label) => label?.name).filter(Boolean) || [];
+              if (labels.length > 0) {
+                backlogSectionLines.push(`- **Labels**: ${labels.join(', ')}`);
+              }
+              const assignees = issue.assignees?.nodes?.map((user) => user?.login).filter(Boolean) || [];
+              if (assignees.length > 0) {
+                backlogSectionLines.push(`- **Assignees**: ${assignees.map((login) => `@${login}`).join(', ')}`);
+              }
+              if (issue.milestone?.title) {
+                backlogSectionLines.push(`- **Milestone**: [${issue.milestone.title}](${issue.milestone.url})`);
+              }
+            }
+
+            if (backlogValues.length > 0) {
+              backlogSectionLines.push(`- **Additional Links**:\n${backlogValues.map((value) => `  - ${value}`).join('\n')}`);
+            }
+
+            const backlogSection = backlogSectionLines.length > 0
+              ? backlogSectionLines.join('\n')
+              : '- _(no backlog metadata found)_';
+
+            const prSection = prList.length > 0
+              ? prList
+                  .map((entry) => `- [${entry.repo}#${entry.number}](${entry.url})${entry.title ? ` — ${entry.title}` : ''}`)
+                  .join('\n')
+              : '- _(no related pull requests)_';
+
+            const titlePrefix = (process.env.DISCUSSION_TITLE_PREFIX || 'Project Done').trim();
+            let discussionTitleBase = issue?.title || payload.projects_v2_item?.content_url || 'Project card';
+            if (discussionTitleBase.length > 80) {
+              discussionTitleBase = `${discussionTitleBase.slice(0, 77)}...`;
+            }
+            const discussionTitle = titlePrefix
+              ? `${titlePrefix}: ${discussionTitleBase}`
+              : `Project Done: ${discussionTitleBase}`;
+
+            const summaryLines = [];
+            summaryLines.push(`# ${discussionTitleBase}`);
+            summaryLines.push('');
+            if (project?.title && projectBaseUrl) {
+              summaryLines.push(`- **Project**: [${project.title}](${projectBaseUrl})`);
+            } else if (project?.title) {
+              summaryLines.push(`- **Project**: ${project.title}`);
+            }
+            if (cardUrl) {
+              summaryLines.push(`- **Project card**: [Open project item](${cardUrl})`);
+            }
+            summaryLines.push(`- **Status**: Done`);
+            summaryLines.push(`- **Last updated**: ${item.updatedAt}`);
+            if (issue) {
+              summaryLines.push(`- **Backlog**: [${issue.repository?.nameWithOwner}#${issue.number}](${issue.url})`);
+            }
+            if (backlogValues.length > 0) {
+              summaryLines.push(`- **Backlog links**: ${backlogValues.join(', ')}`);
+            }
+
+            summaryLines.push('');
+            summaryLines.push('## Backlog details');
+            summaryLines.push(backlogSection);
+            summaryLines.push('');
+            summaryLines.push('## Codex plan');
+            summaryLines.push(planSection);
+            summaryLines.push('');
+            summaryLines.push('## Codex run');
+            summaryLines.push(runSection);
+            summaryLines.push('');
+            summaryLines.push('## Related pull requests');
+            summaryLines.push(prSection);
+
+            const discussionBody = summaryLines.join('\n');
+
+            const repoQuery = `query($owner: String!, $name: String!) {
+              repository(owner: $owner, name: $name) {
+                id
+                discussions(first: 50, categoryId: $categoryId, orderBy: {field: CREATED_AT, direction: DESC}) {
+                  nodes { id title url }
+                }
+              }
+            }`;
+
+            const repoData = await github.graphql(repoQuery, {
+              owner: context.repo.owner,
+              name: context.repo.repo,
+              categoryId,
+            });
+
+            const repository = repoData?.repository;
+            if (!repository?.id) {
+              core.setFailed('Unable to resolve repository node identifier for discussion creation.');
+              return;
+            }
+
+            const existingDiscussion = repository.discussions?.nodes?.find((discussion) => discussion.title === discussionTitle);
+            if (existingDiscussion) {
+              core.info(`Discussion already exists: ${existingDiscussion.url}`);
+              return;
+            }
+
+            const createMutation = `mutation($input: CreateDiscussionInput!) {
+              createDiscussion(input: $input) {
+                discussion { id number url }
+              }
+            }`;
+
+            const createResponse = await github.graphql(createMutation, {
+              input: {
+                repositoryId: repository.id,
+                categoryId,
+                title: discussionTitle,
+                body: discussionBody,
+                clientMutationId: item.id,
+              },
+            });
+
+            const createdDiscussion = createResponse?.createDiscussion?.discussion;
+            if (!createdDiscussion) {
+              core.setFailed('Discussion creation did not return a discussion object.');
+              return;
+            }
+
+            core.info(`Created discussion ${createdDiscussion.number}: ${createdDiscussion.url}`);
+
+            const labelsInput = process.env.DISCUSSION_LABELS || '';
+            const labels = parseNames(labelsInput);
+            if (labels.length > 0) {
+              const labelMutation = `mutation($discussionId: ID!, $labels: [String!]!) {
+                updateDiscussion(input: {discussionId: $discussionId, addLabels: $labels}) {
+                  discussion { id }
+                }
+              }`;
+              try {
+                await github.graphql(labelMutation, {
+                  discussionId: createdDiscussion.id,
+                  labels,
+                });
+                core.info(`Applied labels: ${labels.join(', ')}`);
+              } catch (error) {
+                core.warning(`Unable to apply discussion labels: ${error.message}`);
+              }
+            }
+
+            core.setOutput('discussion_url', createdDiscussion.url);
+            core.setOutput('discussion_title', discussionTitle);
+            core.setOutput('discussion_body', discussionBody);
