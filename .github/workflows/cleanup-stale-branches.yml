@@ -2,7 +2,7 @@ name: Cleanup stale branches
 
 on:
   schedule:
-    - cron: '0 3 * * *'
+    - cron: '0 * * * *'
   workflow_dispatch:
     inputs:
       retention_days:
@@ -64,6 +64,34 @@ jobs:
             core.info(`Retention threshold: branches updated before ${retentionThreshold.toISOString()} will be removed.`);
 
             const { owner, repo } = context.repo;
+            const baseBranches = ['main', 'live'];
+
+            const findMergedBase = async (branchName) => {
+              for (const base of baseBranches) {
+                if (!base || base === branchName) {
+                  continue;
+                }
+
+                try {
+                  const comparison = await github.rest.repos.compareCommits({
+                    owner,
+                    repo,
+                    base,
+                    head: branchName,
+                  });
+
+                  if (comparison?.data?.ahead_by === 0) {
+                    return base;
+                  }
+                } catch (error) {
+                  if (error.status !== 404) {
+                    core.warning(`Failed to compare ${branchName} with ${base}: ${error.message}`);
+                  }
+                }
+              }
+
+              return null;
+            };
 
             const branches = await github.paginate(github.rest.repos.listBranches, {
               owner,
@@ -94,23 +122,34 @@ jobs:
                 continue;
               }
 
+              const mergedBase = await findMergedBase(branchName);
+
               const commit = branch.commit && branch.commit.commit;
               const committedDate = commit && (commit.author?.date || commit.committer?.date);
 
-              if (!committedDate) {
-                skipped.push({ name: branchName, reason: 'no commit date available' });
-                continue;
+              let lastUpdated = null;
+              if (committedDate) {
+                const parsedDate = new Date(committedDate);
+                if (!Number.isNaN(parsedDate.getTime())) {
+                  lastUpdated = parsedDate;
+                }
               }
 
-              const lastUpdated = new Date(committedDate);
-              if (Number.isNaN(lastUpdated.getTime())) {
-                skipped.push({ name: branchName, reason: 'invalid commit date' });
-                continue;
-              }
+              if (!mergedBase) {
+                if (!committedDate) {
+                  skipped.push({ name: branchName, reason: 'no commit date available' });
+                  continue;
+                }
 
-              if (lastUpdated >= retentionThreshold) {
-                skipped.push({ name: branchName, reason: 'recent activity' });
-                continue;
+                if (!lastUpdated) {
+                  skipped.push({ name: branchName, reason: 'invalid commit date' });
+                  continue;
+                }
+
+                if (lastUpdated >= retentionThreshold) {
+                  skipped.push({ name: branchName, reason: 'recent activity' });
+                  continue;
+                }
               }
 
               try {
@@ -120,7 +159,14 @@ jobs:
                   ref: `heads/${branchName}`,
                 });
                 core.info(`Deleted branch ${branchName}`);
-                deleted.push({ name: branchName, lastUpdated: lastUpdated.toISOString() });
+                const deletionReason = mergedBase
+                  ? `fully merged into ${mergedBase}`
+                  : 'stale beyond retention';
+                deleted.push({
+                  name: branchName,
+                  lastUpdated: lastUpdated ? lastUpdated.toISOString() : 'unknown',
+                  reason: deletionReason,
+                });
               } catch (error) {
                 core.warning(`Failed to delete ${branchName}: ${error.message}`);
                 skipped.push({ name: branchName, reason: 'delete failed' });
@@ -137,8 +183,12 @@ jobs:
             } else {
               core.summary.addHeading('Deleted branches', 3);
               core.summary.addTable([
-                [{ data: 'Branch', header: true }, { data: 'Last Updated', header: true }],
-                ...deleted.map((entry) => [entry.name, entry.lastUpdated]),
+                [
+                  { data: 'Branch', header: true },
+                  { data: 'Last Updated', header: true },
+                  { data: 'Reason', header: true },
+                ],
+                ...deleted.map((entry) => [entry.name, entry.lastUpdated, entry.reason]),
               ]);
             }
 
