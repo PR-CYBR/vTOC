@@ -16,7 +16,6 @@ jobs:
     container:
       image: python:3.11-slim
     env:
-      CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
       CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
       DOCS_DISCUSSION_CATEGORY_ID: ${{ vars.DOCS_DISCUSSION_CATEGORY_ID }}
       DOCS_DISCUSSION_LABELS: ${{ vars.DOCS_DISCUSSION_LABELS }}
@@ -30,6 +29,12 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends git curl
           rm -rf /var/lib/apt/lists/*
+
+      - name: Setup Codex CLI
+        uses: ./.github/actions/setup-codex
+        with:
+          api-key: ${{ secrets.CODEX_API_KEY }}
+          base-url: ${{ vars.CODEX_BASE_URL }}
 
       - name: Check out repository
         uses: actions/checkout@v4
