@@ -1,0 +1,88 @@
+name: Backlog intake
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: Short title for the backlog entry
+        required: true
+        type: string
+      summary:
+        description: Detailed summary of the requested work
+        required: true
+        type: string
+      metadata:
+        description: Optional JSON metadata object
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-backlog:
+    name: Append backlog entry
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out codex branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Append backlog entry
+        id: backlog
+        env:
+          PYTHONPATH: .
+          BACKLOG_TITLE: ${{ inputs.title }}
+          BACKLOG_SUMMARY: ${{ inputs.summary }}
+          BACKLOG_METADATA: ${{ inputs.metadata }}
+        run: |
+          python -m scripts.automation.backlog add \
+            --title "$BACKLOG_TITLE" \
+            --summary "$BACKLOG_SUMMARY" \
+            --metadata "$BACKLOG_METADATA" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Format backlog file
+        env:
+          PYTHONPATH: .
+        run: python -m scripts.automation.backlog format
+
+      - name: Validate backlog file
+        env:
+          PYTHONPATH: .
+        run: python -m scripts.automation.backlog validate
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          base: codex
+          branch: automation/backlog/${{ steps.backlog.outputs.id }}
+          title: "docs(backlog): add ${{ steps.backlog.outputs.id }} – ${{ inputs.title }}"
+          commit-message: "docs(backlog): add ${{ steps.backlog.outputs.id }}"
+          body: |
+            ## Summary
+            - Added backlog entry `${{ steps.backlog.outputs.id }}` for `${{ inputs.title }}`.
+            - Included summary payload from the workflow dispatch event.
+
+            ## Details
+            **Summary**
+
+            ${{ inputs.summary }}
+
+            **Metadata**
+
+            ```json
+            ${{ inputs.metadata != '' && inputs.metadata || '{}' }}
+            ```
+          delete-branch: true
+          add-paths: |
+            codex/backlog.json

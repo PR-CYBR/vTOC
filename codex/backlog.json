@@ -1,0 +1,15 @@
+[
+  {
+    "created_at": "2025-10-16T18:10:51Z",
+    "id": "codex-0001",
+    "metadata": {
+      "labels": [
+        "automation",
+        "backlog"
+      ],
+      "source": "initial-seed"
+    },
+    "summary": "- Provide a manual workflow to capture backlog requests.\\n- Append normalized entries with unique identifiers and optional metadata.\\n- Publish updates to Codex through automated pull requests.",
+    "title": "Automate backlog intake workflow"
+  }
+]
