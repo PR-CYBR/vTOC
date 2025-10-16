@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=../lib/prereqs.sh
+source "$SCRIPT_DIR/lib/prereqs.sh"
+
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CONFIG_JSON="${VTOC_CONFIG_JSON:-{}}"
+
+check_prereqs \
+  "pnpm|8.6.0|https://pnpm.io/installation"
 
 printf 'Running local setup with configuration: %s\n' "$CONFIG_JSON"
 

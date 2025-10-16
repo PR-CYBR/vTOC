@@ -10,6 +10,10 @@ deployment, and automation for Fly.io delivery from the hardened `live` branch.
 
 ## Quick start
 
+The Makefile targets automatically run a shared prerequisite check to ensure `pnpm` (8.6+), Python 3 (3.9+), and Docker tooling
+are installed before any setup tasks execute. If a dependency is missing the scripts exit early with remediation links instead of
+failing halfway through the bootstrap process.
+
 ```bash
 # 1. Generate station configuration and env files
 make setup-local
@@ -58,9 +62,9 @@ An end-to-end overview is available in [`docs/ARCHITECTURE.md`](docs/ARCHITECTUR
 
 | Mode | Command | Description |
 | --- | --- | --- |
-| Local dev | `make setup-local` | Installs dependencies, writes `.env.local`, and provisions ChatKit/AgentKit sandbox credentials. |
-| Generated Compose | `make setup-container` | Produces `docker-compose.generated.yml`, interpolates station secrets, and starts the stack with role-specific services. |
-| Infrastructure | `make setup-cloud` | Generates Terraform/Ansible scaffolding in `infra/` with multi-station Postgres plans. |
+| Local dev | `make setup-local` | Runs prerequisite checks, installs dependencies, writes `.env.local`, and provisions ChatKit/AgentKit sandbox credentials. |
+| Generated Compose | `make setup-container` | Verifies required tooling, produces `docker-compose.generated.yml`, interpolates station secrets, and optionally starts the stack with role-specific services. |
+| Infrastructure | `make setup-cloud` | Confirms Terraform/Ansible availability, then generates scaffolding in `infra/` with multi-station Postgres plans. |
 | Cleanup | `make compose-down` | Tears down services started from the generated compose file and removes role-specific temp volumes. |
 
 Supply configuration through `--config path.json` or `--config-json '{...}'`. The schema now includes `stationRoles[]` and

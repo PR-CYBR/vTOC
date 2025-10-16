@@ -1,10 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=../lib/prereqs.sh
+source "$SCRIPT_DIR/lib/prereqs.sh"
+
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUTPUT_FILE="$ROOT_DIR/docker-compose.generated.yml"
 CONFIG_JSON="${VTOC_CONFIG_JSON:-{}}"
 APPLY="${VTOC_SETUP_APPLY:-false}"
+
+requirements=(
+  "python3|3.9.0|https://www.python.org/downloads/"
+)
+
+if [[ "$APPLY" == "true" ]]; then
+  requirements+=(
+    "docker|20.10.0|https://docs.docker.com/get-docker/"
+    "docker-compose|2.5.0|https://docs.docker.com/compose/install/"
+  )
+fi
+
+check_prereqs "${requirements[@]}"
 
 export ROOT_DIR OUTPUT_FILE CONFIG_JSON
 

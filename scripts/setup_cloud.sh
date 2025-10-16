@@ -1,10 +1,32 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=../lib/prereqs.sh
+source "$SCRIPT_DIR/lib/prereqs.sh"
+
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CONFIG_JSON="${VTOC_CONFIG_JSON:-{}}"
 APPLY="${VTOC_SETUP_APPLY:-false}"
 CONFIGURE="${VTOC_SETUP_CONFIGURE:-false}"
+
+requirements=(
+  "python3|3.9.0|https://www.python.org/downloads/"
+)
+
+if [[ "$APPLY" == "true" ]]; then
+  requirements+=(
+    "terraform|1.5.0|https://developer.hashicorp.com/terraform/downloads"
+  )
+fi
+
+if [[ "$CONFIGURE" == "true" ]]; then
+  requirements+=(
+    "ansible-playbook|2.14.0|https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html"
+  )
+fi
+
+check_prereqs "${requirements[@]}"
 
 export ROOT_DIR CONFIG_JSON
 

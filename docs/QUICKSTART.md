@@ -13,6 +13,14 @@ Ensure you have:
 - `pnpm` (8+) for frontend development
 - Access to ChatKit and AgentKit credentials with sandbox permissions
 
+The setup commands automatically verify these tools (and Python 3.9+) before running; missing dependencies trigger actionable
+messages with installation links. On Windows, enable Corepack to install `pnpm` globally before invoking the setup scripts:
+
+```powershell
+corepack enable
+corepack prepare pnpm@latest --activate
+```
+
 ## Station roles
 
 Every deployment declares at least one station role. The defaults ship with three profiles:
