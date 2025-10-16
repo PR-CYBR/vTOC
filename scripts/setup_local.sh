@@ -6,10 +6,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/prereqs.sh"
 
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+TERRAFORM_DIR="$ROOT_DIR/infrastructure/terraform"
 CONFIG_JSON="${VTOC_CONFIG_JSON:-{}}"
 
 check_prereqs \
-  "pnpm|8.6.0|https://pnpm.io/installation"
+  "pnpm|8.6.0|https://pnpm.io/installation" \
+  "terraform|1.5.0|https://developer.hashicorp.com/terraform/downloads"
 
 printf 'Running local setup with configuration: %s\n' "$CONFIG_JSON"
 
@@ -17,23 +19,36 @@ if command -v codex >/dev/null 2>&1; then
   codex note "Executing local mode setup"
 fi
 
+terraform -chdir="$TERRAFORM_DIR" init -input=false >/dev/null
+
+export ROOT_DIR TERRAFORM_DIR
+
+python - <<'PY'
+import subprocess
+from pathlib import Path
+import os
+import sys
+
+root_dir = Path(os.environ["ROOT_DIR"])
+terraform_dir = Path(os.environ["TERRAFORM_DIR"])
+
+try:
+    frontend_env = subprocess.check_output(
+        ["terraform", "-chdir", str(terraform_dir), "output", "-raw", "frontend_env_file"],
+        text=True,
+    )
+except subprocess.CalledProcessError as exc:
+    print(
+        "Failed to read Terraform outputs. Run `terraform apply` in infrastructure/terraform to populate state.",
+        file=sys.stderr,
+    )
+    raise SystemExit(exc.returncode) from exc
+
+frontend_dir = root_dir / "frontend"
+(frontend_dir / ".env.local").write_text(frontend_env)
+PY
+
 (cd "$ROOT_DIR/frontend" && pnpm install --frozen-lockfile)
-
-cat <<ENV > "$ROOT_DIR/frontend/.env.local"
-VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8080}
-VITE_MAP_TILES_URL=${VITE_MAP_TILES_URL:-https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png}
-VITE_MAP_ATTRIBUTION=${VITE_MAP_ATTRIBUTION:-© OpenStreetMap contributors}
-VITE_DEFAULT_DIV=${VITE_DEFAULT_DIV:-PR-SJU}
-VITE_RSS_ENABLED=${VITE_RSS_ENABLED:-true}
-VITE_CHAT_ENABLED=${VITE_CHAT_ENABLED:-true}
-VITE_CHATKIT_WIDGET_URL=${VITE_CHATKIT_WIDGET_URL:-https://cdn.chatkit.example.com/widget.js}
-VITE_CHATKIT_API_KEY=${VITE_CHATKIT_API_KEY:-}
-VITE_CHATKIT_TELEMETRY_CHANNEL=${VITE_CHATKIT_TELEMETRY_CHANNEL:-vtoc-intel}
-VITE_AGENTKIT_ORG_ID=${VITE_AGENTKIT_ORG_ID:-}
-VITE_AGENTKIT_DEFAULT_STATION_CONTEXT=${VITE_AGENTKIT_DEFAULT_STATION_CONTEXT:-${VITE_DEFAULT_DIV:-PR-SJU}}
-VITE_AGENTKIT_API_BASE_PATH=${VITE_AGENTKIT_API_BASE_PATH:-/api/v1/agent-actions}
-ENV
-
 (cd "$ROOT_DIR/frontend" && pnpm build)
 
 printf 'Local mode complete. Start the dev server with "pnpm --dir frontend dev".\n'
