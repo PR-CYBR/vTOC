@@ -42,6 +42,12 @@ export interface ChatKitTelemetryContext {
   events: TelemetryEvent[];
   lastEventTimestamp?: string;
   defaultStation: string;
+  channel?: string;
+  credentials?: {
+    accessToken?: string;
+    refreshToken?: string;
+    userId?: string;
+  };
 }
 
 export interface ChatKitWidgetProps {
@@ -64,6 +70,9 @@ declare global {
         'data-telemetry-channel'?: string;
         'data-actions-endpoint'?: string;
         'data-default-station'?: string;
+        'data-supabase-access-token'?: string;
+        'data-supabase-refresh-token'?: string;
+        'data-supabase-user-id'?: string;
       };
     }
   }
@@ -78,6 +87,10 @@ const ChatKitWidget = ({ open = true, telemetry, onReady, className }: ChatKitWi
   const basePath = (import.meta.env.VITE_AGENTKIT_API_BASE_PATH ?? '/api/v1/agent-actions').replace(/\/$/, '');
   const actionsEndpoint = useMemo(() => `${basePath}/execute`, [basePath]);
   const elementRef = useRef<ChatKitElement | null>(null);
+  const computedTelemetryChannel = telemetry.channel ?? telemetryChannel;
+  const supabaseAccessToken = telemetry.credentials?.accessToken;
+  const supabaseRefreshToken = telemetry.credentials?.refreshToken;
+  const supabaseUserId = telemetry.credentials?.userId;
 
   useEffect(() => {
     if (!chatkitApiKey || !agentkitOrgId) {
@@ -116,9 +129,12 @@ const ChatKitWidget = ({ open = true, telemetry, onReady, className }: ChatKitWi
       className={className}
       data-api-key={chatkitApiKey}
       data-org-id={agentkitOrgId}
-      data-telemetry-channel={telemetryChannel}
+      data-telemetry-channel={computedTelemetryChannel}
       data-actions-endpoint={actionsEndpoint}
       data-default-station={telemetry.defaultStation || defaultStationFromEnv}
+      data-supabase-access-token={supabaseAccessToken}
+      data-supabase-refresh-token={supabaseRefreshToken}
+      data-supabase-user-id={supabaseUserId}
     />
   );
 };
