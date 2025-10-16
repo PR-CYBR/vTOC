@@ -17,6 +17,7 @@ declare global {
     readonly VITE_AGENTKIT_API_BASE_PATH?: string;
     readonly VITE_SUPABASE_URL?: string;
     readonly VITE_SUPABASE_ANON_KEY?: string;
+    readonly VITE_SUPABASE_TELEMETRY_TABLE?: string;
   }
 }
 

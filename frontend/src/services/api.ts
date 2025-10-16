@@ -1,9 +1,193 @@
 import axios from 'axios';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import {
+  QueryKey,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
 });
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseTelemetryTable = import.meta.env.VITE_SUPABASE_TELEMETRY_TABLE ?? 'telemetry_events';
+
+const supabaseClient: SupabaseClient | null =
+  supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: true,
+          detectSessionInUrl: true,
+          autoRefreshToken: true,
+        },
+      })
+    : null;
+
+export type { Session };
+
+export const supabase = supabaseClient;
+export const isSupabaseConfigured = Boolean(supabaseClient);
+
+const toNumber = (value: unknown): number | undefined => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+};
+
+const normalizeStationRow = (row: Record<string, unknown>): Station => {
+  const id = toNumber(row.id) ?? toNumber(row['station_id']) ?? 0;
+  const slug = String(row['slug'] ?? row['station_slug'] ?? '');
+  return {
+    id,
+    slug,
+    name: String(row['name'] ?? row['station_name'] ?? slug),
+    description: (row['description'] as string | undefined) ?? undefined,
+    timezone: String(row['timezone'] ?? row['default_timezone'] ?? 'UTC'),
+    telemetry_schema: (row['telemetry_schema'] as string | undefined) ?? undefined,
+  };
+};
+
+const normalizeTelemetryRow = (row: Record<string, any>): TelemetryEvent => {
+  const sourceRecord = (row['source'] ?? {}) as Record<string, any>;
+
+  const source: TelemetrySource = {
+    id:
+      toNumber(sourceRecord['id']) ??
+      toNumber(row['source_id']) ??
+      0,
+    name:
+      (sourceRecord['name'] as string | undefined) ??
+      (row['source_name'] as string | undefined) ??
+      `source-${row['source_id'] ?? 'unknown'}`,
+    slug:
+      (sourceRecord['slug'] as string | undefined) ??
+      (row['source_slug'] as string | undefined) ??
+      String(row['source_id'] ?? ''),
+    source_type:
+      (sourceRecord['source_type'] as string | undefined) ??
+      (row['source_type'] as string | undefined) ??
+      'unknown',
+    description:
+      (sourceRecord['description'] as string | undefined) ??
+      (row['source_description'] as string | undefined) ??
+      undefined,
+    station_id:
+      toNumber(sourceRecord['station_id']) ??
+      toNumber(row['station_id']) ??
+      undefined,
+  };
+
+  const receivedAt =
+    (row['received_at'] as string | undefined) ??
+    (row['event_time'] as string | undefined) ??
+    new Date().toISOString();
+
+  return {
+    id: toNumber(row['id']) ?? 0,
+    source_id: toNumber(row['source_id']) ?? 0,
+    latitude: toNumber(row['latitude']),
+    longitude: toNumber(row['longitude']),
+    event_time: (row['event_time'] as string | undefined) ?? undefined,
+    received_at: receivedAt,
+    payload: (row['payload'] as Record<string, unknown> | undefined) ?? undefined,
+    status: (row['status'] as string | undefined) ?? 'unprocessed',
+    station_id: toNumber(row['station_id']) ?? undefined,
+    source,
+  };
+};
+
+const fetchStationsFromSupabase = async (): Promise<Station[]> => {
+  if (!supabaseClient) {
+    throw new Error('Supabase client is not configured');
+  }
+
+  const { data, error } = await supabaseClient
+    .from('stations')
+    .select('*')
+    .order('name', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((row) => normalizeStationRow(row as Record<string, unknown>));
+};
+
+const fetchTelemetryFromSupabase = async (
+  stationSlug?: string,
+): Promise<TelemetryEvent[]> => {
+  if (!supabaseClient) {
+    throw new Error('Supabase client is not configured');
+  }
+
+  let query = supabaseClient
+    .from(supabaseTelemetryTable)
+    .select('*')
+    .order('event_time', { ascending: false })
+    .limit(100);
+
+  if (stationSlug) {
+    query = query.eq('station_slug', stationSlug);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((row) => normalizeTelemetryRow(row as Record<string, any>));
+};
+
+const subscribeToSupabaseTable = ({
+  queryClient,
+  queryKey,
+  table,
+  filter,
+}: {
+  queryClient: ReturnType<typeof useQueryClient>;
+  queryKey: QueryKey;
+  table: string;
+  filter?: string;
+}) => {
+  if (!supabaseClient) {
+    return () => undefined;
+  }
+
+  const channelName = `public:${table}:${filter ?? 'all'}`;
+  const channel = supabaseClient
+    .channel(channelName)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table,
+        ...(filter ? { filter } : {}),
+      },
+      () => {
+        queryClient.invalidateQueries({ queryKey });
+      },
+    );
+
+  channel.subscribe((status) => {
+    if (status === 'CHANNEL_ERROR') {
+      console.error(`Supabase channel error for ${channelName}`);
+    }
+  });
+
+  return () => {
+    supabaseClient.removeChannel(channel);
+  };
+};
 
 export interface Station {
   id: number;
@@ -79,31 +263,109 @@ const stationHeaders = (stationSlug?: string) =>
   stationSlug
     ? {
         headers: {
-          'X-Station-Id': stationSlug
-        }
+          'X-Station-Id': stationSlug,
+        },
       }
     : {};
 
-export const useStations = () =>
-  useQuery<Station[]>({
+export const useSupabaseSession = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!supabaseClient) {
+      return;
+    }
+
+    const { data: listener } = supabaseClient.auth.onAuthStateChange((_, session) => {
+      queryClient.setQueryData(['supabase-session'], session ?? null);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, [queryClient]);
+
+  return useQuery<Session | null>({
+    queryKey: ['supabase-session'],
+    enabled: Boolean(supabaseClient),
+    queryFn: async () => {
+      if (!supabaseClient) {
+        return null;
+      }
+      const { data } = await supabaseClient.auth.getSession();
+      return data.session ?? null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useStations = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!supabaseClient) {
+      return;
+    }
+
+    return subscribeToSupabaseTable({
+      queryClient,
+      queryKey: ['stations'],
+      table: 'stations',
+    });
+  }, [queryClient]);
+
+  return useQuery<Station[]>({
     queryKey: ['stations'],
     queryFn: async () => {
+      if (supabaseClient) {
+        try {
+          return await fetchStationsFromSupabase();
+        } catch (error) {
+          console.warn('Falling back to API for station list', error);
+        }
+      }
+
       const response = await api.get('/api/v1/stations/');
       return response.data;
     },
   });
+};
 
-export const useTelemetryEvents = (stationSlug?: string) =>
-  useQuery<TelemetryEvent[]>({
+export const useTelemetryEvents = (stationSlug?: string) => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!supabaseClient) {
+      return;
+    }
+
+    return subscribeToSupabaseTable({
+      queryClient,
+      queryKey: ['telemetry-events', stationSlug ?? 'default'],
+      table: supabaseTelemetryTable,
+      filter: stationSlug ? `station_slug=eq.${stationSlug}` : undefined,
+    });
+  }, [queryClient, stationSlug]);
+
+  return useQuery<TelemetryEvent[]>({
     queryKey: ['telemetry-events', stationSlug ?? 'default'],
     queryFn: async () => {
+      if (supabaseClient) {
+        try {
+          return await fetchTelemetryFromSupabase(stationSlug);
+        } catch (error) {
+          console.warn('Falling back to API for telemetry events', error);
+        }
+      }
+
       const response = await api.get('/api/v1/telemetry/events', {
-        ...stationHeaders(stationSlug)
+        ...stationHeaders(stationSlug),
       });
       return response.data;
     },
-    refetchInterval: 60_000,
+    refetchInterval: supabaseClient ? false : 60_000,
   });
+};
 
 export const useStationDashboard = (stationSlug: string) =>
   useQuery<StationDashboard>({

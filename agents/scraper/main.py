@@ -92,7 +92,14 @@ async def fetch_html(client: httpx.AsyncClient, feed: FeedConfig) -> list[dict[s
     return results
 
 
-async def post_events(client: httpx.AsyncClient, events: list[dict[str, Any]]) -> None:
+async def post_events(
+    client: httpx.AsyncClient,
+    events: list[dict[str, Any]],
+    *,
+    supabase_client: Optional[httpx.AsyncClient] = None,
+    supabase_function: Optional[str] = None,
+    supabase_table: Optional[str] = None,
+) -> None:
     for event in events:
         slug = slugify(event["source"])
         payload = {
@@ -104,6 +111,19 @@ async def post_events(client: httpx.AsyncClient, events: list[dict[str, Any]]) -
             "longitude": event.get("longitude"),
         }
         logger.debug("Posting event: %s", json.dumps(payload))
+
+        if supabase_client:
+            try:
+                await send_event_to_supabase(
+                    supabase_client,
+                    payload,
+                    function=supabase_function,
+                    table=supabase_table,
+                )
+                continue
+            except (httpx.HTTPError, ValueError) as exc:
+                logger.error("Failed to send event to Supabase: %s", exc)
+
         try:
             response = await client.post("/api/v1/telemetry/events", json=payload)
             response.raise_for_status()
@@ -112,11 +132,35 @@ async def post_events(client: httpx.AsyncClient, events: list[dict[str, Any]]) -
 
 
 async def run_iteration(config: ScraperConfig, base_url: str) -> None:
+    supabase_url = getenv_str("SUPABASE_URL", "")
+    supabase_service_key = getenv_str("SUPABASE_SERVICE_ROLE_KEY", "")
+    supabase_function = os.getenv("SUPABASE_INGEST_FUNCTION")
+    supabase_table = os.getenv("SUPABASE_TELEMETRY_TABLE", "telemetry_events")
+
     async with httpx.AsyncClient(base_url=base_url) as client:
-        for feed in config.feeds:
-            rss_events = await fetch_rss(client, feed)
-            html_events = await fetch_html(client, feed)
-            await post_events(client, rss_events + html_events)
+        supabase_client: Optional[httpx.AsyncClient] = None
+        if supabase_url and supabase_service_key:
+            headers = {
+                "apikey": supabase_service_key,
+                "Authorization": f"Bearer {supabase_service_key}",
+                "Content-Type": "application/json",
+            }
+            supabase_client = httpx.AsyncClient(base_url=supabase_url, headers=headers)
+
+        try:
+            for feed in config.feeds:
+                rss_events = await fetch_rss(client, feed)
+                html_events = await fetch_html(client, feed)
+                await post_events(
+                    client,
+                    rss_events + html_events,
+                    supabase_client=supabase_client,
+                    supabase_function=supabase_function,
+                    supabase_table=supabase_table,
+                )
+        finally:
+            if supabase_client:
+                await supabase_client.aclose()
 
 
 async def main() -> None:
@@ -147,6 +191,33 @@ def getenv_str(name: str, default: str) -> str:
 
 def slugify(value: str) -> str:
     return "-".join(value.lower().split())
+
+
+async def send_event_to_supabase(
+    client: httpx.AsyncClient,
+    payload: dict[str, Any],
+    *,
+    function: Optional[str],
+    table: Optional[str],
+) -> None:
+    if function:
+        endpoint = f"/functions/v1/{function.lstrip('/')}"
+        response = await client.post(endpoint, json=payload, timeout=30)
+        response.raise_for_status()
+        return
+
+    if table:
+        endpoint = f"/rest/v1/{table}"
+        response = await client.post(
+            endpoint,
+            json=payload,
+            headers={"Prefer": "return=minimal"},
+            timeout=30,
+        )
+        response.raise_for_status()
+        return
+
+    raise ValueError("Supabase function or table must be configured for ingestion")
 
 
 if __name__ == "__main__":

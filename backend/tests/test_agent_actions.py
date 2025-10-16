@@ -3,38 +3,87 @@ import hmac
 import json
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterator, List
+from typing import Any, Dict, List
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import pytest
 from fastapi.testclient import TestClient
 
-os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:?cache=shared")
 os.environ.setdefault("AGENTKIT_API_BASE_URL", "https://agentkit.test/api")
 os.environ.setdefault("AGENTKIT_API_KEY", "test-key")
 os.environ.setdefault("AGENTKIT_ORG_ID", "test-org")
 os.environ.setdefault("CHATKIT_WEBHOOK_SECRET", "super-secret")
 
+from backend.app import schemas  # noqa: E402
 from backend.app.config import reset_settings_cache  # noqa: E402
-from backend.app.db import Base, SessionLocal, engine, get_db  # noqa: E402
 from backend.app.main import app  # noqa: E402
-from backend.app.models import AgentActionAudit  # noqa: E402
 from backend.app.services.agentkit import get_agentkit_client  # noqa: E402
+from backend.app.services.supabase import get_supabase_repository  # noqa: E402
 
 reset_settings_cache()
 
 
-@pytest.fixture(autouse=True)
-def setup_database():
-    Base.metadata.create_all(bind=engine)
-    try:
-        yield
-    finally:
-        with engine.begin() as connection:
-            for table in reversed(Base.metadata.sorted_tables):
-                connection.execute(table.delete())
+class FakeSupabaseRepository:
+    def __init__(self) -> None:
+        self._audits_by_id: Dict[int, schemas.AgentActionAuditRead] = {}
+        self._ids_by_action: Dict[str, int] = {}
+        self._id_seq = 1
+
+    def list_agent_action_audits(self, limit: int = 100) -> List[schemas.AgentActionAuditRead]:
+        audits = sorted(
+            self._audits_by_id.values(),
+            key=lambda audit: audit.created_at,
+            reverse=True,
+        )
+        return audits[:limit]
+
+    def get_agent_action_audit_by_action_id(
+        self, action_id: str
+    ) -> schemas.AgentActionAuditRead | None:
+        audit_id = self._ids_by_action.get(action_id)
+        if audit_id is None:
+            return None
+        return self._audits_by_id[audit_id]
+
+    def create_agent_action_audit(
+        self, payload: schemas.AgentActionAuditCreate
+    ) -> schemas.AgentActionAuditRead:
+        now = datetime.utcnow()
+        audit = schemas.AgentActionAuditRead(
+            id=self._id_seq,
+            action_id=payload.action_id,
+            tool_name=payload.tool_name,
+            status=payload.status,
+            request_payload=payload.request_payload,
+            response_payload=payload.response_payload,
+            error_message=payload.error_message,
+            created_at=now,
+            updated_at=now,
+            completed_at=payload.completed_at,
+        )
+        self._audits_by_id[self._id_seq] = audit
+        self._ids_by_action[audit.action_id] = self._id_seq
+        self._id_seq += 1
+        return audit
+
+    def update_agent_action_audit(
+        self, audit_id: int, payload: schemas.AgentActionAuditUpdate
+    ) -> schemas.AgentActionAuditRead:
+        existing = self._audits_by_id.get(audit_id)
+        if existing is None:
+            raise AssertionError("Audit not found")
+        data = existing.model_dump()
+        updates = payload.model_dump(exclude_unset=True)
+        data.update(updates)
+        data["id"] = audit_id
+        data["updated_at"] = datetime.utcnow()
+        audit = schemas.AgentActionAuditRead.model_validate(data)
+        self._audits_by_id[audit_id] = audit
+        self._ids_by_action[audit.action_id] = audit_id
+        return audit
 
 
 class DummyAgentKit:
@@ -75,32 +124,31 @@ class DummyAgentKit:
 
 
 @pytest.fixture()
-def client() -> TestClient:
+def fake_supabase_repo() -> FakeSupabaseRepository:
+    return FakeSupabaseRepository()
+
+
+@pytest.fixture()
+def client(fake_supabase_repo: FakeSupabaseRepository) -> TestClient:
     test_client = TestClient(app)
 
     async def _override_client() -> DummyAgentKit:
         return DummyAgentKit()
 
     app.dependency_overrides[get_agentkit_client] = _override_client
-
-    def _override_db() -> Iterator[SessionLocal]:
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = _override_db
+    app.dependency_overrides[get_supabase_repository] = lambda: fake_supabase_repo
 
     try:
         yield test_client
     finally:
         app.dependency_overrides.pop(get_agentkit_client, None)
-        app.dependency_overrides.pop(get_db, None)
+        app.dependency_overrides.pop(get_supabase_repository, None)
         test_client.close()
 
 
-def test_execute_action_creates_audit_record(client: TestClient):
+def test_execute_action_creates_audit_record(
+    client: TestClient, fake_supabase_repo: FakeSupabaseRepository
+):
     response = client.post(
         "/api/v1/agent-actions/execute",
         json={
@@ -113,26 +161,24 @@ def test_execute_action_creates_audit_record(client: TestClient):
     payload = response.json()
     assert payload["action_id"] == "agentkit-action-123"
 
-    with SessionLocal() as session:
-        audits = session.query(AgentActionAudit).all()
-        assert len(audits) == 1
-        audit = audits[0]
-        assert audit.tool_name == "ping"
-        assert audit.status == "queued"
-        assert audit.request_payload == {"host": "1.1.1.1"}
+    audits = fake_supabase_repo.list_agent_action_audits()
+    assert len(audits) == 1
+    audit = audits[0]
+    assert audit.tool_name == "ping"
+    assert audit.status == "queued"
+    assert audit.request_payload == {"host": "1.1.1.1"}
 
 
-def test_webhook_updates_audit(client: TestClient):
-    # seed audit record
-    with SessionLocal() as session:
-        session.add(
-            AgentActionAudit(
-                action_id="agentkit-action-123",
-                tool_name="ping",
-                status="queued",
-            )
+def test_webhook_updates_audit(
+    client: TestClient, fake_supabase_repo: FakeSupabaseRepository
+):
+    fake_supabase_repo.create_agent_action_audit(
+        schemas.AgentActionAuditCreate(
+            action_id="agentkit-action-123",
+            tool_name="ping",
+            status="queued",
         )
-        session.commit()
+    )
 
     body = {
         "action_id": "agentkit-action-123",
@@ -157,11 +203,11 @@ def test_webhook_updates_audit(client: TestClient):
 
     assert response.status_code == 202
 
-    with SessionLocal() as session:
-        audit = session.query(AgentActionAudit).one()
-        assert audit.status == "succeeded"
-        assert audit.response_payload == {"accepted": True}
-        assert audit.completed_at is not None
+    audit = fake_supabase_repo.get_agent_action_audit_by_action_id("agentkit-action-123")
+    assert audit is not None
+    assert audit.status == "succeeded"
+    assert audit.response_payload == {"accepted": True}
+    assert audit.completed_at is not None
 
 
 def test_webhook_rejects_bad_signature(client: TestClient):
