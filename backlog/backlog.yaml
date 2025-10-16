@@ -1,16 +1,1 @@
-# vTOC backlog template
-#
-# Duplicate the object under `items` for each backlog entry. Keep the list
-# sorted by `id` and prefer stable identifiers such as "BL-###".
-items:
-  - id: "BL-000"
-    title: "Short, action-oriented title"
-    status: proposed
-    summary: |
-      One or two paragraphs describing the change, the problem it solves,
-      and any critical acceptance criteria.
-    project_item_id: null
-    codex_plan_url: null
-    codex_run_ids: []
-    last_updated_by: "github:username"
-    metadata: {}
+items: []
