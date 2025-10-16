@@ -12,6 +12,7 @@ Ensure you have:
 - Git
 - `pnpm` (8+) for frontend development
 - Access to ChatKit and AgentKit credentials with sandbox permissions
+- A Supabase project (or operator-supplied credentials) for managed Postgres and authentication
 
 The setup commands automatically verify these tools (and Python 3.9+) before running; missing dependencies trigger actionable
 messages with installation links. On Windows, enable Corepack to install `pnpm` globally before invoking the setup scripts:
@@ -56,11 +57,32 @@ When prompted supply or confirm the following values:
 
 - `POSTGRES_STATION_ROLE`
 - `STATION_CALLSIGN`
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`
 - `CHATKIT_API_KEY` and `CHATKIT_ORG_ID`
 - `AGENTKIT_CLIENT_ID` and `AGENTKIT_CLIENT_SECRET`
 - Optional `TELEMETRY_BROADCAST_URL`
 
 The script seeds `scripts/cache/` with the generated ChatKit channel IDs for reuse by other stations.
+
+Supabase credentials can be generated from the [Supabase dashboard](https://supabase.com/dashboard). The bootstrap CLI persists
+the anon key to `.env.local`/`.env.station` for frontend use while storing the service-role key only in backend-specific
+environment files.
+
+### Environment variables
+
+| Variable | Scope | Description |
+| --- | --- | --- |
+| `DATABASE_URL` | Backend | SQLAlchemy connection string pointed at the Supabase-managed Postgres database for the selected station role. |
+| `SUPABASE_URL` | Backend, Frontend | Base URL for your Supabase project. Used by the frontend auth client and by backend management scripts. |
+| `SUPABASE_ANON_KEY` | Frontend | Public Supabase key for client-side auth bootstrap and realtime subscriptions. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Backend, Agents | Service-role key used by the backend and automation agents to apply migrations, run RLS bypass tasks, and manage Supabase auth webhooks. |
+| `POSTGRES_STATION_ROLE` | All services | Role identifier (`ops`, `intel`, `logistics`) used to bind ChatKit channels to the correct AgentKit playbooks. |
+| `POSTGRES_POOL_SIZE` | Backend | Optional override for multi-station connection pooling. |
+| `CHATKIT_API_KEY` | Backend, Agents | API token for ChatKit orchestration. |
+| `CHATKIT_ORG_ID` | Backend, Agents | Organization identifier required to join shared channels. |
+| `AGENTKIT_CLIENT_ID` / `AGENTKIT_CLIENT_SECRET` | Agents | OAuth credentials for AgentKit workflow execution. |
+| `STATION_CALLSIGN` | Frontend, Agents | Friendly identifier rendered in the UI header and propagated to telemetry events. |
+| `TELEMETRY_BROADCAST_URL` | Agents | Optional WebSocket endpoint for streaming telemetry into ChatKit threads. |
 
 ### 3. Start services
 
@@ -167,9 +189,10 @@ logs (see `backend/app/logging.py`) will include rejection reasons.
 
 ### Database connection errors
 
-Make sure Postgres is reachable and that the generated `DATABASE_URL` references the correct hostname. For multi-station
-setups, `python -m scripts.bootstrap_cli setup container --apply` (or `make setup-container`) adds suffixes such as `_ops`, `_intel`, `_logistics` to the default database names; confirm that
-your local Postgres instance contains those schemas.
+Make sure Supabase is reachable and that the generated `DATABASE_URL` references the correct hostname. For multi-station
+setups using Supabase, verify that each schema (`ops`, `intel`, `logistics`) exists and that row-level security policies permit
+your service-role key. When running against the optional local Postgres fallback, confirm the generated `_ops`, `_intel`,
+`_logistics` databases are present.
 
 ## Next steps
 

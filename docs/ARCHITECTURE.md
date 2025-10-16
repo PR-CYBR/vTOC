@@ -1,7 +1,7 @@
 # vTOC Architecture Overview
 
 The vTOC platform combines a map-centric operations UI, a FastAPI backend, ChatKit collaboration channels, and AgentKit
-playbooks orchestrating telemetry workflows. Stations are isolated by role yet share a common multi-tenant Postgres cluster and
+playbooks orchestrating telemetry workflows. Stations are isolated by role yet share a Supabase-managed Postgres instance and a
 ChatKit organization. This document describes the high-level architecture and the data flows that connect these components.
 
 ## System architecture
@@ -16,9 +16,9 @@ ChatKit organization. This document describes the high-level architecture and th
       Station messages                            │
               │                                   │ SQLAlchemy
 ┌─────────────▼──────────────┐           ┌────────▼──────────────┐
-│   AgentKit Control Plane   │  Jobs     │   Postgres Cluster    │
+│   AgentKit Control Plane   │  Jobs     │   Supabase Postgres   │
 │ - Role aware playbooks     ├──────────►│ - station_<role> DBs  │
-│ - Telemetry connector shim │           │ - Timescale ext (opt) │
+│ - Telemetry connector shim │           │ - RLS + Auth context  │
 └─────────────┬──────────────┘           └────────▲──────────────┘
               │                            │      │
       Task invocations                      │      │
@@ -40,9 +40,9 @@ ChatKit organization. This document describes the high-level architecture and th
 - **Frontend** — Vite + React application consuming backend APIs. Displays station status, mission overlays, and a ChatKit-driven
   mission console. Reads `STATION_CALLSIGN` and `POSTGRES_STATION_ROLE` from `.env.station`.
 - **Backend** — FastAPI service exposing REST endpoints, ChatKit webhook listeners, and telemetry ingestion APIs. It maps channel
-  events to AgentKit playbooks based on the station role and persists results to Postgres.
-- **Postgres Cluster** — Multi-database cluster provisioned per station (`vtoc_ops`, `vtoc_intel`, `vtoc_logistics`). Optional
-  TimescaleDB extensions can be enabled for telemetry rollups. Connection details live in the generated `.env.local` file.
+  events to AgentKit playbooks based on the station role and persists results to Supabase-hosted Postgres schemas.
+- **Supabase Postgres** — Managed Postgres instance with per-role schemas (`ops`, `intel`, `logistics`). Supabase enforces
+  row-level security policies aligned with station metadata and exposes realtime feeds for the frontend.
 - **ChatKit Organization** — Shared chat fabric for operators and automated agents. Each station owns a default channel named
   after `STATION_CALLSIGN`. Channels contain threads for missions and telemetry alerts.
 - **AgentKit** — Workflow runner that executes playbooks. Playbooks call telemetry connectors and use the backend APIs to log
@@ -70,13 +70,14 @@ Playbook identifiers are defined under `agents/config/agentkit.yml`. The backend
 2. ChatKit forwards the event to `/api/v1/chatkit/webhook`.
 3. Backend validates the signature, resolves the station role, and queues an AgentKit job.
 4. AgentKit executes the playbook, optionally invoking telemetry connectors.
-5. Results are stored in Postgres and posted back to ChatKit. Frontend receives updates through the standard REST polling cycle.
+5. Results are stored in Supabase Postgres and posted back to ChatKit. Frontend receives updates through the standard REST
+   polling cycle.
 
 ### Telemetry ingestion
 
 1. Telemetry connector (standalone agent or AgentKit task) fetches external data.
 2. Connector posts normalized payloads to `/api/v1/telemetry/events`.
-3. Backend writes events to the station-specific Postgres database and publishes notifications to ChatKit threads.
+3. Backend writes events to the station-specific Supabase schema and publishes notifications to ChatKit threads.
 4. Frontend refreshes map overlays and mission intel panels.
 
 ### Station provisioning
@@ -91,11 +92,11 @@ Playbook identifiers are defined under `agents/config/agentkit.yml`. The backend
 ## Security considerations
 
 - **Secrets management** — Setup script writes environment files with restricted permissions. Rotate ChatKit/AgentKit credentials
-  regularly and supply them via your preferred secret store in production.
+  and Supabase keys regularly and supply them via your preferred secret store in production.
 - **Webhook signing** — ChatKit webhook handler expects the `X-ChatKit-Signature` header. Configure the secret in
   `CHATKIT_WEBHOOK_SECRET` (optional override).
-- **Database isolation** — Use separate Postgres roles per station when deploying to shared clusters. See
-  [`docs/DEPLOYMENT.md`](DEPLOYMENT.md#multi-station-postgres) for Terraform snippets.
+- **Database isolation** — Supabase schemas enforce row-level security per station. See
+  [`docs/DEPLOYMENT.md`](DEPLOYMENT.md#multi-station-postgres-provisioning-with-supabase) for provisioning guidance.
 - **Network segmentation** — Traefik routes external traffic while AgentKit and telemetry connectors run on internal networks.
 
 ## Related documentation
