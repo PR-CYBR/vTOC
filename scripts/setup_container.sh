@@ -67,6 +67,9 @@ image_repo = os.environ.get('IMAGE_REPO', 'ghcr.io/pr-cybr/vtoc')
 image_tag = os.environ.get('IMAGE_TAG', 'main')
 use_build_local = os.environ.get('USE_BUILD_LOCAL', 'false').lower() == 'true'
 services_config = config.get('services', {})
+use_remote_images = os.environ.get('USE_REMOTE_IMAGES', 'false').lower() == 'true'
+image_prefix = os.environ.get('IMAGE_PREFIX', '')
+image_tag = os.environ.get('IMAGE_TAG', 'latest')
 
 postgres_enabled = services_config.get('postgres', True)
 traefik_enabled = services_config.get('traefik', False)
@@ -192,6 +195,12 @@ def dump_yaml(value, indent=0):
 lines = dump_yaml(compose)
 output_file.write_text('\n'.join(lines) + '\n')
 PY
+
+if [[ "$PULL_IMAGES" == "true" ]]; then
+  for service in backend frontend scraper; do
+    docker pull "${IMAGE_PREFIX}/${service}:${IMAGE_TAG}"
+  done
+fi
 
 if [[ "$APPLY" == "true" ]]; then
   docker compose -f "$OUTPUT_FILE" up -d

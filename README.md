@@ -84,7 +84,8 @@ expansion; otherwise they fall back to portable Bash implementations.
   (ZeroTier, Tailscale, MediaMTX, TAK Server)
 * `fly.toml` — Fly.io deployment descriptor for the backend container deployed from the `live` branch
 
-Images are built and pushed to GHCR via GitHub Actions as part of [`ci.yml`](.github/workflows/ci.yml):
+Images are built and pushed to GHCR via GitHub Actions as part of [`ci.yml`](.github/workflows/ci.yml) and the release-focused
+[`publish-containers.yml`](.github/workflows/publish-containers.yml) workflow:
 
 - `ghcr.io/<repo>/frontend` (Vite static bundle served by nginx)
 - `ghcr.io/<repo>/backend` (FastAPI + Uvicorn on port 8080)

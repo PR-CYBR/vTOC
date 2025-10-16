@@ -1,0 +1,167 @@
+name: Publish Containers
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Optional release tag for images (overrides SHA in compose manifest).'
+        required: false
+  schedule:
+    - cron: '0 12 * * 1'
+  push:
+    branches:
+      - main
+      - live
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  tests:
+    name: Run test suites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Enable corepack
+        run: corepack enable
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Frontend tests
+        working-directory: frontend
+        run: |
+          CI=1 pnpm test -- --watch=false --passWithNoTests
+          pnpm build
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps
+      - name: Playwright smoke tests
+        working-directory: frontend
+        run: pnpm test:playwright -- --reporter=line
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+      - name: Backend tests
+        working-directory: backend
+        run: pytest -q
+
+  publish:
+    name: Build and publish containers
+    runs-on: ubuntu-latest
+    needs: tests
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_REPOSITORY: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lowercase image repository
+        id: repo
+        run: |
+          set -euo pipefail
+          echo "name=$(echo "${IMAGE_REPOSITORY}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compute image tags
+        id: meta
+        env:
+          DISPATCH_TAG: ${{ github.event.inputs.release_tag }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          IMAGE_REPO: ${{ steps.repo.outputs.name }}
+          REGISTRY: ${{ env.REGISTRY }}
+        run: |
+          set -euo pipefail
+          release_tag="${DISPATCH_TAG:-}"
+          if [[ "${REF_TYPE}" == "tag" ]]; then
+            release_tag="${REF_NAME}"
+          fi
+          primary_tag="${SHA}"
+          manifest_tag="${SHA}"
+          if [[ -n "${release_tag}" ]]; then
+            manifest_tag="${release_tag}"
+          fi
+          backend_tags="${REGISTRY}/${IMAGE_REPO}/backend:${SHA}\n${REGISTRY}/${IMAGE_REPO}/backend:latest"
+          frontend_tags="${REGISTRY}/${IMAGE_REPO}/frontend:${SHA}\n${REGISTRY}/${IMAGE_REPO}/frontend:latest"
+          scraper_tags="${REGISTRY}/${IMAGE_REPO}/scraper:${SHA}\n${REGISTRY}/${IMAGE_REPO}/scraper:latest"
+          if [[ -n "${release_tag}" ]]; then
+            backend_tags+="\n${REGISTRY}/${IMAGE_REPO}/backend:${release_tag}"
+            frontend_tags+="\n${REGISTRY}/${IMAGE_REPO}/frontend:${release_tag}"
+            scraper_tags+="\n${REGISTRY}/${IMAGE_REPO}/scraper:${release_tag}"
+          fi
+          {
+            echo "backend_tags<<TAGS"
+            echo "${backend_tags}"
+            echo TAGS
+            echo "frontend_tags<<TAGS"
+            echo "${frontend_tags}"
+            echo TAGS
+            echo "scraper_tags<<TAGS"
+            echo "${scraper_tags}"
+            echo TAGS
+            echo "manifest_tag=${manifest_tag}"
+          } >> "$GITHUB_OUTPUT"
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.backend_tags }}
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.frontend_tags }}
+      - name: Build and push scraper image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./agents/scraper
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.scraper_tags }}
+      - name: Generate compose manifest
+        env:
+          VTOC_IMAGE_PREFIX: ${{ env.REGISTRY }}/${{ steps.repo.outputs.name }}
+        run: |
+          scripts/setup_container.sh --pull --image-tag "${{ steps.meta.outputs.manifest_tag }}"
+      - name: Upload compose manifest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-compose
+          path: docker-compose.generated.yml
+          if-no-files-found: error
+      - name: Attach compose file to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: docker-compose.generated.yml
+          tag_name: ${{ github.ref_name }}
