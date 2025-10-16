@@ -1,0 +1,67 @@
+name: Backlog Project Sync
+
+on:
+  push:
+    branches:
+      - codex
+    paths:
+      - backlog/backlog.yaml
+
+permissions:
+  contents: write
+  pull-requests: write
+  projects: write
+
+jobs:
+  sync-backlog:
+    name: Sync backlog with project board
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - id: sync
+        name: Create project items for new backlog entries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_NAME: vTOC-Project-Board
+        run: |
+          python .github/scripts/backlog_project_sync.py
+
+      - name: Output sync summary
+        if: steps.sync.outcome == 'success'
+        run: |
+          if [ -f .github/scripts/backlog-sync-report.json ]; then
+            echo "Sync summary:" && cat .github/scripts/backlog-sync-report.json
+          else
+            echo "No sync report found"
+          fi
+
+      - name: Remove sync summary artifact
+        if: steps.sync.outcome == 'success'
+        run: rm -f .github/scripts/backlog-sync-report.json
+
+      - name: Commit backlog updates
+        if: steps.sync.outcome == 'success'
+        run: |
+          if git diff --quiet --exit-code -- backlog/backlog.yaml; then
+            echo "No project item IDs to commit"
+            exit 0
+          fi
+          git config user.email "actions@github.com"
+          git config user.name "github-actions[bot]"
+          git add backlog/backlog.yaml
+          git commit -m "chore: sync backlog project item IDs"
+          git push origin HEAD:${{ github.ref_name }}
