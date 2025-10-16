@@ -10,6 +10,10 @@ deployment, and automation for Fly.io delivery from the hardened `live` branch.
 
 ## Quick start
 
+The Makefile targets automatically run a shared prerequisite check to ensure `pnpm` (8.6+), Python 3 (3.9+), and Docker tooling
+are installed before any setup tasks execute. If a dependency is missing the scripts exit early with remediation links instead of
+failing halfway through the bootstrap process.
+
 ```bash
 # 1. Generate station configuration and env files
 python -m scripts.bootstrap_cli setup local
