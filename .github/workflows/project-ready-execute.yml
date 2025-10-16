@@ -1,0 +1,469 @@
+name: Project Ready Execute
+
+on:
+  projects_v2_item:
+    types:
+      - edited
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  projects: write
+
+jobs:
+  prepare:
+    name: Prepare project item context
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.inspect.outputs.should_run }}
+      item_id: ${{ steps.inspect.outputs.item_id }}
+      project_id: ${{ steps.inspect.outputs.project_id }}
+      project_title: ${{ steps.inspect.outputs.project_title }}
+      project_url: ${{ steps.inspect.outputs.project_url }}
+      status_field_id: ${{ steps.inspect.outputs.status_field_id }}
+      status_review_option_id: ${{ steps.inspect.outputs.status_review_option_id }}
+      automation_status_field_id: ${{ steps.inspect.outputs.automation_status_field_id }}
+      plan_b64: ${{ steps.inspect.outputs.plan_b64 }}
+      plan_preview: ${{ steps.inspect.outputs.plan_preview }}
+      content_type: ${{ steps.inspect.outputs.content_type }}
+      content_number: ${{ steps.inspect.outputs.content_number }}
+      content_title: ${{ steps.inspect.outputs.content_title }}
+      content_url: ${{ steps.inspect.outputs.content_url }}
+    steps:
+      - name: Validate event and gather item metadata
+        id: inspect
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const action = context.payload.action;
+            const change = context.payload.changes?.field_value;
+            const itemPayload = context.payload.projects_v2_item;
+
+            core.setOutput('should_run', 'false');
+
+            if (action !== 'edited') {
+              core.info(`Ignoring action: ${action}`);
+              return;
+            }
+
+            if (!change) {
+              core.info('No field_value change detected. Skipping.');
+              return;
+            }
+
+            const previousName = (change.previous_value?.name || '').toLowerCase();
+            if (previousName !== 'backlog') {
+              core.info(`Previous value is not Backlog: ${previousName || '(empty)'}`);
+              return;
+            }
+
+            const itemNodeId = itemPayload?.node_id || itemPayload?.id;
+            if (!itemNodeId) {
+              core.setFailed('Project item node id missing from payload.');
+              return;
+            }
+
+            const statusFieldNodeId = change.field_node_id;
+            if (!statusFieldNodeId) {
+              core.setFailed('Status field node id missing from payload.');
+              return;
+            }
+
+            const result = await github.graphql(
+              `query ($id: ID!) {
+                node(id: $id) {
+                  ... on ProjectV2Item {
+                    id
+                    fieldValues(first: 50) {
+                      nodes {
+                        __typename
+                        ... on ProjectV2ItemFieldSingleSelectValue {
+                          name
+                          optionId
+                          field {
+                            ... on ProjectV2SingleSelectField {
+                              id
+                              name
+                              options {
+                                id
+                                name
+                              }
+                            }
+                          }
+                        }
+                        ... on ProjectV2ItemFieldTextValue {
+                          text
+                          field {
+                            ... on ProjectV2FieldCommon {
+                              id
+                              name
+                            }
+                          }
+                        }
+                        ... on ProjectV2ItemFieldNumberValue {
+                          number
+                          field {
+                            ... on ProjectV2FieldCommon {
+                              id
+                              name
+                            }
+                          }
+                        }
+                      }
+                    }
+                    project {
+                      id
+                      title
+                      url
+                    }
+                    content {
+                      __typename
+                      ... on Issue {
+                        id
+                        number
+                        title
+                        url
+                      }
+                      ... on PullRequest {
+                        id
+                        number
+                        title
+                        url
+                      }
+                      ... on DraftIssue {
+                        title
+                        body
+                      }
+                    }
+                  }
+                }
+              }`,
+              { id: itemNodeId }
+            );
+
+            const item = result?.node;
+            if (!item) {
+              core.setFailed(`Unable to load project item ${itemNodeId}.`);
+              return;
+            }
+
+            const fieldValues = item.fieldValues?.nodes || [];
+            const statusValue = fieldValues.find((value) => {
+              return value?.field?.id === statusFieldNodeId;
+            });
+
+            if (!statusValue) {
+              core.setFailed('Unable to resolve updated status field value.');
+              return;
+            }
+
+            const statusName = (statusValue.name || '').trim().toLowerCase();
+            if (statusName !== 'ready') {
+              core.info(`Status is not Ready after update (found: ${statusName || '(empty)'}).`);
+              return;
+            }
+
+            const planValue = fieldValues.find((value) => {
+              const fieldName = (value?.field?.name || '').toLowerCase();
+              return value.__typename === 'ProjectV2ItemFieldTextValue' && fieldName === 'codex cloud plan';
+            });
+
+            const planText = (planValue?.text || '').trim();
+            if (!planText) {
+              core.setFailed('Codex Cloud Plan field is required but was empty.');
+              return;
+            }
+
+            const planB64 = Buffer.from(planText, 'utf8').toString('base64');
+            const planPreview = planText.replace(/\s+/g, ' ').trim();
+            const truncatedPreview = planPreview.length > 240 ? `${planPreview.slice(0, 237)}…` : planPreview;
+
+            const textFieldCandidates = fieldValues.filter((value) => value.__typename === 'ProjectV2ItemFieldTextValue');
+            const automationStatusField = textFieldCandidates.find((value) => {
+              const name = (value?.field?.name || '').toLowerCase();
+              return ['automation status', 'automation log', 'codex status', 'run status', 'execution status'].includes(name);
+            });
+
+            const statusOptions = statusValue?.field?.options || [];
+            const reviewOption = statusOptions.find((option) => {
+              const name = option?.name?.toLowerCase() || '';
+              return name === 'in review' || name === 'review' || name === 'awaiting pr' || name === 'ready for review' || name === 'ready for pr';
+            });
+
+            core.setOutput('should_run', 'true');
+            core.setOutput('item_id', item.id);
+            core.setOutput('project_id', item.project?.id || '');
+            core.setOutput('project_title', item.project?.title || '');
+            core.setOutput('project_url', item.project?.url || '');
+            core.setOutput('status_field_id', statusFieldNodeId);
+            core.setOutput('status_review_option_id', reviewOption?.id || '');
+            core.setOutput('automation_status_field_id', automationStatusField?.field?.id || '');
+            core.setOutput('plan_b64', planB64);
+            core.setOutput('plan_preview', truncatedPreview);
+            core.setOutput('content_type', item.content?.__typename || 'ProjectItem');
+            core.setOutput('content_number', item.content?.number ? String(item.content.number) : '');
+            core.setOutput('content_title', item.content?.title || '');
+            core.setOutput('content_url', item.content?.url || item.project?.url || '');
+
+  execute:
+    name: Execute Codex plan
+    needs: prepare
+    if: needs.prepare.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    env:
+      PLAN_B64: ${{ needs.prepare.outputs.plan_b64 }}
+      CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+      CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
+      REVIEWERS_TO_NOTIFY: ${{ vars.PROJECT_READY_REVIEWERS || vars.REVIEW_TEAM || '' }}
+    steps:
+      - name: Ensure Codex configuration is available
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${CODEX_API_KEY:-}" ]]; then
+            echo "CODEX_API_KEY is required but was not provided." >&2
+            exit 1
+          fi
+          if [[ -z "${CODEX_BASE_URL:-}" ]]; then
+            echo "CODEX_BASE_URL repository variable is required but was not provided." >&2
+            exit 1
+          fi
+
+      - name: Decode Codex Cloud plan
+        id: decode_plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "${PLAN_B64}" | base64 --decode > codex-plan.json
+          if command -v jq >/dev/null 2>&1; then
+            jq '.' codex-plan.json > codex-plan.pretty.json || true
+          fi
+          if [[ ! -f codex-plan.pretty.json ]]; then
+            cp codex-plan.json codex-plan.pretty.json
+          fi
+
+      - name: Execute Codex Cloud plan
+        id: codex_run
+        shell: bash
+        env:
+          PLAN_PATH: codex-plan.json
+        run: |
+          set -euo pipefail
+          RESPONSE_FILE="codex-response.json"
+          LOG_FILE="codex-run.log"
+          API_ENDPOINT="${CODEX_BASE_URL%/}/api/cloud/runs"
+
+          {
+            echo "# Codex Cloud execution"
+            echo "Endpoint: ${API_ENDPOINT}"
+            echo "Timestamp: $(date --utc +"%Y-%m-%dT%H:%M:%SZ")"
+          } >"${LOG_FILE}"
+
+          HTTP_CODE=$(curl -sS -X POST "${API_ENDPOINT}" \
+            -H "Authorization: Bearer ${CODEX_API_KEY}" \
+            -H "Content-Type: application/json" \
+            --data @"${PLAN_PATH}" \
+            -o "${RESPONSE_FILE}" \
+            -w '%{http_code}')
+
+          echo "HTTP status: ${HTTP_CODE}" >>"${LOG_FILE}"
+
+          if command -v jq >/dev/null 2>&1; then
+            jq '.' "${RESPONSE_FILE}" >>"${LOG_FILE}" || cat "${RESPONSE_FILE}" >>"${LOG_FILE}"
+          else
+            cat "${RESPONSE_FILE}" >>"${LOG_FILE}"
+          fi
+
+          RUN_ID=$(jq -r '(.run.id // .id // .runId // empty)' "${RESPONSE_FILE}" 2>/dev/null || true)
+          RUN_STATUS=$(jq -r '(.run.status // .status // .state // empty)' "${RESPONSE_FILE}" 2>/dev/null || true)
+
+          if [[ -z "${RUN_ID}" ]]; then
+            RUN_ID="(not returned)"
+          fi
+          if [[ -z "${RUN_STATUS}" ]]; then
+            if [[ "${HTTP_CODE}" -ge 400 ]]; then
+              RUN_STATUS="failed"
+            else
+              RUN_STATUS="unknown"
+            fi
+          fi
+
+          echo "run_id=${RUN_ID}" >>"${GITHUB_OUTPUT}"
+          echo "run_status=${RUN_STATUS}" >>"${GITHUB_OUTPUT}"
+          echo "http_code=${HTTP_CODE}" >>"${GITHUB_OUTPUT}"
+
+          if [[ "${HTTP_CODE}" -ge 400 ]]; then
+            echo "Codex Cloud API returned HTTP ${HTTP_CODE}." >&2
+            exit 1
+          fi
+
+      - name: Upload Codex execution artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-ready-${{ github.run_id }}
+          path: |
+            codex-plan.json
+            codex-plan.pretty.json
+            codex-response.json
+            codex-run.log
+          if-no-files-found: error
+
+      - name: Update project item status
+        id: update_item
+        uses: actions/github-script@v7
+        env:
+          PROJECT_ID: ${{ needs.prepare.outputs.project_id }}
+          ITEM_ID: ${{ needs.prepare.outputs.item_id }}
+          STATUS_FIELD_ID: ${{ needs.prepare.outputs.status_field_id }}
+          STATUS_REVIEW_OPTION_ID: ${{ needs.prepare.outputs.status_review_option_id }}
+          AUTOMATION_STATUS_FIELD_ID: ${{ needs.prepare.outputs.automation_status_field_id }}
+          RUN_ID: ${{ steps.codex_run.outputs.run_id }}
+          RUN_STATUS: ${{ steps.codex_run.outputs.run_status }}
+          HTTP_CODE: ${{ steps.codex_run.outputs.http_code }}
+          PLAN_PREVIEW: ${{ needs.prepare.outputs.plan_preview }}
+        with:
+          script: |
+            const projectId = process.env.PROJECT_ID;
+            const itemId = process.env.ITEM_ID;
+            const statusFieldId = process.env.STATUS_FIELD_ID;
+            const statusReviewOptionId = process.env.STATUS_REVIEW_OPTION_ID;
+            const automationStatusFieldId = process.env.AUTOMATION_STATUS_FIELD_ID;
+            const runId = process.env.RUN_ID || '';
+            const runStatus = (process.env.RUN_STATUS || 'unknown').toLowerCase();
+            const httpCode = process.env.HTTP_CODE || '0';
+            const planPreview = process.env.PLAN_PREVIEW || '';
+
+            const workflowUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const statusLabel = runStatus ? runStatus.charAt(0).toUpperCase() + runStatus.slice(1) : 'Unknown';
+            const summaryLine = `Codex Cloud run ${statusLabel} (HTTP ${httpCode}) · Run ID: ${runId || 'n/a'} · Workflow: ${workflowUrl}`;
+
+            if (automationStatusFieldId) {
+              core.info('Updating automation status text field.');
+              await github.graphql(
+                `mutation ($input: UpdateProjectV2ItemFieldValueInput!) {
+                  updateProjectV2ItemFieldValue(input: $input) {
+                    projectV2Item { id }
+                  }
+                }`,
+                {
+                  input: {
+                    projectId,
+                    itemId,
+                    fieldId: automationStatusFieldId,
+                    value: { text: summaryLine },
+                  },
+                }
+              );
+            } else {
+              core.warning('No automation status text field was found; skipping field update.');
+            }
+
+            if (statusReviewOptionId && ['succeeded', 'success', 'completed'].includes(runStatus)) {
+              core.info('Updating status field to review option.');
+              await github.graphql(
+                `mutation ($input: UpdateProjectV2ItemFieldValueInput!) {
+                  updateProjectV2ItemFieldValue(input: $input) {
+                    projectV2Item { id }
+                  }
+                }`,
+                {
+                  input: {
+                    projectId,
+                    itemId,
+                    fieldId: statusFieldId,
+                    value: { singleSelectOptionId: statusReviewOptionId },
+                  },
+                }
+              );
+            }
+
+            core.setOutput('summary_line', summaryLine);
+            core.setOutput('plan_preview', planPreview);
+
+      - name: Post summary note
+        id: notify
+        uses: actions/github-script@v7
+        env:
+          CONTENT_TYPE: ${{ needs.prepare.outputs.content_type }}
+          CONTENT_NUMBER: ${{ needs.prepare.outputs.content_number }}
+          CONTENT_TITLE: ${{ needs.prepare.outputs.content_title }}
+          CONTENT_URL: ${{ needs.prepare.outputs.content_url }}
+          PLAN_PREVIEW: ${{ needs.prepare.outputs.plan_preview }}
+          RUN_ID: ${{ steps.codex_run.outputs.run_id }}
+          RUN_STATUS: ${{ steps.codex_run.outputs.run_status }}
+          HTTP_CODE: ${{ steps.codex_run.outputs.http_code }}
+          SUMMARY_LINE: ${{ steps.update_item.outputs.summary_line }}
+          REVIEWERS_TO_NOTIFY: ${{ env.REVIEWERS_TO_NOTIFY }}
+        with:
+          script: |
+            const contentType = process.env.CONTENT_TYPE;
+            const contentNumber = process.env.CONTENT_NUMBER ? parseInt(process.env.CONTENT_NUMBER, 10) : undefined;
+            const contentTitle = process.env.CONTENT_TITLE || '';
+            const contentUrl = process.env.CONTENT_URL || '';
+            const planPreview = process.env.PLAN_PREVIEW || '';
+            const runId = process.env.RUN_ID || 'n/a';
+            const runStatus = process.env.RUN_STATUS || 'unknown';
+            const httpCode = process.env.HTTP_CODE || '0';
+            const summaryLine = process.env.SUMMARY_LINE || '';
+            const reviewers = (process.env.REVIEWERS_TO_NOTIFY || '').trim();
+
+            const workflowUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const summaryLines = [
+              summaryLine,
+              `Codex plan preview: ${planPreview || '(see artifact)'}`,
+              `Workflow attempt: [#${context.runNumber} · attempt ${context.runAttempt}](${workflowUrl})`,
+              'Please prepare the pull request manually.',
+            ];
+
+            if (reviewers) {
+              summaryLines.push(`cc ${reviewers}`);
+            }
+
+            const body = summaryLines.join('\n\n');
+
+            if (contentType === 'Issue' || contentType === 'PullRequest') {
+              if (!contentNumber) {
+                core.warning(`Unable to determine issue number for content type ${contentType}.`);
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: contentNumber,
+                  body,
+                });
+                core.info(`Posted summary comment to ${contentType.toLowerCase()} #${contentNumber}.`);
+                return;
+              }
+            }
+
+            core.info('Falling back to workflow summary output.');
+            core.setOutput('summary', body);
+
+      - name: Write job summary
+        if: always()
+        shell: bash
+        env:
+          PLAN_PREVIEW: ${{ needs.prepare.outputs.plan_preview }}
+          SUMMARY_LINE: ${{ steps.update_item.outputs.summary_line }}
+          SUMMARY_FALLBACK: ${{ steps.notify.outputs.summary }}
+        run: |
+          {
+            echo "## Project Ready automation"
+            echo
+            if [[ -n "${SUMMARY_LINE}" ]]; then
+              echo "${SUMMARY_LINE}"
+              echo
+            fi
+            if [[ -n "${PLAN_PREVIEW}" ]]; then
+              echo "Plan preview: ${PLAN_PREVIEW}"
+              echo
+            fi
+            if [[ -n "${SUMMARY_FALLBACK}" ]]; then
+              echo "Fallback note:"
+              echo
+              echo "${SUMMARY_FALLBACK}"
+              echo
+            fi
+            echo "Artifacts: project-ready-${GITHUB_RUN_ID}"
+          } >>"${GITHUB_STEP_SUMMARY}"
