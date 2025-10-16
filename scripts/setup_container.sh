@@ -5,8 +5,66 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 OUTPUT_FILE="$ROOT_DIR/docker-compose.generated.yml"
 CONFIG_JSON="${VTOC_CONFIG_JSON:-{}}"
 APPLY="${VTOC_SETUP_APPLY:-false}"
+USE_REMOTE_IMAGES="${VTOC_USE_REMOTE_IMAGES:-false}"
+PULL_IMAGES="false"
+IMAGE_TAG="${VTOC_IMAGE_TAG:-}" 
+IMAGE_PREFIX="${VTOC_IMAGE_PREFIX:-}"
 
-export ROOT_DIR OUTPUT_FILE CONFIG_JSON
+usage() {
+  cat <<'USAGE'
+Usage: setup_container.sh [--pull] [--image-tag <tag>] [--image-prefix <registry/repo>] [--output <file>]
+
+Options:
+  --pull             Pull published images for backend/frontend/scraper and reference them in the manifest.
+  --image-tag        Image tag to use when referencing published images (default: github.sha when available).
+  --image-prefix     Override the image prefix (default: ghcr.io/<github_repository> lowercased).
+  --output           Path to write the generated compose file (default: docker-compose.generated.yml).
+  -h, --help         Show this help message.
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --pull)
+      PULL_IMAGES="true"
+      USE_REMOTE_IMAGES="true"
+      shift
+      ;;
+    --image-tag)
+      IMAGE_TAG="$2"
+      USE_REMOTE_IMAGES="true"
+      shift 2
+      ;;
+    --image-prefix)
+      IMAGE_PREFIX="$2"
+      shift 2
+      ;;
+    --output)
+      OUTPUT_FILE="$2"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+if [[ -z "$IMAGE_TAG" ]]; then
+  IMAGE_TAG="${GITHUB_SHA:-latest}"
+fi
+
+if [[ -z "$IMAGE_PREFIX" ]]; then
+  IMAGE_PREFIX_BASE="${GITHUB_REPOSITORY:-pr-cybr/vtoc}"
+  IMAGE_PREFIX="ghcr.io/$(echo "$IMAGE_PREFIX_BASE" | tr '[:upper:]' '[:lower:]')"
+fi
+
+export ROOT_DIR OUTPUT_FILE CONFIG_JSON USE_REMOTE_IMAGES IMAGE_PREFIX IMAGE_TAG
 
 python - <<'PY'
 import json
@@ -18,6 +76,9 @@ output_file = Path(os.environ['OUTPUT_FILE'])
 config_json = os.environ.get('CONFIG_JSON', '{}')
 config = json.loads(config_json)
 services_config = config.get('services', {})
+use_remote_images = os.environ.get('USE_REMOTE_IMAGES', 'false').lower() == 'true'
+image_prefix = os.environ.get('IMAGE_PREFIX', '')
+image_tag = os.environ.get('IMAGE_TAG', 'latest')
 
 postgres_enabled = services_config.get('postgres', True)
 traefik_enabled = services_config.get('traefik', False)
@@ -52,6 +113,11 @@ compose = {
     },
     'networks': {'default': {'driver': 'bridge'}},
 }
+
+if use_remote_images and image_prefix:
+    for service in ('backend', 'frontend', 'scraper'):
+        compose['services'][service]['image'] = f"{image_prefix}/{service}:{image_tag}"
+        compose['services'][service].pop('build', None)
 
 if postgres_enabled:
     compose.setdefault('volumes', {})['postgres_data'] = {}
@@ -134,6 +200,12 @@ def dump_yaml(value, indent=0):
 lines = dump_yaml(compose)
 output_file.write_text('\n'.join(lines) + '\n')
 PY
+
+if [[ "$PULL_IMAGES" == "true" ]]; then
+  for service in backend frontend scraper; do
+    docker pull "${IMAGE_PREFIX}/${service}:${IMAGE_TAG}"
+  done
+fi
 
 if [[ "$APPLY" == "true" ]]; then
   docker compose -f "$OUTPUT_FILE" up -d

@@ -76,11 +76,22 @@ expansion; otherwise they fall back to portable Bash implementations.
   (ZeroTier, Tailscale, MediaMTX, TAK Server)
 * `fly.toml` — Fly.io deployment descriptor for the backend container deployed from the `live` branch
 
-Images are built and pushed to GHCR via GitHub Actions as part of [`ci.yml`](.github/workflows/ci.yml):
+Images are built and pushed to GHCR via GitHub Actions as part of [`ci.yml`](.github/workflows/ci.yml) and the release-focused
+[`publish-containers.yml`](.github/workflows/publish-containers.yml) workflow:
 
 - `ghcr.io/<repo>/frontend` (Vite static bundle served by nginx)
 - `ghcr.io/<repo>/backend` (FastAPI + Uvicorn on port 8080)
 - `ghcr.io/<repo>/scraper` (RSS/HTML telemetry agent)
+
+The publish workflow depends on the full test matrix and produces a downloadable `docker-compose.generated.yml` artifact that
+references the freshly built images. Demos or field exercises can download the compose bundle from the latest workflow run or
+from the assets attached to GitHub Releases created from tags. To refresh containers ahead of an event, trigger the
+`Publish Containers` workflow manually (optionally supplying a release tag) and run:
+
+```bash
+scripts/setup_container.sh --pull --image-tag <tag-from-workflow>
+docker compose -f docker-compose.generated.yml up -d
+```
 
 A Fly.io dispatch workflow (`fly-deploy.yml`) deploys the backend using the prebuilt image when `live` receives new commits or
 when tags matching `v*` are pushed.
