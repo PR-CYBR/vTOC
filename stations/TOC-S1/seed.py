@@ -7,7 +7,14 @@ from pathlib import Path
 import os
 import sys
 
-DEFAULT_DATABASE_URL = "postgresql+psycopg2://vtoc:vtocpass@localhost:5432/vtoc?options=-csearch_path%3Dtoc_s1"
+DEFAULT_DATABASE_URL = (
+    os.getenv("SUPABASE_DB_URL_TOC_S1")
+    or os.getenv("SUPABASE_DB_URL")
+    or os.getenv("DATABASE_URL_TOC_S1")
+    or os.getenv("DATABASE_URL")
+    or "postgresql+psycopg2://vtoc:vtocpass@localhost:5432/vtoc?options=-csearch_path%3Dtoc_s1"
+)
+os.environ.setdefault("SUPABASE_DB_URL_TOC_S1", DEFAULT_DATABASE_URL)
 os.environ.setdefault("DATABASE_URL_TOC_S1", DEFAULT_DATABASE_URL)
 
 ROOT = Path(__file__).resolve().parents[2]
