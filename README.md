@@ -12,12 +12,16 @@ deployment, and automation for Fly.io delivery from the hardened `live` branch.
 
 ```bash
 # 1. Generate station configuration and env files
-make setup-local
+python -m scripts.bootstrap_cli setup local
 
 # 2. Start the backend/frontend dev servers
 pnpm --dir frontend dev
 uvicorn backend.app.main:app --host 0.0.0.0 --port 8080
 ```
+
+All Makefile targets now forward to this CLI so existing `make setup-local`
+workflows continue to function. Windows users without GNU Make can invoke the
+Python entry point directly via `python -m scripts.bootstrap_cli ...`.
 
 During development the backend exposes `http://localhost:8080/healthz` and the frontend renders on
 `http://localhost:5173` (or `8081` when using the containerized stack). ChatKit sandboxes, AgentKit playbooks, and station
@@ -58,10 +62,10 @@ An end-to-end overview is available in [`docs/ARCHITECTURE.md`](docs/ARCHITECTUR
 
 | Mode | Command | Description |
 | --- | --- | --- |
-| Local dev | `make setup-local` | Installs dependencies, writes `.env.local`, and provisions ChatKit/AgentKit sandbox credentials. |
-| Generated Compose | `make setup-container` | Produces `docker-compose.generated.yml`, interpolates station secrets, and starts the stack with role-specific services. |
-| Infrastructure | `make setup-cloud` | Generates Terraform/Ansible scaffolding in `infra/` with multi-station Postgres plans. |
-| Cleanup | `make compose-down` | Tears down services started from the generated compose file and removes role-specific temp volumes. |
+| Local dev | `python -m scripts.bootstrap_cli setup local` (or `make setup-local`) | Installs dependencies, writes `.env.local`, and provisions ChatKit/AgentKit sandbox credentials. |
+| Generated Compose | `python -m scripts.bootstrap_cli setup container --apply` (or `make setup-container`) | Produces `docker-compose.generated.yml`, interpolates station secrets, and starts the stack with role-specific services. |
+| Infrastructure | `python -m scripts.bootstrap_cli setup cloud` (or `make setup-cloud`) | Generates Terraform/Ansible scaffolding in `infra/` with multi-station Postgres plans. |
+| Cleanup | `python -m scripts.bootstrap_cli compose down` (or `make compose-down`) | Tears down services started from the generated compose file and removes role-specific temp volumes. |
 
 Supply configuration through `--config path.json` or `--config-json '{...}'`. The schema now includes `stationRoles[]` and
 `chatkit`/`agentkit` sections – see [`scripts/inputs.schema.json`](scripts/inputs.schema.json) for details.
@@ -118,8 +122,8 @@ alembic upgrade head
 ## Telemetry scraper and AgentKit bridge
 
 `agents/scraper` reads feeds from `config.yaml` and posts normalized telemetry to the backend. AgentKit playbooks can invoke the
-same connectors via the shared configuration module, enabling ChatKit-driven automations. Run locally with `make scraper-run`
-or containerize via the provided Dockerfile.
+same connectors via the shared configuration module, enabling ChatKit-driven automations. Run locally with
+`python -m scripts.bootstrap_cli scraper run` (or `make scraper-run`) or containerize via the provided Dockerfile.
 
 ## Documentation map
 

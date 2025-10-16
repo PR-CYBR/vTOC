@@ -36,12 +36,13 @@ cd vTOC
 
 ### 2. Generate environment files
 
-Use the unified setup script through the Makefile. The script creates `.env.local`, `.env.station`, and station-specific ChatKit
-channels.
+Use the unified bootstrap CLI to create `.env.local`, `.env.station`, and station-specific ChatKit channels.
 
 ```bash
-make setup-local
+python -m scripts.bootstrap_cli setup local
 ```
+
+All Make targets remain as wrappers around this entry point, so existing automation can continue using `make setup-local`.
 
 When prompted supply or confirm the following values:
 
@@ -66,8 +67,8 @@ pnpm --dir frontend dev
 Or launch the containerized stack (includes Postgres) using the generated compose file:
 
 ```bash
-make setup-container
-make compose-up
+python -m scripts.bootstrap_cli setup container --apply
+python -m scripts.bootstrap_cli compose up
 ```
 
 ### 4. Verify installation
@@ -96,29 +97,31 @@ curl -X POST http://localhost:8080/api/v1/chatkit/webhook -H 'Content-Type: appl
 1. **Register the station** via the UI: Settings → Stations → Register station. This stores `STATION_CALLSIGN` and ChatKit channel
    IDs in the backend.
 2. **Create a mission** from the Operations pane. The mission timeline now includes ChatKit transcript references.
-3. **Subscribe telemetry connectors** using the Telemetry admin page, or push sample data with `make scraper-run`.
+3. **Subscribe telemetry connectors** using the Telemetry admin page, or push sample data with `python -m scripts.bootstrap_cli scraper run` (or the `make scraper-run` alias).
 4. **Trigger an AgentKit playbook** by posting `@agent run recon sweep` in the ChatKit channel. The backend webhook will launch
    the matching playbook and post a summary back to ChatKit.
 
 ## Common commands
 
-### Make targets
+### Bootstrap CLI commands
 
 ```bash
-make help            # list all supported targets
-make setup-local     # generate env files and local configs
-make setup-container # synthesize docker-compose.generated.yml and role secrets
-make compose-up      # start the generated compose stack
-make compose-down    # stop the stack and prune temp volumes
-make backend-test    # run FastAPI pytest suite
-make frontend-test   # run vitest suite (CI mode)
-make scraper-run     # execute telemetry scraper locally
+python -m scripts.bootstrap_cli --help                     # list all supported groups
+python -m scripts.bootstrap_cli setup local                # generate env files and local configs
+python -m scripts.bootstrap_cli setup container --apply    # synthesize docker-compose.generated.yml and role secrets
+python -m scripts.bootstrap_cli compose up                 # start the generated compose stack
+python -m scripts.bootstrap_cli compose down               # stop the stack and prune temp volumes
+python -m scripts.bootstrap_cli backend test               # run FastAPI pytest suite
+python -m scripts.bootstrap_cli frontend test              # run vitest suite (CI mode)
+python -m scripts.bootstrap_cli scraper run                # execute telemetry scraper locally
 ```
+
+Every command continues to have a matching Make target for teams that prefer `make` automation.
 
 ### Cleanup workflow
 
-Run `make compose-down` to stop containers created by the generated Compose file. To reset ChatKit bindings remove the
-`.env.station` file and rerun `make setup-local`; the script keeps cached channel IDs in `scripts/cache/` so you can choose to
+Run `python -m scripts.bootstrap_cli compose down` to stop containers created by the generated Compose file. To reset ChatKit bindings remove the
+`.env.station` file and rerun `python -m scripts.bootstrap_cli setup local`; the script keeps cached channel IDs in `scripts/cache/` so you can choose to
 reuse or recreate them.
 
 ## Troubleshooting
@@ -130,8 +133,8 @@ reuse or recreate them.
 docker compose -f docker-compose.generated.yml logs --tail 100
 
 # Recreate stack
-make compose-down
-make compose-up
+python -m scripts.bootstrap_cli compose down
+python -m scripts.bootstrap_cli compose up
 ```
 
 ### ChatKit webhook fails with 401
@@ -147,7 +150,7 @@ logs (see `backend/app/logging.py`) will include rejection reasons.
 ### Database connection errors
 
 Make sure Postgres is reachable and that the generated `DATABASE_URL` references the correct hostname. For multi-station
-setups, `make setup-container` adds suffixes such as `_ops`, `_intel`, `_logistics` to the default database names; confirm that
+setups, `python -m scripts.bootstrap_cli setup container --apply` (or `make setup-container`) adds suffixes such as `_ops`, `_intel`, `_logistics` to the default database names; confirm that
 your local Postgres instance contains those schemas.
 
 ## Next steps
