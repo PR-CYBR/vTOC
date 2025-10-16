@@ -1,3 +1,4 @@
+# Keep this value in sync with the `fly_app_name` Terraform variable.
 app = "vtoc-app"
 primary_region = "iad"
 

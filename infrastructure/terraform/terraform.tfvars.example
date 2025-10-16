@@ -1,15 +1,34 @@
-# Docker configuration
-docker_host = "unix:///var/run/docker.sock"
+# Required database configuration
+postgres_database       = "vtoc"
+postgres_user           = "vtoc"
+postgres_password       = "changeme-database-password"
+postgres_host           = "postgres.example.internal"
+backend_public_base_url = "https://api.example.com"
 
-# Network configuration
-network_name = "vtoc-network"
+# Frontend widgets and integrations
+chatkit_api_key            = "changeme-chatkit-public-key"
+chatkit_org_id             = "changeme-chatkit-org"
+chatkit_webhook_secret     = "changeme-chatkit-webhook"
+agentkit_api_key           = "changeme-agentkit-key"
+agentkit_org_id            = "changeme-agentkit-org"
+supabase_project_ref       = "your-supabase-project-ref"
+supabase_api_url           = "https://your-project.supabase.co"
+supabase_anon_key          = "changeme-supabase-anon"
+supabase_service_role_key  = "changeme-supabase-service-role"
+supabase_jwt_secret        = "changeme-supabase-jwt"
+fly_app_name               = "vtoc-app"
+fly_api_token              = "changeme-fly-token"
+ghcr_deploy_username       = "github-user"
+ghcr_deploy_token          = "changeme-ghcr-token"
 
-# Volume configuration
-volumes = {
-  postgres = "vtoc_postgres_data"
-  n8n      = "vtoc_n8n_data"
-  station_toc_s1 = "vtoc_station_toc_s1"
-  station_toc_s2 = "vtoc_station_toc_s2"
-  station_toc_s3 = "vtoc_station_toc_s3"
-  station_toc_s4 = "vtoc_station_toc_s4"
-}
+# Optional overrides
+postgres_internal_host     = "database"
+frontend_port              = 5173
+frontend_default_div       = "PR-SJU"
+backend_image_repository   = "ghcr.io/pr-cybr/vtoc/backend"
+frontend_image_repository  = "ghcr.io/pr-cybr/vtoc/frontend"
+scraper_image_repository   = "ghcr.io/pr-cybr/vtoc/scraper"
+zerotier_network_id        = ""
+tailscale_auth_key         = ""
+additional_fly_secrets     = {}
+additional_frontend_env    = {}
