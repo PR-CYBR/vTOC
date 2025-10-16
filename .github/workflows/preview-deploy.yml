@@ -4,7 +4,26 @@ on:
   pull_request:
 
 jobs:
+  check-pages-permissions:
+    runs-on: ubuntu-latest
+    outputs:
+      can_deploy: ${{ steps.check.outputs.can_deploy }}
+    steps:
+      - name: Check Pages deployment permissions
+        id: check
+        env:
+          IS_FORK: ${{ github.event.pull_request.head.repo.fork }}
+        run: |
+          if [ "$IS_FORK" = "true" ]; then
+            echo "can_deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Preview deployments are unavailable for forked pull requests."
+          else
+            echo "can_deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
   preview:
+    needs: check-pages-permissions
+    if: needs.check-pages-permissions.outputs.can_deploy == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,8 +48,8 @@ jobs:
         with:
           path: frontend/dist
   deploy:
-    needs: preview
-    if: github.event_name == 'pull_request'
+    needs: [check-pages-permissions, preview]
+    if: needs.check-pages-permissions.outputs.can_deploy == 'true' && github.event_name == 'pull_request'
     permissions:
       pages: write
       id-token: write
