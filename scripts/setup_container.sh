@@ -1,29 +1,58 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-# shellcheck source=../lib/prereqs.sh
-source "$SCRIPT_DIR/lib/prereqs.sh"
+usage() {
+  cat <<'USAGE'
+Usage: setup_container.sh [--pull] [--image-tag <tag>] [--build-local]
 
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+Options:
+  --pull             Generate services that pull prebuilt images from GHCR (default)
+  --image-tag <tag>  Use the specified image tag when pulling from GHCR
+  --build-local      Use local Docker build contexts instead of pulling images
+  -h, --help         Show this help message
+USAGE
+}
+
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 OUTPUT_FILE="$ROOT_DIR/docker-compose.generated.yml"
 CONFIG_JSON="${VTOC_CONFIG_JSON:-{}}"
 APPLY="${VTOC_SETUP_APPLY:-false}"
+IMAGE_TAG="${VTOC_IMAGE_TAG:-main}"
+IMAGE_REPO="${VTOC_IMAGE_REPO:-ghcr.io/pr-cybr/vtoc}"
+USE_BUILD_LOCAL="${VTOC_BUILD_LOCAL:-false}"
 
-requirements=(
-  "python3|3.9.0|https://www.python.org/downloads/"
-)
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --pull)
+      USE_BUILD_LOCAL="false"
+      shift
+      ;;
+    --image-tag)
+      if [[ $# -lt 2 ]]; then
+        echo "--image-tag requires a value" >&2
+        exit 1
+      fi
+      IMAGE_TAG="$2"
+      USE_BUILD_LOCAL="false"
+      shift 2
+      ;;
+    --build-local)
+      USE_BUILD_LOCAL="true"
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
 
-if [[ "$APPLY" == "true" ]]; then
-  requirements+=(
-    "docker|20.10.0|https://docs.docker.com/get-docker/"
-    "docker-compose|2.5.0|https://docs.docker.com/compose/install/"
-  )
-fi
-
-check_prereqs "${requirements[@]}"
-
-export ROOT_DIR OUTPUT_FILE CONFIG_JSON
+export ROOT_DIR OUTPUT_FILE CONFIG_JSON IMAGE_TAG IMAGE_REPO USE_BUILD_LOCAL
 
 python - <<'PY'
 import json
@@ -34,6 +63,9 @@ root_dir = Path(os.environ['ROOT_DIR'])
 output_file = Path(os.environ['OUTPUT_FILE'])
 config_json = os.environ.get('CONFIG_JSON', '{}')
 config = json.loads(config_json)
+image_repo = os.environ.get('IMAGE_REPO', 'ghcr.io/pr-cybr/vtoc')
+image_tag = os.environ.get('IMAGE_TAG', 'main')
+use_build_local = os.environ.get('USE_BUILD_LOCAL', 'false').lower() == 'true'
 services_config = config.get('services', {})
 
 postgres_enabled = services_config.get('postgres', True)
@@ -45,7 +77,6 @@ compose = {
     'version': '3.8',
     'services': {
         'backend': {
-            'build': {'context': './backend'},
             'ports': ['8080:8080'],
             'environment': {
                 'DATABASE_URL': 'postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc',
@@ -57,18 +88,28 @@ compose = {
             'depends_on': ['database'],
         },
         'frontend': {
-            'build': {'context': './frontend'},
             'ports': ['8081:8081'],
             'depends_on': ['backend'],
         },
         'scraper': {
-            'build': {'context': './agents/scraper'},
             'environment': {'BACKEND_BASE_URL': 'http://backend:8080'},
             'depends_on': ['backend'],
         },
     },
     'networks': {'default': {'driver': 'bridge'}},
 }
+
+if not use_build_local:
+    compose['services']['backend']['image'] = f"{image_repo}/backend:{image_tag}"
+    compose['services']['backend']['pull_policy'] = 'always'
+    compose['services']['frontend']['image'] = f"{image_repo}/frontend:{image_tag}"
+    compose['services']['frontend']['pull_policy'] = 'always'
+    compose['services']['scraper']['image'] = f"{image_repo}/scraper:{image_tag}"
+    compose['services']['scraper']['pull_policy'] = 'always'
+else:
+    compose['services']['backend']['build'] = {'context': './backend'}
+    compose['services']['frontend']['build'] = {'context': './frontend'}
+    compose['services']['scraper']['build'] = {'context': './agents/scraper'}
 
 if postgres_enabled:
     compose.setdefault('volumes', {})['postgres_data'] = {}
