@@ -158,6 +158,8 @@ same connectors via the shared configuration module, enabling ChatKit-driven aut
 
 ## Documentation map
 
+- [Backlog management](docs/backlog.md) — schema, lifecycle, and automation rules for `backlog/backlog.yaml`.
+
 * [`docs/QUICKSTART.md`](docs/QUICKSTART.md) — station bootstrap, env variables, and local workflows.
 * [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — component inventory, ChatKit/AgentKit flows, and station roles.
 * [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — multi-station Postgres provisioning, Docker, Swarm, and Fly.io.
