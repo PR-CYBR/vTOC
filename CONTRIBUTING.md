@@ -136,6 +136,8 @@ make compose-down
 - Update relevant docs in the `docs/` directory when introducing user-facing changes.
 - Cross-link new sections from `README.md` and [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
 - Include station role considerations when modifying setup instructions.
+- Monitor the "Discussion: publish deployment summary" workflow after merging to `main`. If it fails or needs to be re-run,
+  trigger the job manually via **Actions → Run workflow** so the GitHub Discussion summary stays current.
 
 ## Submitting changes
 
