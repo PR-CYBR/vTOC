@@ -1,0 +1,63 @@
+name: Setup Codex CLI
+description: Install and configure the Codex CLI for downstream workflow steps.
+author: vTOC maintainers
+inputs:
+  version:
+    description: Codex CLI version to install. Use semantic version (for example, 1.2.3) or "latest" for the newest release.
+    required: false
+    default: latest
+  api-key:
+    description: Codex API key used to authenticate CLI calls.
+    required: true
+  base-url:
+    description: Optional Codex API base URL override.
+    required: false
+outputs:
+  codex-path:
+    description: Absolute path to the installed codex executable.
+    value: ${{ steps.codex-metadata.outputs.codex-path }}
+  codex-version:
+    description: Version string reported by the installed codex executable.
+    value: ${{ steps.codex-metadata.outputs.codex-version }}
+runs:
+  using: composite
+  steps:
+    - name: Export Codex environment variables
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "CODEX_API_KEY=${{ inputs.api-key }}" >>"$GITHUB_ENV"
+        if [ -n "${{ inputs.base-url }}" ]; then
+          echo "CODEX_BASE_URL=${{ inputs.base-url }}" >>"$GITHUB_ENV"
+        fi
+
+    - name: Install Codex CLI
+      shell: bash
+      run: |
+        set -euo pipefail
+        VERSION="${{ inputs.version }}"
+        PIPX_BIN="$HOME/.local/bin/pipx"
+        python3 -m pip install --user --upgrade pipx
+        "$PIPX_BIN" ensurepath
+        echo "$HOME/.local/bin" >>"$GITHUB_PATH"
+        if [ -z "$VERSION" ] || [ "$VERSION" = "latest" ]; then
+          "$PIPX_BIN" install codex --force
+        else
+          "$PIPX_BIN" install "codex==$VERSION" --force
+        fi
+
+    - name: Capture Codex metadata
+      id: codex-metadata
+      shell: bash
+      run: |
+        set -euo pipefail
+        export PATH="$HOME/.local/bin:$PATH"
+        CODEX_BIN="$(command -v codex || true)"
+        if [ -z "$CODEX_BIN" ]; then
+          echo "Codex CLI is not available after installation." >&2
+          exit 1
+        fi
+        echo "CODEX_BIN=$CODEX_BIN" >>"$GITHUB_ENV"
+        CODEX_VERSION="$($CODEX_BIN --version | head -n 1 | tr -d '\r')"
+        echo "codex-path=$CODEX_BIN" >>"$GITHUB_OUTPUT"
+        echo "codex-version=$CODEX_VERSION" >>"$GITHUB_OUTPUT"
