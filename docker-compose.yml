@@ -17,8 +17,8 @@ services:
       retries: 5
 
   backend:
-    build:
-      context: ./backend
+    image: ${VTOC_IMAGE_REPO:-ghcr.io/pr-cybr/vtoc}/backend:${VTOC_IMAGE_TAG:-main}
+    pull_policy: always
     environment:
       DATABASE_URL: postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc
       DATABASE_URL_TOC_S1: postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s1
@@ -32,16 +32,16 @@ services:
         condition: service_healthy
 
   frontend:
-    build:
-      context: ./frontend
+    image: ${VTOC_IMAGE_REPO:-ghcr.io/pr-cybr/vtoc}/frontend:${VTOC_IMAGE_TAG:-main}
+    pull_policy: always
     ports:
       - "8081:8081"
     depends_on:
       - backend
 
   scraper:
-    build:
-      context: ./agents/scraper
+    image: ${VTOC_IMAGE_REPO:-ghcr.io/pr-cybr/vtoc}/scraper:${VTOC_IMAGE_TAG:-main}
+    pull_policy: always
     environment:
       BACKEND_BASE_URL: http://backend:8080
     depends_on:

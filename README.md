@@ -10,14 +10,22 @@ deployment, and automation for Fly.io delivery from the hardened `live` branch.
 
 ## Quick start
 
+The Makefile targets automatically run a shared prerequisite check to ensure `pnpm` (8.6+), Python 3 (3.9+), and Docker tooling
+are installed before any setup tasks execute. If a dependency is missing the scripts exit early with remediation links instead of
+failing halfway through the bootstrap process.
+
 ```bash
 # 1. Generate station configuration and env files
-make setup-local
+python -m scripts.bootstrap_cli setup local
 
 # 2. Start the backend/frontend dev servers
 pnpm --dir frontend dev
 uvicorn backend.app.main:app --host 0.0.0.0 --port 8080
 ```
+
+All Makefile targets now forward to this CLI so existing `make setup-local`
+workflows continue to function. Windows users without GNU Make can invoke the
+Python entry point directly via `python -m scripts.bootstrap_cli ...`.
 
 During development the backend exposes `http://localhost:8080/healthz` and the frontend renders on
 `http://localhost:5173` (or `8081` when using the containerized stack). ChatKit sandboxes, AgentKit playbooks, and station
@@ -58,10 +66,10 @@ An end-to-end overview is available in [`docs/ARCHITECTURE.md`](docs/ARCHITECTUR
 
 | Mode | Command | Description |
 | --- | --- | --- |
-| Local dev | `make setup-local` | Installs dependencies, writes `.env.local`, and provisions ChatKit/AgentKit sandbox credentials. |
-| Generated Compose | `make setup-container` | Produces `docker-compose.generated.yml`, interpolates station secrets, and starts the stack with role-specific services. |
-| Infrastructure | `make setup-cloud` | Generates Terraform/Ansible scaffolding in `infra/` with multi-station Postgres plans. |
-| Cleanup | `make compose-down` | Tears down services started from the generated compose file and removes role-specific temp volumes. |
+| Local dev | `python -m scripts.bootstrap_cli setup local` (or `make setup-local`) | Installs dependencies, writes `.env.local`, and provisions ChatKit/AgentKit sandbox credentials. |
+| Generated Compose | `python -m scripts.bootstrap_cli setup container --apply` (or `make setup-container`) | Produces `docker-compose.generated.yml`, interpolates station secrets, and starts the stack with role-specific services. |
+| Infrastructure | `python -m scripts.bootstrap_cli setup cloud` (or `make setup-cloud`) | Generates Terraform/Ansible scaffolding in `infra/` with multi-station Postgres plans. |
+| Cleanup | `python -m scripts.bootstrap_cli compose down` (or `make compose-down`) | Tears down services started from the generated compose file and removes role-specific temp volumes. |
 
 Supply configuration through `--config path.json` or `--config-json '{...}'`. The schema now includes `stationRoles[]` and
 `chatkit`/`agentkit` sections – see [`scripts/inputs.schema.json`](scripts/inputs.schema.json) for details.
@@ -83,18 +91,27 @@ Images are built and pushed to GHCR via GitHub Actions as part of [`ci.yml`](.gi
 - `ghcr.io/<repo>/backend` (FastAPI + Uvicorn on port 8080)
 - `ghcr.io/<repo>/scraper` (RSS/HTML telemetry agent)
 
-The publish workflow depends on the full test matrix and produces a downloadable `docker-compose.generated.yml` artifact that
-references the freshly built images. Demos or field exercises can download the compose bundle from the latest workflow run or
-from the assets attached to GitHub Releases created from tags. To refresh containers ahead of an event, trigger the
-`Publish Containers` workflow manually (optionally supplying a release tag) and run:
+`docker-compose.yml` references these images directly so `docker compose up` pulls from GHCR by default. Override the registry or
+tag without editing the file by exporting environment variables, for example:
 
 ```bash
-scripts/setup_container.sh --pull --image-tag <tag-from-workflow>
-docker compose -f docker-compose.generated.yml up -d
+VTOC_IMAGE_TAG=main docker compose up
+# or pin a preview build
+VTOC_IMAGE_REPO=ghcr.io/myfork/vtoc VTOC_IMAGE_TAG=pr-123 docker compose up
 ```
 
+To build locally, call the container setup helper with `--build-local` so the generated compose file includes `build:` blocks:
+
+```bash
+./scripts/setup_container.sh --build-local
+```
+
+You can also select a published image tag during generation with `--image-tag <tag>` (equivalent to `VTOC_IMAGE_TAG`).
+
 A Fly.io dispatch workflow (`fly-deploy.yml`) deploys the backend using the prebuilt image when `live` receives new commits or
-when tags matching `v*` are pushed.
+when tags matching `v*` are pushed. Operators promoting builds manually can use [`scripts/fly_deploy.sh`](scripts/fly_deploy.sh)
+to export the required GitHub Container Registry credentials and run `flyctl deploy --remote-only` with the pinned backend
+image.
 
 ## Frontend
 
@@ -129,8 +146,8 @@ alembic upgrade head
 ## Telemetry scraper and AgentKit bridge
 
 `agents/scraper` reads feeds from `config.yaml` and posts normalized telemetry to the backend. AgentKit playbooks can invoke the
-same connectors via the shared configuration module, enabling ChatKit-driven automations. Run locally with `make scraper-run`
-or containerize via the provided Dockerfile.
+same connectors via the shared configuration module, enabling ChatKit-driven automations. Run locally with
+`python -m scripts.bootstrap_cli scraper run` (or `make scraper-run`) or containerize via the provided Dockerfile.
 
 ## Documentation map
 
