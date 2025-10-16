@@ -1,1 +1,36 @@
-items: []
+items:
+  - id: bot-integrations-shared
+    title: "Bots: shared infrastructure and discovery"
+    status: planned
+    owners: []
+    links:
+      - docs/tasks/bot-integrations.md#1-cross-cutting-discovery-and-infrastructure
+    notes: "Lay the groundwork for Telegram, Slack, and Discord services by defining shared clients, config, and deployment patterns."
+  - id: bot-telegram
+    title: "Bots: implement Telegram management bot"
+    status: planned
+    owners: []
+    links:
+      - docs/tasks/bot-integrations.md#2-telegram-management-bot
+    notes: "Deliver Telegram command handlers, transports, and deployment assets for vTOC operators."
+  - id: bot-slack
+    title: "Bots: implement Slack monitoring bot"
+    status: planned
+    owners: []
+    links:
+      - docs/tasks/bot-integrations.md#3-slack-monitoring-bot
+    notes: "Capture Slack channel activity and surface it through shared telemetry pipelines."
+  - id: bot-discord
+    title: "Bots: implement Discord operations bot"
+    status: planned
+    owners: []
+    links:
+      - docs/tasks/bot-integrations.md#4-discord-operations-bot
+    notes: "Expose mission management and real-time data to Discord users."
+  - id: bot-docs-qa-rollout
+    title: "Bots: documentation, QA, and rollout"
+    status: planned
+    owners: []
+    links:
+      - docs/tasks/bot-integrations.md#5-documentation-qa-and-rollout
+    notes: "Update diagrams, automation, and rollout guides for the multi-bot initiative."
