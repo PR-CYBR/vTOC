@@ -82,6 +82,23 @@ Images are built and pushed to GHCR via GitHub Actions as part of [`ci.yml`](.gi
 - `ghcr.io/<repo>/backend` (FastAPI + Uvicorn on port 8080)
 - `ghcr.io/<repo>/scraper` (RSS/HTML telemetry agent)
 
+`docker-compose.yml` references these images directly so `docker compose up` pulls from GHCR by default. Override the registry or
+tag without editing the file by exporting environment variables, for example:
+
+```bash
+VTOC_IMAGE_TAG=main docker compose up
+# or pin a preview build
+VTOC_IMAGE_REPO=ghcr.io/myfork/vtoc VTOC_IMAGE_TAG=pr-123 docker compose up
+```
+
+To build locally, call the container setup helper with `--build-local` so the generated compose file includes `build:` blocks:
+
+```bash
+./scripts/setup_container.sh --build-local
+```
+
+You can also select a published image tag during generation with `--image-tag <tag>` (equivalent to `VTOC_IMAGE_TAG`).
+
 A Fly.io dispatch workflow (`fly-deploy.yml`) deploys the backend using the prebuilt image when `live` receives new commits or
 when tags matching `v*` are pushed.
 

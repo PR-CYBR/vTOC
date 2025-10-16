@@ -70,6 +70,16 @@ make setup-container
 make compose-up
 ```
 
+The generated compose file pulls prebuilt images from GHCR by default. To pin a specific tag, set `VTOC_IMAGE_TAG` (or pass
+`--image-tag` to `scripts/setup_container.sh`). For example:
+
+```bash
+VTOC_IMAGE_TAG=main docker compose up
+```
+
+If you need to build services locally, regenerate the compose file with `./scripts/setup_container.sh --build-local` so the
+`build:` blocks are reinstated.
+
 ### 4. Verify installation
 
 ```bash
