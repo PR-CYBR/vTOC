@@ -75,7 +75,10 @@ Supply configuration through `--config path.json` or `--config-json '{...}'`. Th
 `chatkit`/`agentkit` sections – see [`scripts/inputs.schema.json`](scripts/inputs.schema.json) for details.
 
 Codex CLI is detected automatically: if the `codex` binary exists, the setup scripts use `codex interpolate` for variable
-expansion; otherwise they fall back to portable Bash implementations.
+expansion; otherwise they fall back to portable Bash implementations. Commits that land on `main` now trigger the
+[discussion-summary workflow](.github/workflows/discussion-summary.yml) which renders a release note style update in GitHub
+Discussions using Codex. Configure the `CODEX_API_KEY` and `DOCS_DISCUSSION_CATEGORY_ID` secrets/variables in the repository
+so the automation can authenticate and target the correct discussion category.
 
 ## Containers and orchestration
 

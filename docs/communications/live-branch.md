@@ -65,3 +65,22 @@ Please post here when a new deployment, rollback, or hotfix occurs so operators 
 ```
 
 Copy the title/body above into a new GitHub Discussion so operators can subscribe for deployment notifications.
+
+## Automated discussion summaries
+
+Commits merged into `main` trigger the [discussion-summary GitHub Action](../../.github/workflows/discussion-summary.yml),
+which calls the Codex CLI to convert the latest deployment notes into a formatted post inside the deployment-focused
+discussion category. The workflow writes to the category referenced by the `DOCS_DISCUSSION_CATEGORY_ID` repository
+configuration and authenticates with the `CODEX_API_KEY` secret. When the job succeeds it appends a new comment to the pinned
+"Deployment Strategy: live branch" thread with links back to the relevant commit and workflow run.
+
+You can review recent automation posts from the **Discussions → Deployments** category and filter by the `live` label added
+by the workflow. Each automated comment includes a "Posted by CI" footer and a timestamp that matches the workflow run.
+Operators should still add manual updates whenever there is:
+
+- Additional incident context that was not part of the commit message (for example, rollback reasons or runbook updates).
+- External dependencies or integrations impacted by the release.
+- Follow-up tasks requiring assignees or due dates.
+
+Use the **Actions → "Discussion: publish deployment summary" → Run workflow** entry to regenerate the latest summary via
+`workflow_dispatch` if the automation needs to be re-run after updating notes or rotating credentials.

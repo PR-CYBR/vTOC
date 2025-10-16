@@ -13,6 +13,7 @@ existing operators. Cross-links point to updated documentation for deeper detail
 - Updated setup scripts (`make setup-local`, `make setup-container`, `make setup-cloud`) to provision ChatKit resources.
 - Revamped documentation: [`README.md`](../README.md), [`docs/QUICKSTART.md`](QUICKSTART.md),
   [`docs/ARCHITECTURE.md`](ARCHITECTURE.md), [`docs/DEPLOYMENT.md`](DEPLOYMENT.md), [`docs/TELEMETRY_CONNECTORS.md`](TELEMETRY_CONNECTORS.md).
+- Introduced an automated discussion summary workflow that posts release notes to GitHub Discussions when `main` is updated.
 
 ## Migration steps
 
@@ -30,6 +31,15 @@ existing operators. Cross-links point to updated documentation for deeper detail
    the new images.
 8. **Verify flows** — confirm ChatKit interactions trigger AgentKit runs and telemetry connectors post data to the correct
    station database.
+9. **Review documentation automation** — provision the `CODEX_API_KEY` secret and `DOCS_DISCUSSION_CATEGORY_ID` variable so the
+   discussion-summary workflow can publish updates after merges to `main`.
+
+## Maintenance notes
+
+- Rotate the `CODEX_API_KEY` credential at the same cadence as other automation secrets and update it in repository settings.
+- Update `DOCS_DISCUSSION_CATEGORY_ID` when the deployment discussion category is reorganized or renamed in GitHub.
+- Monitor the discussion-summary workflow for failures and re-run it via `workflow_dispatch` when deployment notes need to be
+  regenerated.
 
 ## Known compatibility notes
 
