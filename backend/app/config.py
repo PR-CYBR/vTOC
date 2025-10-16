@@ -25,6 +25,10 @@ class Settings(BaseModel):
     agentkit_timeout_seconds: float = Field(default=30.0)
     chatkit_webhook_secret: str = Field(default="", repr=False)
     chatkit_allowed_tools: List[str] = Field(default_factory=list)
+    supabase_url: str = Field(default="")
+    supabase_key: str = Field(default="", repr=False)
+    supabase_schema: str = Field(default="public")
+    supabase_timeout_seconds: float = Field(default=30.0)
 
     database_url: str = Field(
         default="postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc"

@@ -171,3 +171,61 @@ class AgentAction(BaseModel):
 class StationAgentCatalog(BaseModel):
     station: StationRead
     actions: List[AgentAction]
+
+
+class AgentTool(BaseModel):
+    name: str
+    description: str
+    signature: dict[str, Any]
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class AgentActionExecuteRequest(BaseModel):
+    tool_name: str
+    action_input: dict[str, Any]
+    metadata: dict[str, Any] | None = None
+
+
+class AgentActionExecuteResponse(BaseModel):
+    action_id: str
+    status: str
+    result: Optional[dict[str, Any]] = None
+    message: Optional[str] = None
+
+
+class AgentActionWebhookEvent(BaseModel):
+    action_id: str
+    status: str
+    result: Optional[dict[str, Any]] = None
+    error: Optional[str] = None
+
+
+class AgentActionAuditBase(BaseModel):
+    action_id: str
+    tool_name: str
+    status: str
+    request_payload: Optional[dict[str, Any]] = None
+    response_payload: Optional[dict[str, Any]] = None
+    error_message: Optional[str] = None
+
+
+class AgentActionAuditCreate(AgentActionAuditBase):
+    completed_at: Optional[datetime] = None
+
+
+class AgentActionAuditUpdate(BaseModel):
+    tool_name: Optional[str] = None
+    status: Optional[str] = None
+    request_payload: Optional[dict[str, Any]] = None
+    response_payload: Optional[dict[str, Any]] = None
+    error_message: Optional[str] = None
+    completed_at: Optional[datetime] = None
+
+
+class AgentActionAuditRead(AgentActionAuditBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    completed_at: Optional[datetime] = None

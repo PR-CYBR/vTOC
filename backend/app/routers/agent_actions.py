@@ -7,12 +7,15 @@ from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import schemas
 from ..config import Settings, get_settings
-from ..db import get_db
 from ..services.agentkit import AgentKitClient, AgentKitError, get_agentkit_client
+from ..services.supabase import (
+    SupabaseApiError,
+    SupabaseRepository,
+    get_supabase_repository,
+)
 
 router = APIRouter(prefix="/api/v1/agent-actions", tags=["agent-actions"])
 
@@ -32,13 +35,11 @@ async def list_tools(
 
 
 @router.get("/audits", response_model=List[schemas.AgentActionAuditRead])
-def list_audits(db: Session = Depends(get_db)):
-    return (
-        db.query(models.AgentActionAudit)
-        .order_by(models.AgentActionAudit.created_at.desc())
-        .limit(100)
-        .all()
-    )
+def list_audits(repo: SupabaseRepository = Depends(get_supabase_repository)):
+    try:
+        return repo.list_agent_action_audits()
+    except SupabaseApiError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
 @router.post(
@@ -48,7 +49,7 @@ def list_audits(db: Session = Depends(get_db)):
 )
 async def execute_action(
     payload: schemas.AgentActionExecuteRequest,
-    db: Session = Depends(get_db),
+    repo: SupabaseRepository = Depends(get_supabase_repository),
     client: AgentKitClient = Depends(get_agentkit_client),
     settings: Settings = Depends(get_settings),
 ):
@@ -81,33 +82,42 @@ async def execute_action(
         )
 
     status_value = response.get("status", "queued")
-    audit = (
-        db.query(models.AgentActionAudit)
-        .filter(models.AgentActionAudit.action_id == action_id)
-        .one_or_none()
-    )
-    if audit is None:
-        audit = models.AgentActionAudit(
+    try:
+        existing_audit = repo.get_agent_action_audit_by_action_id(action_id)
+    except SupabaseApiError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+    completed_at = None
+    if status_value in {"succeeded", "failed"}:
+        completed_at = datetime.utcnow()
+
+    if existing_audit is None:
+        audit_payload = schemas.AgentActionAuditCreate(
             action_id=action_id,
             tool_name=payload.tool_name,
             status=status_value,
             request_payload=payload.action_input,
             response_payload=response.get("result"),
             error_message=response.get("error"),
+            completed_at=completed_at,
         )
+        try:
+            repo.create_agent_action_audit(audit_payload)
+        except SupabaseApiError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     else:
-        audit.tool_name = payload.tool_name
-        audit.status = status_value
-        audit.request_payload = payload.action_input
-        audit.response_payload = response.get("result")
-        audit.error_message = response.get("error")
-        audit.updated_at = datetime.utcnow()
-
-    if status_value in {"succeeded", "failed"}:
-        audit.completed_at = datetime.utcnow()
-
-    db.add(audit)
-    db.commit()
+        update_payload = schemas.AgentActionAuditUpdate(
+            tool_name=payload.tool_name,
+            status=status_value,
+            request_payload=payload.action_input,
+            response_payload=response.get("result"),
+            error_message=response.get("error"),
+            completed_at=completed_at,
+        )
+        try:
+            repo.update_agent_action_audit(existing_audit.id, update_payload)
+        except SupabaseApiError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
     return schemas.AgentActionExecuteResponse(
         action_id=action_id,
@@ -129,7 +139,7 @@ def _verify_signature(secret: str, signature: str | None, body: bytes) -> bool:
 @router.post("/webhook", status_code=status.HTTP_202_ACCEPTED)
 async def webhook(
     request: Request,
-    db: Session = Depends(get_db),
+    repo: SupabaseRepository = Depends(get_supabase_repository),
     client: AgentKitClient = Depends(get_agentkit_client),
     settings: Settings = Depends(get_settings),
 ):
@@ -144,11 +154,10 @@ async def webhook(
     except Exception as exc:  # pragma: no cover - Pydantic raises ValidationError
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payload") from exc
 
-    audit = (
-        db.query(models.AgentActionAudit)
-        .filter(models.AgentActionAudit.action_id == event.action_id)
-        .one_or_none()
-    )
+    try:
+        audit = repo.get_agent_action_audit_by_action_id(event.action_id)
+    except SupabaseApiError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
     tool_name = None
     if audit is not None:
@@ -163,26 +172,34 @@ async def webhook(
     elif tool_name is None:
         tool_name = "unknown"
 
+    completed_at = None
+    if event.status in {"succeeded", "failed"}:
+        completed_at = datetime.utcnow()
+
     if audit is None:
-        audit = models.AgentActionAudit(
+        create_payload = schemas.AgentActionAuditCreate(
             action_id=event.action_id,
             tool_name=tool_name or "unknown",
             status=event.status,
             response_payload=event.result,
             error_message=event.error,
+            completed_at=completed_at,
         )
+        try:
+            repo.create_agent_action_audit(create_payload)
+        except SupabaseApiError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     else:
-        audit.status = event.status
-        audit.response_payload = event.result
-        audit.error_message = event.error
-        audit.updated_at = datetime.utcnow()
-        if tool_name:
-            audit.tool_name = tool_name
-
-    if event.status in {"succeeded", "failed"}:
-        audit.completed_at = datetime.utcnow()
-
-    db.add(audit)
-    db.commit()
+        update_payload = schemas.AgentActionAuditUpdate(
+            tool_name=tool_name or audit.tool_name,
+            status=event.status,
+            response_payload=event.result,
+            error_message=event.error,
+            completed_at=completed_at,
+        )
+        try:
+            repo.update_agent_action_audit(audit.id, update_payload)
+        except SupabaseApiError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
     return {"received": True}
