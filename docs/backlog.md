@@ -12,7 +12,9 @@ rules that will keep the backlog consistent.
 The backlog file is a single YAML document with an `items` list. Duplicate the
 provided template object for every work item and keep the list sorted by `id`
 so merges are predictable. Comments are allowed and should be used to capture
-context that does not belong in the structured fields.
+context that does not belong in the structured fields. **Do not convert the
+document to a top-level map**—automation expects `items` to be a YAML sequence
+so it can merge Codex-managed fields into each entry in place.
 
 ```yaml
 items:
@@ -24,6 +26,9 @@ items:
     project_item_id: null
     codex_plan_url: null
     codex_run_ids: []
+    codex_plan_tasks: []
+    codex_plan_generated_at: null
+    plan_history: []
     last_updated_by: "github:handle"
     metadata: {}
 ```
@@ -39,6 +44,9 @@ items:
 | `project_item_id` | string / null | No | Identifier from GitHub Projects or another planning tool. Leave `null` when unassigned. |
 | `codex_plan_url` | string / null | No | Link to a Codex Plan that scopes the work item. Automations will set this when a plan is generated. |
 | `codex_run_ids` | array[string] | No | Historical Codex run identifiers related to this work item. Automations append to this list. |
+| `codex_plan_tasks` | array[object] | No | Machine-generated breakdown from Codex plans. Treat entries as append-only records. |
+| `codex_plan_generated_at` | string / null | No | ISO-8601 timestamp recorded when Codex last generated a plan. |
+| `plan_history` | array[object] | No | Chronological log of prior Codex plans and their metadata. |
 | `last_updated_by` | string | Yes | Actor that most recently edited the record (`github:<handle>`, `codex`, etc.). |
 | `metadata` | object | No | Free-form key/value map for integration-specific data (for example deployment targets or scheduling hints). |
 
@@ -79,12 +87,15 @@ When editing existing items:
 Codex and GitHub workflows will mutate the backlog with the following rules:
 
 - **Codex plan generation**: When a Codex plan is created from a backlog item,
-- the automation writes the plan URL to `codex_plan_url`, records a list of
+  the automation writes the plan URL to `codex_plan_url`, records a list of
   generated tasks in `codex_plan_tasks`, appends the run identifier to
   `codex_run_ids`, captures a timestamp in `codex_plan_generated_at`, and sets
   `last_updated_by` to `codex`. Historical plans are appended to the
   `plan_history` array with their generated timestamps so the team can audit
-  changes over time.
+  changes over time. These fields must remain inside each entry in the `items`
+  list. If a human needs to adjust them (for example, clearing an obsolete plan
+  link) they should edit the individual item rather than moving the fields to a
+  shared map or deleting them outright.
 - **GitHub Project sync**: A scheduled workflow syncs `project_item_id` with the
 canonical GitHub Project board. Items missing from the board remain `null`.
 - **Status enforcement**: Automations only advance states forward along the
@@ -94,6 +105,23 @@ comment instead of committing directly.
 telemetry tooling) write machine-generated context into `metadata`. Human edits
 should avoid deleting keys that automation owns; instead set their values to
 `null` so the workflow can reconstruct them.
+
+### Collaborator expectations for Codex-managed fields
+
+- **Keep Codex fields local to each item**: `codex_plan_url`, `codex_plan_tasks`,
+  `codex_plan_generated_at`, `codex_run_ids`, and `plan_history` belong to the
+  item that triggered the automation. Never promote them to a shared structure
+  or remove the surrounding list item.
+- **Preserve history**: When editing `codex_plan_tasks` or `plan_history`, only
+  append new entries or mark old entries as complete—do not reorder the data so
+  Codex can diff runs reliably.
+- **Use `null` to reset values**: If a value such as `codex_plan_url` should be
+  cleared, set it to `null` instead of deleting the field. Automations depend on
+  the key existing even when there is no value to report.
+- **Avoid manual timestamp edits**: Fields such as `codex_plan_generated_at`
+  should only change via automation unless you are correcting a known error.
+  When a manual correction is required, capture the rationale in the item's
+  `summary` or `notes` so the audit trail remains clear.
 
 ## Validation
 
