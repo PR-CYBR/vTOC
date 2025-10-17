@@ -34,6 +34,42 @@ class StationRead(StationBase):
     updated_at: datetime
 
 
+class BaseStationBase(BaseModel):
+    slug: str
+    name: str
+    description: Optional[str] = None
+    status: str = "active"
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    altitude_m: Optional[float] = None
+    metadata: Optional[dict[str, Any]] = None
+    station_id: Optional[int] = None
+
+
+class BaseStationCreate(BaseStationBase):
+    station_id: int
+
+
+class BaseStationUpdate(BaseModel):
+    slug: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    altitude_m: Optional[float] = None
+    metadata: Optional[dict[str, Any]] = None
+    station_id: Optional[int] = None
+
+
+class BaseStationRead(BaseStationBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+
 class TelemetrySourceBase(BaseModel):
     name: str
     slug: str
@@ -67,6 +103,52 @@ class TelemetrySourceRead(TelemetrySourceBase):
     last_ingested_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+    station: Optional[StationRead] = None
+
+
+class DeviceBase(BaseModel):
+    slug: str
+    name: str
+    device_type: str
+    base_station_id: Optional[int] = None
+    station_id: Optional[int] = None
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    serial_number: Optional[str] = None
+    firmware_version: Optional[str] = None
+    is_active: bool = True
+    last_seen_at: Optional[datetime] = None
+    configuration: Optional[dict[str, Any]] = None
+    metadata: Optional[dict[str, Any]] = None
+
+
+class DeviceCreate(DeviceBase):
+    pass
+
+
+class DeviceUpdate(BaseModel):
+    slug: Optional[str] = None
+    name: Optional[str] = None
+    device_type: Optional[str] = None
+    base_station_id: Optional[int] = None
+    station_id: Optional[int] = None
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    serial_number: Optional[str] = None
+    firmware_version: Optional[str] = None
+    is_active: Optional[bool] = None
+    last_seen_at: Optional[datetime] = None
+    configuration: Optional[dict[str, Any]] = None
+    metadata: Optional[dict[str, Any]] = None
+
+
+class DeviceRead(DeviceBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    base_station: Optional[BaseStationRead] = None
     station: Optional[StationRead] = None
 
 
@@ -108,9 +190,141 @@ class TelemetryEventRead(TelemetryEventBase):
     received_at: datetime
 
 
+class RfStreamBase(BaseModel):
+    slug: str
+    name: str
+    device_id: int
+    source_id: Optional[int] = None
+    description: Optional[str] = None
+    center_frequency_hz: Optional[int] = None
+    bandwidth_hz: Optional[int] = None
+    sample_rate: Optional[int] = None
+    modulation: Optional[str] = None
+    gain: Optional[float] = None
+    is_active: bool = True
+    configuration: Optional[dict[str, Any]] = None
+
+
+class RfStreamCreate(RfStreamBase):
+    pass
+
+
+class RfStreamUpdate(BaseModel):
+    slug: Optional[str] = None
+    name: Optional[str] = None
+    device_id: Optional[int] = None
+    source_id: Optional[int] = None
+    description: Optional[str] = None
+    center_frequency_hz: Optional[int] = None
+    bandwidth_hz: Optional[int] = None
+    sample_rate: Optional[int] = None
+    modulation: Optional[str] = None
+    gain: Optional[float] = None
+    is_active: Optional[bool] = None
+    configuration: Optional[dict[str, Any]] = None
+
+
+class RfStreamRead(RfStreamBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+
 class TelemetryEventWithSource(TelemetryEventRead):
     source: TelemetrySourceRead
     station: Optional[StationRead] = None
+
+
+class OverlayBase(BaseModel):
+    slug: str
+    name: str
+    station_id: int
+    overlay_type: str
+    description: Optional[str] = None
+    configuration: Optional[dict[str, Any]] = None
+    is_active: bool = True
+
+
+class OverlayCreate(OverlayBase):
+    pass
+
+
+class OverlayUpdate(BaseModel):
+    slug: Optional[str] = None
+    name: Optional[str] = None
+    station_id: Optional[int] = None
+    overlay_type: Optional[str] = None
+    description: Optional[str] = None
+    configuration: Optional[dict[str, Any]] = None
+    is_active: Optional[bool] = None
+
+
+class OverlayRead(OverlayBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class TelemetryGpsFixBase(BaseModel):
+    source_id: Optional[int] = None
+    station_id: Optional[int] = None
+    device_id: Optional[int] = None
+    recorded_at: Optional[datetime] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    altitude: Optional[float] = None
+    heading: Optional[float] = None
+    speed: Optional[float] = None
+    horizontal_accuracy: Optional[float] = None
+    vertical_accuracy: Optional[float] = None
+    raw_payload: Optional[dict[str, Any]] = None
+
+
+class TelemetryGpsFixCreate(TelemetryGpsFixBase):
+    pass
+
+
+class TelemetryGpsFixRead(TelemetryGpsFixBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    recorded_at: datetime
+    created_at: datetime
+
+
+class TelemetryAircraftPositionBase(BaseModel):
+    source_id: Optional[int] = None
+    station_id: Optional[int] = None
+    device_id: Optional[int] = None
+    icao_address: Optional[str] = None
+    callsign: Optional[str] = None
+    squawk: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    altitude: Optional[float] = None
+    heading: Optional[float] = None
+    ground_speed: Optional[float] = None
+    vertical_rate: Optional[float] = None
+    position_time: Optional[datetime] = None
+    received_at: Optional[datetime] = None
+    raw_payload: Optional[dict[str, Any]] = None
+
+
+class TelemetryAircraftPositionCreate(TelemetryAircraftPositionBase):
+    pass
+
+
+class TelemetryAircraftPositionRead(TelemetryAircraftPositionBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    position_time: datetime
+    received_at: datetime
+    created_at: datetime
 
 
 class StationAssignmentBase(BaseModel):
