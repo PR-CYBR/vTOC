@@ -47,5 +47,45 @@ services:
     depends_on:
       - backend
 
+  gps-ingest:
+    image: ${VTOC_IMAGE_REPO:-ghcr.io/pr-cybr/vtoc}/gps-ingest:${VTOC_IMAGE_TAG:-main}
+    pull_policy: always
+    environment:
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL:-http://backend:8080}
+      GPS_SERIAL_DEVICE: ${GPS_SERIAL_DEVICE:-/dev/ttyUSB0}
+      GPS_BAUD_RATE: ${GPS_BAUD_RATE:-9600}
+      GPS_SOURCE_SLUG: ${GPS_SOURCE_SLUG:-station-gps}
+    devices:
+      - "${GPS_SERIAL_DEVICE:-/dev/ttyUSB0}:${GPS_SERIAL_DEVICE:-/dev/ttyUSB0}"
+    depends_on:
+      - backend
+
+  adsb-ingest:
+    image: ${VTOC_IMAGE_REPO:-ghcr.io/pr-cybr/vtoc}/adsb-ingest:${VTOC_IMAGE_TAG:-main}
+    pull_policy: always
+    environment:
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL:-http://backend:8080}
+      ADSB_FEED_URL: ${ADSB_FEED_URL:-http://dump1090:8080/data/aircraft.json}
+      ADSB_SOURCE_SLUG: ${ADSB_SOURCE_SLUG:-station-adsb}
+      RTLSDR_DEVICE_SERIAL: ${RTLSDR_DEVICE_SERIAL:-}
+    devices:
+      - "/dev/bus/usb:/dev/bus/usb"
+    depends_on:
+      - backend
+
+  h4m-bridge:
+    image: ${VTOC_IMAGE_REPO:-ghcr.io/pr-cybr/vtoc}/h4m-bridge:${VTOC_IMAGE_TAG:-main}
+    pull_policy: always
+    environment:
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL:-http://backend:8080}
+      H4M_SERIAL_DEVICE: ${H4M_SERIAL_DEVICE:-/dev/ttyUSB1}
+      H4M_BAUD_RATE: ${H4M_BAUD_RATE:-115200}
+      H4M_CHANNEL: ${H4M_CHANNEL:-station-h4m}
+      H4M_SOURCE_SLUG: ${H4M_SOURCE_SLUG:-station-h4m}
+    devices:
+      - "${H4M_SERIAL_DEVICE:-/dev/ttyUSB1}:${H4M_SERIAL_DEVICE:-/dev/ttyUSB1}"
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:

@@ -107,12 +107,26 @@ locals {
     var.additional_frontend_env,
   )
 
+  ingest_env = {
+    GPS_SERIAL_DEVICE     = var.gps_serial_device
+    GPS_BAUD_RATE         = tostring(var.gps_baud_rate)
+    GPS_SOURCE_SLUG       = var.gps_source_slug
+    ADSB_FEED_URL         = var.adsb_feed_url
+    ADSB_SOURCE_SLUG      = var.adsb_source_slug
+    RTLSDR_DEVICE_SERIAL  = var.rtlsdr_device_serial
+    H4M_SERIAL_DEVICE     = var.h4m_serial_device
+    H4M_BAUD_RATE         = tostring(var.h4m_baud_rate)
+    H4M_CHANNEL           = var.h4m_channel
+    H4M_SOURCE_SLUG       = var.h4m_source_slug
+  }
+
   fly_secret_map = merge(
     local.backend_env,
     local.backend_database_env_public_labeled,
     {
       SUPABASE_ANON_KEY = local.supabase.anon_key
     },
+    local.ingest_env,
     var.additional_fly_secrets,
   )
 
