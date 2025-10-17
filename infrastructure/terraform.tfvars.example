@@ -1,0 +1,40 @@
+# Non-sensitive Terraform variables mirroring the live deployment brief.
+# Copy to `terraform.tfvars` or pass via `-var-file` when you need local overrides.
+# Secrets (passwords, API keys, tokens) must be sourced from Terraform Cloud workspace variables.
+
+# Core service endpoints
+postgres_database       = "vtoc"
+postgres_user           = "vtoc"
+postgres_host           = "db.vtoc.supabase.co"
+postgres_internal_host  = "database"
+backend_public_base_url = "https://api.vtoc.pr-cybr.live"
+
+# Frontend defaults
+frontend_port            = 5173
+frontend_map_tiles_url   = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+frontend_map_attribution = "© OpenStreetMap contributors"
+frontend_default_div     = "PR-SJU"
+frontend_rss_enabled     = true
+frontend_chat_enabled    = true
+
+# ChatKit and AgentKit integrations (public settings only)
+chatkit_widget_url               = "https://cdn.chatkit.pr-cybr.live/widget.js"
+chatkit_telemetry_channel        = "vtoc-intel"
+agentkit_api_base_url            = "https://agentkit.pr-cybr.live/api"
+agentkit_timeout_seconds         = 30
+agentkit_default_station_context = "PR-SJU"
+agentkit_api_base_path           = "/api/v1/agent-actions"
+
+# Supabase public configuration
+supabase_api_url = "https://vtoc.supabase.co"
+
+# Fly + container image references
+fly_app_name              = "vtoc-app"
+backend_image_repository  = "ghcr.io/pr-cybr/vtoc/backend"
+frontend_image_repository = "ghcr.io/pr-cybr/vtoc/frontend"
+scraper_image_repository  = "ghcr.io/pr-cybr/vtoc/scraper"
+
+# Optional integrations (supply values via Terraform Cloud when enabled)
+zerotier_network_id     = ""
+additional_fly_secrets  = {}
+additional_frontend_env = {}
