@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Column,
     DateTime,
@@ -44,6 +45,25 @@ class Station(Base):
         passive_deletes=True,
     )
     events = relationship("TelemetryEvent", back_populates="station")
+    base_station = relationship(
+        "BaseStation",
+        back_populates="station",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        uselist=False,
+    )
+    devices = relationship(
+        "Device",
+        back_populates="station",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    overlays = relationship(
+        "Overlay",
+        back_populates="station",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 class TelemetrySource(Base):
@@ -71,6 +91,24 @@ class TelemetrySource(Base):
     )
     events = relationship(
         "TelemetryEvent",
+        back_populates="source",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    rf_streams = relationship(
+        "RfStream",
+        back_populates="source",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    gps_fixes = relationship(
+        "TelemetryGpsFix",
+        back_populates="source",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    aircraft_positions = relationship(
+        "TelemetryAircraftPosition",
         back_populates="source",
         cascade="all, delete-orphan",
         passive_deletes=True,
@@ -111,3 +149,161 @@ class StationAssignment(Base):
 
     station = relationship("Station", back_populates="assignments")
     source = relationship("TelemetrySource", back_populates="assignments")
+
+
+class BaseStation(Base):
+    __tablename__ = "base_stations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    station_id = Column(Integer, ForeignKey("stations.id", ondelete="CASCADE"), unique=True)
+    slug = Column(String(100), nullable=False, unique=True, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(String(50), nullable=False, default="active")
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    altitude_m = Column(Float, nullable=True)
+    metadata = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    station = relationship("Station", back_populates="base_station")
+    devices = relationship(
+        "Device",
+        back_populates="base_station",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class Device(Base):
+    __tablename__ = "devices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    base_station_id = Column(Integer, ForeignKey("base_stations.id", ondelete="SET NULL"), nullable=True)
+    station_id = Column(Integer, ForeignKey("stations.id", ondelete="SET NULL"), nullable=True)
+    slug = Column(String(100), nullable=False, unique=True, index=True)
+    name = Column(String(255), nullable=False)
+    device_type = Column(String(100), nullable=False)
+    manufacturer = Column(String(255), nullable=True)
+    model = Column(String(255), nullable=True)
+    serial_number = Column(String(255), nullable=True)
+    firmware_version = Column(String(100), nullable=True)
+    is_active = Column(Boolean, default=True)
+    last_seen_at = Column(DateTime, nullable=True)
+    configuration = Column(JSON, nullable=True)
+    metadata = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    base_station = relationship("BaseStation", back_populates="devices")
+    station = relationship("Station", back_populates="devices")
+    rf_streams = relationship(
+        "RfStream",
+        back_populates="device",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    gps_fixes = relationship(
+        "TelemetryGpsFix",
+        back_populates="device",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    aircraft_positions = relationship(
+        "TelemetryAircraftPosition",
+        back_populates="device",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class RfStream(Base):
+    __tablename__ = "rf_streams"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(Integer, ForeignKey("devices.id", ondelete="CASCADE"))
+    source_id = Column(Integer, ForeignKey("telemetry_sources.id", ondelete="SET NULL"), nullable=True)
+    slug = Column(String(100), nullable=False, unique=True, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    center_frequency_hz = Column(BigInteger, nullable=True)
+    bandwidth_hz = Column(BigInteger, nullable=True)
+    sample_rate = Column(BigInteger, nullable=True)
+    modulation = Column(String(100), nullable=True)
+    gain = Column(Float, nullable=True)
+    is_active = Column(Boolean, default=True)
+    configuration = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    device = relationship("Device", back_populates="rf_streams")
+    source = relationship("TelemetrySource", back_populates="rf_streams")
+
+
+class Overlay(Base):
+    __tablename__ = "overlays"
+
+    id = Column(Integer, primary_key=True, index=True)
+    station_id = Column(Integer, ForeignKey("stations.id", ondelete="CASCADE"))
+    slug = Column(String(100), nullable=False, unique=True, index=True)
+    name = Column(String(255), nullable=False)
+    overlay_type = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    configuration = Column(JSON, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    station = relationship("Station", back_populates="overlays")
+
+
+class TelemetryGpsFix(Base):
+    __tablename__ = "gps_fixes"
+    __table_args__ = {"schema": "telemetry"}
+
+    id = Column(Integer, primary_key=True, index=True)
+    source_id = Column(Integer, ForeignKey("telemetry_sources.id", ondelete="SET NULL"), nullable=True)
+    station_id = Column(Integer, ForeignKey("stations.id", ondelete="SET NULL"), nullable=True)
+    device_id = Column(Integer, ForeignKey("devices.id", ondelete="SET NULL"), nullable=True)
+    recorded_at = Column(DateTime, default=datetime.utcnow, index=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    altitude = Column(Float, nullable=True)
+    heading = Column(Float, nullable=True)
+    speed = Column(Float, nullable=True)
+    horizontal_accuracy = Column(Float, nullable=True)
+    vertical_accuracy = Column(Float, nullable=True)
+    raw_payload = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    source = relationship("TelemetrySource", back_populates="gps_fixes")
+    station = relationship("Station")
+    device = relationship("Device", back_populates="gps_fixes")
+
+
+class TelemetryAircraftPosition(Base):
+    __tablename__ = "aircraft_positions"
+    __table_args__ = {"schema": "telemetry"}
+
+    id = Column(Integer, primary_key=True, index=True)
+    source_id = Column(Integer, ForeignKey("telemetry_sources.id", ondelete="SET NULL"), nullable=True)
+    station_id = Column(Integer, ForeignKey("stations.id", ondelete="SET NULL"), nullable=True)
+    device_id = Column(Integer, ForeignKey("devices.id", ondelete="SET NULL"), nullable=True)
+    icao_address = Column(String(6), nullable=True)
+    callsign = Column(String(16), nullable=True)
+    squawk = Column(String(8), nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    altitude = Column(Float, nullable=True)
+    heading = Column(Float, nullable=True)
+    ground_speed = Column(Float, nullable=True)
+    vertical_rate = Column(Float, nullable=True)
+    position_time = Column(DateTime, default=datetime.utcnow, index=True)
+    received_at = Column(DateTime, default=datetime.utcnow)
+    raw_payload = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    source = relationship("TelemetrySource", back_populates="aircraft_positions")
+    station = relationship("Station")
+    device = relationship("Device", back_populates="aircraft_positions")
