@@ -250,3 +250,63 @@ variable "additional_frontend_env" {
   type        = map(string)
   default     = {}
 }
+
+variable "gps_serial_device" {
+  description = "Serial device path presented to the GPS ingest container."
+  type        = string
+  default     = "/dev/ttyUSB0"
+}
+
+variable "gps_baud_rate" {
+  description = "Baud rate used when reading from the GPS serial device."
+  type        = number
+  default     = 9600
+}
+
+variable "gps_source_slug" {
+  description = "Telemetry source slug recorded by the GPS ingest service."
+  type        = string
+  default     = "station-gps"
+}
+
+variable "adsb_feed_url" {
+  description = "URL for ADS-B JSON feeds (e.g., dump1090)."
+  type        = string
+  default     = "http://dump1090:8080/data/aircraft.json"
+}
+
+variable "adsb_source_slug" {
+  description = "Telemetry source slug recorded by the ADS-B ingest service."
+  type        = string
+  default     = "station-adsb"
+}
+
+variable "rtlsdr_device_serial" {
+  description = "Optional RTL-SDR device serial to pin within the ADS-B ingest container."
+  type        = string
+  default     = ""
+}
+
+variable "h4m_serial_device" {
+  description = "Serial device path presented to the H4M bridge container."
+  type        = string
+  default     = "/dev/ttyUSB1"
+}
+
+variable "h4m_baud_rate" {
+  description = "Baud rate used by the H4M bridge serial interface."
+  type        = number
+  default     = 115200
+}
+
+variable "h4m_channel" {
+  description = "Channel identifier for the H4M bridge to register with the backend."
+  type        = string
+  default     = "station-h4m"
+}
+
+variable "h4m_source_slug" {
+  description = "Telemetry source slug recorded by the H4M bridge service."
+  type        = string
+  default     = "station-h4m"
+}

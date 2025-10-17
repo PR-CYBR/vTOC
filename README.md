@@ -23,6 +23,10 @@ pnpm --dir frontend dev
 uvicorn backend.app.main:app --host 0.0.0.0 --port 8080
 ```
 
+New stations should complete the hardware-focused checklist in [`docs/SETUP.md`](docs/SETUP.md) before powering on
+equipment. Component playbooks for the ADS-B receiver, GPS module, and H4M tablets live in [`docs/HARDWARE.md`](docs/HARDWARE.md)
+with deep dives in [`docs/ADSB.md`](docs/ADSB.md), [`docs/GPS.md`](docs/GPS.md), and [`docs/H4M.md`](docs/H4M.md).
+
 All Makefile targets now forward to this CLI so existing `make setup-local`
 workflows continue to function. Windows users without GNU Make can invoke the
 Python entry point directly via `python -m scripts.bootstrap_cli ...`.

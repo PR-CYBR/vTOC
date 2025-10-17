@@ -74,6 +74,35 @@ Telemetry connector (optional) → Postgres event store → ChatKit thread updat
 Frontend refresh
 ```
 
+## Leaflet mission overlay
+
+```mermaid
+flowchart LR
+    subgraph Sensors
+        A[ADS-B Receiver]
+        B[GPS Module]
+    end
+    subgraph Backend
+        C[Telemetry API]
+        D[Geo Processor]
+    end
+    subgraph Frontend
+        E[Leaflet Map]
+        F[Mission Layers]
+    end
+
+    A -- Aircraft tracks --> C
+    B -- PPS/LatLon --> C
+    C -- Normalized feed --> D
+    D -- GeoJSON overlays --> E
+    E -- Layer manager --> F
+    F -- Renders airspace, geofence, mission pins --> Operator
+```
+
+The Leaflet overlay pulls telemetry normalized by the backend and renders three default layers: **Airspace** (ADS-B),
+**Geofence** (GPS), and **Mission pins** (AgentKit tasks). Review [`docs/ADSB.md`](ADSB.md) and [`docs/GPS.md`](GPS.md) for
+hardware integration notes.
+
 ## Deployment pipeline
 
 ```
@@ -92,6 +121,30 @@ make setup-local → prompt for ChatKit/AgentKit creds → write .env.local/.env
          │
          └─ make setup-container --apply → inject secrets into generated compose file
 ```
+
+## Hardware provisioning wizard
+
+```mermaid
+sequenceDiagram
+    participant Operator
+    participant Wizard as Setup Wizard
+    participant Secrets as Secret Vault
+    participant Repo as vTOC Repo
+    participant Deploy as Deployment Target
+
+    Operator->>Wizard: Launch `python -m scripts.bootstrap_cli setup wizard`
+    Wizard->>Operator: Prompt for callsign, role, location, hardware serials
+    Operator->>Wizard: Provide inputs
+    Wizard->>Secrets: Encrypt ChatKit/AgentKit credentials
+    Secrets-->>Wizard: Scoped tokens
+    Wizard->>Repo: Generate `.env.local`, `.env.station`, hardware manifest
+    Wizard->>Deploy: Offer Docker/Fly templates
+    Wizard-->>Operator: Summary report with validation checklist
+```
+
+The wizard centralizes hardware onboarding and ensures the generated configuration references the deployment models
+documented in [`docs/DEPLOYMENT.md`](DEPLOYMENT.md) and the troubleshooting steps in
+[`docs/QUICKSTART.md#troubleshooting`](QUICKSTART.md#troubleshooting).
 
 Refer back to [`docs/DEPLOYMENT.md`](DEPLOYMENT.md) for command examples and to [`docs/TELEMETRY_CONNECTORS.md`](TELEMETRY_CONNECTORS.md)
 for connector-specific diagrams.

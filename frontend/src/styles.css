@@ -172,6 +172,102 @@ button:hover {
   background: #0ea5e9;
 }
 
+.setup-wizard__trigger {
+  margin-left: auto;
+}
+
+.setup-wizard__backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+}
+
+.setup-wizard {
+  width: min(480px, 90vw);
+  background: rgba(15, 23, 42, 0.95);
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.setup-wizard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.setup-wizard__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.setup-wizard__primary {
+  align-self: flex-start;
+}
+
+.setup-wizard__footer {
+  display: flex;
+  justify-content: space-between;
+}
+
+.telemetry-overlay {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  width: 280px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 500;
+}
+
+.telemetry-overlay header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.telemetry-overlay ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.telemetry-overlay li {
+  display: grid;
+  gap: 0.25rem;
+  background: rgba(30, 41, 59, 0.8);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.mock-overlay__trigger {
+  margin-left: 0.75rem;
+  background: rgba(148, 163, 184, 0.25);
+  color: #e2e8f0;
+}
+
+.mock-overlay__trigger:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+
 .station-summary {
   background: rgba(30, 41, 59, 0.8);
   padding: 1.5rem;
@@ -326,4 +422,234 @@ button:hover {
   .map-container {
     min-height: 400px;
   }
+}
+
+.map-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.map-dashboard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.map-dashboard__toggles {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.map-dashboard__body {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) 360px;
+  gap: 1.5rem;
+  height: calc(100vh - 12rem);
+}
+
+.map-dashboard__map {
+  height: 100%;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.map-dashboard__sidebar {
+  background: rgba(15, 23, 42, 0.85);
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 1.25rem;
+  overflow-y: auto;
+}
+
+.map-dashboard__sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.status-indicator {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+  display: inline-block;
+  margin-right: 0.75rem;
+}
+
+.status-indicator--online {
+  background: #22c55e;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.55);
+}
+
+.status-indicator--stale {
+  background: #f59e0b;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.55);
+}
+
+.status-indicator--offline {
+  background: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.55);
+}
+
+.status-details {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.status-meta {
+  font-size: 0.875rem;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.toggle input {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.setup-wizard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.setup-wizard__steps {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.setup-wizard__step {
+  flex: 1;
+  text-align: center;
+  padding: 0.75rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.85);
+  font-weight: 600;
+}
+
+.setup-wizard__step--active {
+  background: #38bdf8;
+  color: #0f172a;
+}
+
+.setup-card {
+  background: rgba(15, 23, 42, 0.85);
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 1.5rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.setup-card form {
+  display: grid;
+  gap: 1rem;
+}
+
+.setup-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.setup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.setup-field label {
+  font-weight: 600;
+}
+
+.setup-field input,
+.setup-field select,
+.setup-field textarea {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  color: inherit;
+  font: inherit;
+}
+
+.hardware-option {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 1rem;
+  background: rgba(30, 41, 59, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 0.75rem;
+}
+
+.hardware-option strong {
+  display: block;
+}
+
+.connector-results {
+  display: grid;
+  gap: 1rem;
+}
+
+.connector-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(30, 41, 59, 0.75);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  padding: 1rem;
+}
+
+.connector-result__status {
+  font-weight: 600;
+}
+
+.setup-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.setup-actions button {
+  min-width: 120px;
+}
+
+.setup-summary {
+  background: rgba(30, 41, 59, 0.75);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  padding: 1rem;
+}
+
+.connector-result__status--succeeded {
+  color: #22c55e;
+}
+
+.connector-result__status--failed {
+  color: #ef4444;
+}
+
+.connector-result__status--running,
+.connector-result__status--queued {
+  color: #f59e0b;
+}
+
+.connector-result__status--pending {
+  color: rgba(148, 163, 184, 0.85);
 }

@@ -1,0 +1,33 @@
+{
+  "now": 1710000000,
+  "aircraft": [
+    {
+      "hex": "abc123",
+      "flight": "TEST123",
+      "lat": 37.618805,
+      "lon": -122.375416,
+      "alt_baro": 12000,
+      "track": 180.5,
+      "gs": 430.2,
+      "squawk": "7700",
+      "category": "A3",
+      "messages": 150,
+      "seen": 1.2,
+      "rssi": -23.5
+    },
+    {
+      "hex": "def456",
+      "flight": "MOCK456",
+      "lat": 37.7749,
+      "lon": -122.4194,
+      "alt_baro": 8500,
+      "track": 92.0,
+      "gs": 210.0,
+      "squawk": "1200",
+      "category": "A0",
+      "messages": 73,
+      "seen": 0.6,
+      "rssi": -28.0
+    }
+  ]
+}
