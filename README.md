@@ -66,6 +66,15 @@ mission log while respecting station roles:
 An end-to-end overview is available in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) together with updated diagrams in
 [`docs/DIAGRAMS.md`](docs/DIAGRAMS.md).
 
+## Deploy (Terraform Cloud on Fly.io)
+
+The repository keeps two long-lived branches with distinct deployment roles:
+
+* `main` retains the generic development defaults used by contributors when iterating locally or in preview environments.
+* `live` is managed by Terraform Cloud, which applies the Fly.io workspace in [`infrastructure/README-infra.md`](infrastructure/README-infra.md) to promote approved container images and environment configuration.
+
+The Terraform Cloud workflow handles Fly.io secrets, release rollbacks, and keeps the `live` branch fast-forwarded to the exact commit running in production. Operators can inspect the job history, trigger re-runs, or apply manual overrides directly from Terraform Cloud using the linked infrastructure guide.
+
 ## Deployment modes
 
 | Mode | Command | Description |
