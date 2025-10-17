@@ -2,26 +2,22 @@ import hashlib
 import hmac
 import json
 import os
-import sys
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import pytest
 from fastapi.testclient import TestClient
+
+from backend.app import schemas
+from backend.app.config import reset_settings_cache
+from backend.app.main import app
+from backend.app.services.agentkit import get_agentkit_client
+from backend.app.services.supabase import get_supabase_repository
 
 os.environ.setdefault("AGENTKIT_API_BASE_URL", "https://agentkit.test/api")
 os.environ.setdefault("AGENTKIT_API_KEY", "test-key")
 os.environ.setdefault("AGENTKIT_ORG_ID", "test-org")
 os.environ.setdefault("CHATKIT_WEBHOOK_SECRET", "super-secret")
-
-from backend.app import schemas  # noqa: E402
-from backend.app.config import reset_settings_cache  # noqa: E402
-from backend.app.main import app  # noqa: E402
-from backend.app.services.agentkit import get_agentkit_client  # noqa: E402
-from backend.app.services.supabase import get_supabase_repository  # noqa: E402
 
 reset_settings_cache()
 
@@ -219,3 +215,66 @@ def test_webhook_rejects_bad_signature(client: TestClient):
     )
 
     assert response.status_code == 401
+
+
+def test_execute_action_requires_agentkit_configuration(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("AGENTKIT_API_KEY", raising=False)
+    monkeypatch.delenv("AGENTKIT_ORG_ID", raising=False)
+    reset_settings_cache()
+
+    response = client.post(
+        "/api/v1/agent-actions/execute",
+        json={"tool_name": "ping", "action_input": {"message": "hello"}},
+    )
+
+    assert response.status_code == 503
+
+    monkeypatch.setenv("AGENTKIT_API_KEY", "test-key")
+    monkeypatch.setenv("AGENTKIT_ORG_ID", "test-org")
+    reset_settings_cache()
+
+
+def test_execute_action_updates_existing_audit(
+    client: TestClient,
+    fake_supabase_repo: FakeSupabaseRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_supabase_repo.create_agent_action_audit(
+        schemas.AgentActionAuditCreate(
+            action_id="agentkit-action-123",
+            tool_name="ping",
+            status="queued",
+        )
+    )
+
+    async def _complete(self, tool_name: str, action_input: Dict[str, Any], metadata=None):
+        self.executions.append({
+            "tool_name": tool_name,
+            "action_input": action_input,
+            "metadata": metadata,
+        })
+        return {
+            "action_id": "agentkit-action-123",
+            "status": "succeeded",
+            "result": {"accepted": True},
+        }
+
+    monkeypatch.setattr(DummyAgentKit, "execute_action", _complete, raising=True)
+
+    response = client.post(
+        "/api/v1/agent-actions/execute",
+        json={
+            "tool_name": "ping",
+            "action_input": {"host": "1.1.1.1"},
+            "metadata": {"priority": "high"},
+        },
+    )
+
+    assert response.status_code == 202
+    audit = fake_supabase_repo.get_agent_action_audit_by_action_id("agentkit-action-123")
+    assert audit is not None
+    assert audit.status == "succeeded"
+    assert audit.response_payload == {"accepted": True}
+    assert audit.completed_at is not None

@@ -4,9 +4,14 @@ import L, { LatLngExpression } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 import { useStationDashboard, useTelemetryEvents } from '../../services/api';
+import MockTelemetryOverlay from '../../components/telemetry/MockTelemetryOverlay';
 
 const STATION_SLUG = 'toc-s1';
 const DEFAULT_POSITION: LatLngExpression = [18.4663, -66.1057];
+const MAP_TILES_URL =
+  import.meta.env.VITE_MAP_TILES_URL ?? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const MAP_ATTRIBUTION =
+  import.meta.env.VITE_MAP_ATTRIBUTION ?? '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors';
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -16,6 +21,7 @@ L.Icon.Default.mergeOptions({
 
 const TOCS1Dashboard = () => {
   const [panelOpen, setPanelOpen] = useState(true);
+  const [overlayOpen, setOverlayOpen] = useState(false);
   const { data: dashboard } = useStationDashboard(STATION_SLUG);
   const { data: events = [], isLoading } = useTelemetryEvents(STATION_SLUG);
 
@@ -33,6 +39,9 @@ const TOCS1Dashboard = () => {
           </div>
           <button onClick={() => setPanelOpen((value) => !value)}>
             {panelOpen ? 'Hide' : 'Show'} Intel
+          </button>
+          <button type="button" onClick={() => setOverlayOpen(true)} className="mock-overlay__trigger">
+            Show mock telemetry
           </button>
         </header>
         <div className="intel-body">
@@ -69,8 +78,8 @@ const TOCS1Dashboard = () => {
       <section className="map-container">
         <MapContainer center={DEFAULT_POSITION} zoom={8} scrollWheelZoom>
           <TileLayer
-            url={import.meta.env.VITE_MAP_TILES_URL}
-            attribution={import.meta.env.VITE_MAP_ATTRIBUTION}
+            url={MAP_TILES_URL}
+            attribution={MAP_ATTRIBUTION}
           />
           {markers.map((event) => (
             <Marker key={event.id} position={[event.latitude!, event.longitude!]}
@@ -82,6 +91,7 @@ const TOCS1Dashboard = () => {
             </Marker>
           ))}
         </MapContainer>
+        <MockTelemetryOverlay open={overlayOpen} events={events} onClose={() => setOverlayOpen(false)} />
       </section>
     </div>
   );

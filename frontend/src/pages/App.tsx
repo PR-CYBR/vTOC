@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { Navigate, NavLink, Route, Routes } from 'react-router-dom';
 
 import TOCS1Dashboard from './stations/TOCS1';
 import TOCS2Dashboard from './stations/TOCS2';
 import TOCS3Dashboard from './stations/TOCS3';
 import TOCS4Dashboard from './stations/TOCS4';
+import SetupWizard from '../components/setup/SetupWizard';
 
 const StationNav = () => {
   const items = [
@@ -29,11 +31,19 @@ const StationNav = () => {
 };
 
 const App = () => {
+  const [wizardOpen, setWizardOpen] = useState(false);
   return (
     <div className="station-shell">
       <header className="station-header">
         <h1>vTOC Station Command</h1>
         <StationNav />
+        <button
+          type="button"
+          className="setup-wizard__trigger"
+          onClick={() => setWizardOpen(true)}
+        >
+          Launch setup wizard
+        </button>
       </header>
       <main className="station-content">
         <Routes>
@@ -44,6 +54,7 @@ const App = () => {
           <Route path="/stations/toc-s4" element={<TOCS4Dashboard />} />
         </Routes>
       </main>
+      <SetupWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
     </div>
   );
 };
