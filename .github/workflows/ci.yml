@@ -69,6 +69,39 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Container setup fallback (no Terraform)
+        run: |
+          set -euo pipefail
+          PY_DIR="$(dirname "$(command -v python)")"
+          CLEAN_PATH="$PATH"
+          if command -v terraform >/dev/null 2>&1; then
+            TF_DIR="$(dirname "$(command -v terraform)")"
+            CLEAN_PATH="$(TF_DIR="$TF_DIR" python - <<'PY'
+import os
+import sys
+
+path = os.environ.get('PATH', '')
+tf_dir = os.environ.get('TF_DIR')
+parts = []
+for entry in path.split(':'):
+    if not entry:
+        continue
+    if tf_dir and os.path.abspath(entry) == os.path.abspath(tf_dir):
+        continue
+    parts.append(entry)
+sys.stdout.write(':'.join(parts))
+PY
+)"
+          fi
+          if [[ -n "$PY_DIR" && ":$CLEAN_PATH:" != *":$PY_DIR:"* ]]; then
+            CLEAN_PATH="$CLEAN_PATH:$PY_DIR"
+          fi
+          export PATH="$CLEAN_PATH"
+          if command -v terraform >/dev/null 2>&1; then
+            echo "Terraform still available on PATH" >&2
+            exit 1
+          fi
+          ./scripts/setup_container.sh --build-local
       - name: Install Python dependencies
         run: python -m pip install -r backend/requirements.txt
       - name: Python lint

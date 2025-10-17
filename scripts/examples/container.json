@@ -5,5 +5,87 @@
     "postgres": true,
     "n8n": false,
     "wazuh": false
+  },
+  "configBundle": {
+    "postgres": {
+      "database": "vtoc",
+      "user": "vtoc",
+      "password": "vtocpass",
+      "host": "database",
+      "internal_host": "database",
+      "port": 5432
+    },
+    "backend": {
+      "internal_database_env": {
+        "DATABASE_URL": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc",
+        "DATABASE_URL_TOC_S1": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s1",
+        "DATABASE_URL_TOC_S2": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s2",
+        "DATABASE_URL_TOC_S3": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s3",
+        "DATABASE_URL_TOC_S4": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s4"
+      },
+      "env": {
+        "DATABASE_URL": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc",
+        "DATABASE_URL_TOC_S1": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s1",
+        "DATABASE_URL_TOC_S2": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s2",
+        "DATABASE_URL_TOC_S3": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s3",
+        "DATABASE_URL_TOC_S4": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s4",
+        "AGENTKIT_API_BASE_URL": "https://agentkit.example.com/api",
+        "AGENTKIT_API_KEY": "replace-me",
+        "AGENTKIT_ORG_ID": "replace-me",
+        "AGENTKIT_TIMEOUT_SECONDS": "30",
+        "CHATKIT_WEBHOOK_SECRET": "replace-me",
+        "CHATKIT_ALLOWED_TOOLS": "",
+        "CHATKIT_API_KEY": "replace-me",
+        "CHATKIT_ORG_ID": "replace-me",
+        "SUPABASE_URL": "https://your-project.supabase.co",
+        "SUPABASE_PROJECT_REF": "your-project-ref",
+        "SUPABASE_SERVICE_ROLE_KEY": "replace-me",
+        "SUPABASE_JWT_SECRET": "replace-me"
+      },
+      "env_public": {
+        "DATABASE_URL": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc",
+        "DATABASE_URL_TOC_S1": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s1",
+        "DATABASE_URL_TOC_S2": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s2",
+        "DATABASE_URL_TOC_S3": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s3",
+        "DATABASE_URL_TOC_S4": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s4",
+        "AGENTKIT_API_BASE_URL": "https://agentkit.example.com/api",
+        "AGENTKIT_API_KEY": "replace-me",
+        "AGENTKIT_ORG_ID": "replace-me",
+        "AGENTKIT_TIMEOUT_SECONDS": "30",
+        "CHATKIT_WEBHOOK_SECRET": "replace-me",
+        "CHATKIT_ALLOWED_TOOLS": "",
+        "CHATKIT_API_KEY": "replace-me",
+        "CHATKIT_ORG_ID": "replace-me",
+        "SUPABASE_URL": "https://your-project.supabase.co",
+        "SUPABASE_PROJECT_REF": "your-project-ref",
+        "SUPABASE_SERVICE_ROLE_KEY": "replace-me",
+        "SUPABASE_JWT_SECRET": "replace-me"
+      }
+    },
+    "scraper": {
+      "env": {
+        "BACKEND_BASE_URL": "http://backend:8080"
+      }
+    },
+    "frontend": {
+      "env": {
+        "VITE_PORT": "5173",
+        "VITE_API_BASE_URL": "http://localhost:8080",
+        "VITE_MAP_TILES_URL": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "VITE_MAP_ATTRIBUTION": "© OpenStreetMap contributors",
+        "VITE_DEFAULT_DIV": "PR-SJU",
+        "VITE_RSS_ENABLED": "true",
+        "VITE_CHAT_ENABLED": "true",
+        "VITE_CHATKIT_WIDGET_URL": "https://cdn.chatkit.example.com/widget.js",
+        "VITE_CHATKIT_API_KEY": "replace-me",
+        "VITE_CHATKIT_TELEMETRY_CHANNEL": "vtoc-intel",
+        "VITE_AGENTKIT_ORG_ID": "replace-me",
+        "VITE_AGENTKIT_DEFAULT_STATION_CONTEXT": "PR-SJU",
+        "VITE_AGENTKIT_API_BASE_PATH": "/api/v1/agent-actions",
+        "VITE_SUPABASE_URL": "https://your-project.supabase.co",
+        "VITE_SUPABASE_ANON_KEY": "replace-me",
+        "VITE_SUPABASE_TELEMETRY_TABLE": "telemetry_events"
+      }
+    }
   }
 }
