@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "test:playwright": "playwright test"
+    "test:playwright": "playwright test",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.75.0",
@@ -23,6 +25,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^14.1.2",
     "@testing-library/user-event": "^14.5.2",
@@ -30,6 +34,9 @@
     "@types/node": "^20.10.5",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "@vitejs/plugin-react": "^4.2.0",
     "jsdom": "^23.0.1",
     "typescript": "^5.3.3",

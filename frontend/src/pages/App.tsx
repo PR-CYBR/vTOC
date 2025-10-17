@@ -28,15 +28,24 @@ const StationNav = () => {
 };
 
 const App = () => {
+  const [wizardOpen, setWizardOpen] = useState(false);
   return (
     <div className="station-shell">
       <header className="station-header">
         <h1>vTOC Station Command</h1>
         <StationNav />
+        <button
+          type="button"
+          className="setup-wizard__trigger"
+          onClick={() => setWizardOpen(true)}
+        >
+          Launch setup wizard
+        </button>
       </header>
       <main className="station-content">
         <AppRouter />
       </main>
+      <SetupWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
     </div>
   );
 };
