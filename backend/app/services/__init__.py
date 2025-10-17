@@ -1,5 +1,23 @@
 """Service utilities."""
 
+from .hardware.manager import (
+    AdsbConfig,
+    AdsbToggleRequest,
+    BaseStationConfig,
+    BaseStationRegistration,
+    GpsTestRequest,
+    GpsTestResult,
+    H4MImportRequest,
+    H4MImportResult,
+    HardwareConfigStore,
+    HardwareConfiguration,
+    HardwareHealthSummary,
+    HardwareManager,
+    HardwareOperationError,
+    HardwareStatus,
+    SerialPortInfo,
+    get_hardware_manager,
+)
 from .supabase import (
     SupabaseApiError,
     SupabaseRepository,
@@ -9,6 +27,22 @@ from .supabase import (
 )
 
 __all__ = [
+    "AdsbConfig",
+    "AdsbToggleRequest",
+    "BaseStationConfig",
+    "BaseStationRegistration",
+    "GpsTestRequest",
+    "GpsTestResult",
+    "H4MImportRequest",
+    "H4MImportResult",
+    "HardwareConfigStore",
+    "HardwareConfiguration",
+    "HardwareHealthSummary",
+    "HardwareManager",
+    "HardwareOperationError",
+    "HardwareStatus",
+    "SerialPortInfo",
+    "get_hardware_manager",
     "SupabaseApiError",
     "SupabaseRepository",
     "get_station_context",

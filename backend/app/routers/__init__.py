@@ -1,5 +1,5 @@
 """API routers."""
-from . import telemetry
+from . import hardware, telemetry
 from .stations import dashboard, tasks, agentkit
 
-__all__ = ["telemetry", "dashboard", "tasks", "agentkit"]
+__all__ = ["hardware", "telemetry", "dashboard", "tasks", "agentkit"]

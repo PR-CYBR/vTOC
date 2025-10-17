@@ -17,6 +17,8 @@ STATION_HEADER_CANDIDATES = (
     "x-toc-station",
 )
 
+TELEMETRY_SCHEMA = "telemetry"
+
 
 class SupabaseApiError(Exception):
     """Raised when Supabase returns an error response."""
@@ -230,6 +232,258 @@ class SupabaseRepository:
         return schemas.StationTaskQueue(station=station, tasks=tasks)
 
     # ------------------------------------------------------------------
+    # Base stations
+    # ------------------------------------------------------------------
+    def list_base_stations(
+        self, station_slug: Optional[str] = None
+    ) -> List[schemas.BaseStationRead]:
+        params: Dict[str, Any] = {
+            "select": "*,station:stations(*)",
+            "order": "name.asc",
+        }
+        if station_slug:
+            station = self.get_station(station_slug)
+            params["station_id"] = f"eq.{station.id}"
+        response = self._request("GET", "base_stations", params=params)
+        data = self._json(response) or []
+        return [schemas.BaseStationRead.model_validate(item) for item in data]
+
+    def _get_base_station_by(self, **filters: Any) -> schemas.BaseStationRead:
+        params = {"select": "*,station:stations(*)", "limit": 1}
+        params.update({key: f"eq.{value}" for key, value in filters.items()})
+        response = self._request("GET", "base_stations", params=params)
+        record = self._ensure_single(response, not_found_message="Base station not found")
+        return schemas.BaseStationRead.model_validate(record)
+
+    def get_base_station(self, base_station_id: int) -> schemas.BaseStationRead:
+        return self._get_base_station_by(id=base_station_id)
+
+    def get_base_station_by_slug(self, slug: str) -> schemas.BaseStationRead:
+        return self._get_base_station_by(slug=slug)
+
+    def create_base_station(
+        self, payload: schemas.BaseStationCreate
+    ) -> schemas.BaseStationRead:
+        response = self._request(
+            "POST",
+            "base_stations",
+            json=payload.model_dump(exclude_none=True),
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response, not_found_message="Base station creation failed")
+        return schemas.BaseStationRead.model_validate(record)
+
+    def update_base_station(
+        self, base_station_id: int, payload: schemas.BaseStationUpdate
+    ) -> schemas.BaseStationRead:
+        data = payload.model_dump(exclude_unset=True)
+        response = self._request(
+            "PATCH",
+            "base_stations",
+            params={"id": f"eq.{base_station_id}"},
+            json=data,
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response, not_found_message="Base station not found")
+        return schemas.BaseStationRead.model_validate(record)
+
+    def delete_base_station(self, base_station_id: int) -> None:
+        self.get_base_station(base_station_id)
+        self._request(
+            "DELETE",
+            "base_stations",
+            params={"id": f"eq.{base_station_id}"},
+        )
+
+    # ------------------------------------------------------------------
+    # Devices
+    # ------------------------------------------------------------------
+    def list_devices(
+        self,
+        *,
+        station_slug: Optional[str] = None,
+        base_station_slug: Optional[str] = None,
+    ) -> List[schemas.DeviceRead]:
+        params: Dict[str, Any] = {
+            "select": "*,station:stations(*),base_station:base_stations(*)",
+            "order": "name.asc",
+        }
+        if station_slug:
+            station = self.get_station(station_slug)
+            params["station_id"] = f"eq.{station.id}"
+        if base_station_slug:
+            base_station = self.get_base_station_by_slug(base_station_slug)
+            params["base_station_id"] = f"eq.{base_station.id}"
+        response = self._request("GET", "devices", params=params)
+        payload = self._json(response) or []
+        return [schemas.DeviceRead.model_validate(item) for item in payload]
+
+    def _get_device_by(self, **filters: Any) -> schemas.DeviceRead:
+        params = {
+            "select": "*,station:stations(*),base_station:base_stations(*)",
+            "limit": 1,
+        }
+        params.update({key: f"eq.{value}" for key, value in filters.items()})
+        response = self._request("GET", "devices", params=params)
+        record = self._ensure_single(response, not_found_message="Device not found")
+        return schemas.DeviceRead.model_validate(record)
+
+    def get_device(self, device_id: int) -> schemas.DeviceRead:
+        return self._get_device_by(id=device_id)
+
+    def get_device_by_slug(self, slug: str) -> schemas.DeviceRead:
+        return self._get_device_by(slug=slug)
+
+    def create_device(self, payload: schemas.DeviceCreate) -> schemas.DeviceRead:
+        response = self._request(
+            "POST",
+            "devices",
+            json=payload.model_dump(exclude_none=True),
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response, not_found_message="Device creation failed")
+        return schemas.DeviceRead.model_validate(record)
+
+    def update_device(
+        self, device_id: int, payload: schemas.DeviceUpdate
+    ) -> schemas.DeviceRead:
+        data = payload.model_dump(exclude_unset=True)
+        response = self._request(
+            "PATCH",
+            "devices",
+            params={"id": f"eq.{device_id}"},
+            json=data,
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response, not_found_message="Device not found")
+        return schemas.DeviceRead.model_validate(record)
+
+    def delete_device(self, device_id: int) -> None:
+        self.get_device(device_id)
+        self._request("DELETE", "devices", params={"id": f"eq.{device_id}"})
+
+    # ------------------------------------------------------------------
+    # RF streams
+    # ------------------------------------------------------------------
+    def list_rf_streams(
+        self,
+        *,
+        device_id: Optional[int] = None,
+        source_id: Optional[int] = None,
+    ) -> List[schemas.RfStreamRead]:
+        params: Dict[str, Any] = {
+            "select": "*,device:devices(*),source:telemetry_sources(*)",
+            "order": "name.asc",
+        }
+        if device_id is not None:
+            params["device_id"] = f"eq.{device_id}"
+        if source_id is not None:
+            params["source_id"] = f"eq.{source_id}"
+        response = self._request("GET", "rf_streams", params=params)
+        payload = self._json(response) or []
+        return [schemas.RfStreamRead.model_validate(item) for item in payload]
+
+    def _get_rf_stream_by(self, **filters: Any) -> schemas.RfStreamRead:
+        params = {
+            "select": "*,device:devices(*),source:telemetry_sources(*)",
+            "limit": 1,
+        }
+        params.update({key: f"eq.{value}" for key, value in filters.items()})
+        response = self._request("GET", "rf_streams", params=params)
+        record = self._ensure_single(response, not_found_message="RF stream not found")
+        return schemas.RfStreamRead.model_validate(record)
+
+    def get_rf_stream(self, stream_id: int) -> schemas.RfStreamRead:
+        return self._get_rf_stream_by(id=stream_id)
+
+    def get_rf_stream_by_slug(self, slug: str) -> schemas.RfStreamRead:
+        return self._get_rf_stream_by(slug=slug)
+
+    def create_rf_stream(self, payload: schemas.RfStreamCreate) -> schemas.RfStreamRead:
+        response = self._request(
+            "POST",
+            "rf_streams",
+            json=payload.model_dump(exclude_none=True),
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response, not_found_message="RF stream creation failed")
+        return schemas.RfStreamRead.model_validate(record)
+
+    def update_rf_stream(
+        self, stream_id: int, payload: schemas.RfStreamUpdate
+    ) -> schemas.RfStreamRead:
+        data = payload.model_dump(exclude_unset=True)
+        response = self._request(
+            "PATCH",
+            "rf_streams",
+            params={"id": f"eq.{stream_id}"},
+            json=data,
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response, not_found_message="RF stream not found")
+        return schemas.RfStreamRead.model_validate(record)
+
+    def delete_rf_stream(self, stream_id: int) -> None:
+        self.get_rf_stream(stream_id)
+        self._request("DELETE", "rf_streams", params={"id": f"eq.{stream_id}"})
+
+    # ------------------------------------------------------------------
+    # Overlays
+    # ------------------------------------------------------------------
+    def list_overlays(self, station_slug: Optional[str] = None) -> List[schemas.OverlayRead]:
+        params: Dict[str, Any] = {
+            "select": "*,station:stations(*)",
+            "order": "name.asc",
+        }
+        if station_slug:
+            station = self.get_station(station_slug)
+            params["station_id"] = f"eq.{station.id}"
+        response = self._request("GET", "overlays", params=params)
+        payload = self._json(response) or []
+        return [schemas.OverlayRead.model_validate(item) for item in payload]
+
+    def _get_overlay_by(self, **filters: Any) -> schemas.OverlayRead:
+        params = {"select": "*,station:stations(*)", "limit": 1}
+        params.update({key: f"eq.{value}" for key, value in filters.items()})
+        response = self._request("GET", "overlays", params=params)
+        record = self._ensure_single(response, not_found_message="Overlay not found")
+        return schemas.OverlayRead.model_validate(record)
+
+    def get_overlay(self, overlay_id: int) -> schemas.OverlayRead:
+        return self._get_overlay_by(id=overlay_id)
+
+    def get_overlay_by_slug(self, slug: str) -> schemas.OverlayRead:
+        return self._get_overlay_by(slug=slug)
+
+    def create_overlay(self, payload: schemas.OverlayCreate) -> schemas.OverlayRead:
+        response = self._request(
+            "POST",
+            "overlays",
+            json=payload.model_dump(exclude_none=True),
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response, not_found_message="Overlay creation failed")
+        return schemas.OverlayRead.model_validate(record)
+
+    def update_overlay(
+        self, overlay_id: int, payload: schemas.OverlayUpdate
+    ) -> schemas.OverlayRead:
+        data = payload.model_dump(exclude_unset=True)
+        response = self._request(
+            "PATCH",
+            "overlays",
+            params={"id": f"eq.{overlay_id}"},
+            json=data,
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response, not_found_message="Overlay not found")
+        return schemas.OverlayRead.model_validate(record)
+
+    def delete_overlay(self, overlay_id: int) -> None:
+        self.get_overlay(overlay_id)
+        self._request("DELETE", "overlays", params={"id": f"eq.{overlay_id}"})
+
+    # ------------------------------------------------------------------
     # Telemetry sources
     # ------------------------------------------------------------------
     def list_telemetry_sources(
@@ -400,6 +654,130 @@ class SupabaseRepository:
             "telemetry_events",
             params={"id": f"eq.{event_id}"},
         )
+
+    # ------------------------------------------------------------------
+    # Telemetry GPS fixes
+    # ------------------------------------------------------------------
+    def list_gps_fixes(
+        self,
+        *,
+        station_slug: Optional[str] = None,
+        source_id: Optional[int] = None,
+        device_id: Optional[int] = None,
+        limit: int = 200,
+    ) -> List[schemas.TelemetryGpsFixRead]:
+        params: Dict[str, Any] = {
+            "select": "*,station:stations(*),source:telemetry_sources(*),device:devices(*)",
+            "order": "recorded_at.desc",
+        }
+        if station_slug:
+            station = self.get_station(station_slug)
+            params["station_id"] = f"eq.{station.id}"
+        if source_id is not None:
+            params["source_id"] = f"eq.{source_id}"
+        if device_id is not None:
+            params["device_id"] = f"eq.{device_id}"
+        headers = {"Range": f"0-{max(limit - 1, 0)}"}
+        response = self._request(
+            "GET",
+            f"{TELEMETRY_SCHEMA}.gps_fixes",
+            params=params,
+            headers=headers,
+        )
+        payload = self._json(response) or []
+        return [schemas.TelemetryGpsFixRead.model_validate(item) for item in payload]
+
+    def _get_gps_fix_by(self, **filters: Any) -> schemas.TelemetryGpsFixRead:
+        params = {
+            "select": "*,station:stations(*),source:telemetry_sources(*),device:devices(*)",
+            "limit": 1,
+        }
+        params.update({key: f"eq.{value}" for key, value in filters.items()})
+        response = self._request(
+            "GET",
+            f"{TELEMETRY_SCHEMA}.gps_fixes",
+            params=params,
+        )
+        record = self._ensure_single(response, not_found_message="GPS fix not found")
+        return schemas.TelemetryGpsFixRead.model_validate(record)
+
+    def get_gps_fix(self, fix_id: int) -> schemas.TelemetryGpsFixRead:
+        return self._get_gps_fix_by(id=fix_id)
+
+    def create_gps_fix(
+        self, payload: schemas.TelemetryGpsFixCreate
+    ) -> schemas.TelemetryGpsFixRead:
+        response = self._request(
+            "POST",
+            f"{TELEMETRY_SCHEMA}.gps_fixes",
+            json=payload.model_dump(exclude_none=True),
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response)
+        return schemas.TelemetryGpsFixRead.model_validate(record)
+
+    # ------------------------------------------------------------------
+    # Telemetry aircraft positions
+    # ------------------------------------------------------------------
+    def list_aircraft_positions(
+        self,
+        *,
+        station_slug: Optional[str] = None,
+        source_id: Optional[int] = None,
+        device_id: Optional[int] = None,
+        limit: int = 200,
+    ) -> List[schemas.TelemetryAircraftPositionRead]:
+        params: Dict[str, Any] = {
+            "select": "*,station:stations(*),source:telemetry_sources(*),device:devices(*)",
+            "order": "position_time.desc",
+        }
+        if station_slug:
+            station = self.get_station(station_slug)
+            params["station_id"] = f"eq.{station.id}"
+        if source_id is not None:
+            params["source_id"] = f"eq.{source_id}"
+        if device_id is not None:
+            params["device_id"] = f"eq.{device_id}"
+        headers = {"Range": f"0-{max(limit - 1, 0)}"}
+        response = self._request(
+            "GET",
+            f"{TELEMETRY_SCHEMA}.aircraft_positions",
+            params=params,
+            headers=headers,
+        )
+        payload = self._json(response) or []
+        return [schemas.TelemetryAircraftPositionRead.model_validate(item) for item in payload]
+
+    def _get_aircraft_position_by(
+        self, **filters: Any
+    ) -> schemas.TelemetryAircraftPositionRead:
+        params = {
+            "select": "*,station:stations(*),source:telemetry_sources(*),device:devices(*)",
+            "limit": 1,
+        }
+        params.update({key: f"eq.{value}" for key, value in filters.items()})
+        response = self._request(
+            "GET",
+            f"{TELEMETRY_SCHEMA}.aircraft_positions",
+            params=params,
+        )
+        record = self._ensure_single(response, not_found_message="Aircraft position not found")
+        return schemas.TelemetryAircraftPositionRead.model_validate(record)
+
+    def get_aircraft_position(self, position_id: int) -> schemas.TelemetryAircraftPositionRead:
+        return self._get_aircraft_position_by(id=position_id)
+
+    def create_aircraft_position(
+        self, payload: schemas.TelemetryAircraftPositionCreate
+    ) -> schemas.TelemetryAircraftPositionRead:
+        response = self._request(
+            "POST",
+            f"{TELEMETRY_SCHEMA}.aircraft_positions",
+            json=payload.model_dump(exclude_none=True),
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response)
+        return schemas.TelemetryAircraftPositionRead.model_validate(record)
 
     # ------------------------------------------------------------------
     # Agent action audits

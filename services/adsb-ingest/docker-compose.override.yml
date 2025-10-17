@@ -1,0 +1,55 @@
+version: "3.9"
+
+services:
+  adsb_proxy:
+    build: .
+    image: vtoc/adsb-ingest:local
+    environment:
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL:-http://backend:8000}
+      TELEMETRY_SOURCE_SLUG: ${TELEMETRY_SOURCE_SLUG:-adsb-ingest}
+      READSB_FILE: /run/readsb/aircraft.json
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+      - readsb
+    volumes:
+      - readsb-run:/run/readsb:ro
+
+  adsb_config:
+    build: .
+    command:
+      - python
+      - -m
+      - scripts.configure_readsb
+      - --target
+      - readsb
+      - --template
+      - /app/templates/readsb.conf.template
+      - --output
+      - /config/readsb.conf
+    environment:
+      RTL_DEVICE: ${RTL_DEVICE:-0}
+      RTL_GAIN: ${RTL_GAIN:-max}
+      RTL_PPM: ${RTL_PPM:-0}
+      RECEIVER_LAT: ${RECEIVER_LAT:-0.0}
+      RECEIVER_LON: ${RECEIVER_LON:-0.0}
+      JSON_DIR: /run/readsb
+    volumes:
+      - readsb-config:/config
+
+  readsb:
+    image: ghcr.io/wiedehopf/readsb:latest
+    depends_on:
+      adsb_config:
+        condition: service_completed_successfully
+    volumes:
+      - readsb-config:/etc/readsb
+      - readsb-run:/run/readsb
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+
+volumes:
+  readsb-config:
+  readsb-run:

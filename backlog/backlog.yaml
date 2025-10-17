@@ -6,6 +6,11 @@ items:
     links:
       - docs/tasks/bot-integrations.md#1-cross-cutting-discovery-and-infrastructure
     notes: "Lay the groundwork for Telegram, Slack, and Discord services by defining shared clients, config, and deployment patterns."
+    codex_plan_url: null
+    codex_plan_tasks: []
+    codex_plan_generated_at: null
+    codex_run_ids: []
+    plan_history: []
   - id: bot-telegram
     title: "Bots: implement Telegram management bot"
     status: planned
@@ -13,6 +18,11 @@ items:
     links:
       - docs/tasks/bot-integrations.md#2-telegram-management-bot
     notes: "Deliver Telegram command handlers, transports, and deployment assets for vTOC operators."
+    codex_plan_url: null
+    codex_plan_tasks: []
+    codex_plan_generated_at: null
+    codex_run_ids: []
+    plan_history: []
   - id: bot-slack
     title: "Bots: implement Slack monitoring bot"
     status: planned
@@ -20,6 +30,11 @@ items:
     links:
       - docs/tasks/bot-integrations.md#3-slack-monitoring-bot
     notes: "Capture Slack channel activity and surface it through shared telemetry pipelines."
+    codex_plan_url: null
+    codex_plan_tasks: []
+    codex_plan_generated_at: null
+    codex_run_ids: []
+    plan_history: []
   - id: bot-discord
     title: "Bots: implement Discord operations bot"
     status: planned
@@ -27,6 +42,11 @@ items:
     links:
       - docs/tasks/bot-integrations.md#4-discord-operations-bot
     notes: "Expose mission management and real-time data to Discord users."
+    codex_plan_url: null
+    codex_plan_tasks: []
+    codex_plan_generated_at: null
+    codex_run_ids: []
+    plan_history: []
   - id: bot-docs-qa-rollout
     title: "Bots: documentation, QA, and rollout"
     status: planned
@@ -34,3 +54,8 @@ items:
     links:
       - docs/tasks/bot-integrations.md#5-documentation-qa-and-rollout
     notes: "Update diagrams, automation, and rollout guides for the multi-bot initiative."
+    codex_plan_url: null
+    codex_plan_tasks: []
+    codex_plan_generated_at: null
+    codex_run_ids: []
+    plan_history: []
