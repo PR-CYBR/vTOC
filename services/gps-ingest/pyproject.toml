@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gps-ingest"
+version = "0.1.0"
+description = "Serial GPS ingestion service for vTOC"
+authors = [{ name = "vTOC" }]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+  "pyserial>=3.5",
+  "pynmea2>=1.19.0",
+  "requests>=2.31.0",
+]
+
+[project.scripts]
+gps-ingest = "gps_ingest.__main__:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
