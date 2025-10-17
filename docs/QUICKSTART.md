@@ -111,6 +111,11 @@ VTOC_IMAGE_TAG=main docker compose up
 If you need to build services locally, regenerate the compose file with `./scripts/setup_container.sh --build-local` so the
 `build:` blocks are reinstated.
 
+The container helper now supports a Terraform-free flow: it first checks the forwarded config (`--config` or
+`VTOC_CONFIG_JSON`) for a `configBundle` override, then falls back to [`scripts/defaults/config_bundle.local.json`](../scripts/defaults/config_bundle.local.json)
+when Terraform outputs are unavailable. Copy that file, replace the placeholder secrets, and pass it through the setup CLI to
+boot the stack without Terraform — the override takes precedence even when you opt into `--build-local` builds.
+
 ### 4. Verify installation
 
 ```bash

@@ -1,0 +1,105 @@
+{
+  "postgres": {
+    "database": "vtoc",
+    "user": "vtoc",
+    "password": "vtocpass",
+    "host": "database",
+    "internal_host": "database",
+    "port": 5432
+  },
+  "backend": {
+    "internal_database_env": {
+      "DATABASE_URL": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc",
+      "DATABASE_URL_TOC_S1": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s1",
+      "DATABASE_URL_TOC_S2": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s2",
+      "DATABASE_URL_TOC_S3": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s3",
+      "DATABASE_URL_TOC_S4": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s4"
+    },
+    "env": {
+      "DATABASE_URL": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc",
+      "DATABASE_URL_TOC_S1": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s1",
+      "DATABASE_URL_TOC_S2": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s2",
+      "DATABASE_URL_TOC_S3": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s3",
+      "DATABASE_URL_TOC_S4": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s4",
+      "AGENTKIT_API_BASE_URL": "https://agentkit.example.com/api",
+      "AGENTKIT_API_KEY": "",
+      "AGENTKIT_ORG_ID": "",
+      "AGENTKIT_TIMEOUT_SECONDS": "30",
+      "CHATKIT_WEBHOOK_SECRET": "",
+      "CHATKIT_ALLOWED_TOOLS": "",
+      "CHATKIT_API_KEY": "",
+      "CHATKIT_ORG_ID": "",
+      "SUPABASE_URL": "",
+      "SUPABASE_PROJECT_REF": "",
+      "SUPABASE_SERVICE_ROLE_KEY": "",
+      "SUPABASE_JWT_SECRET": ""
+    },
+    "env_public": {
+      "DATABASE_URL": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc",
+      "DATABASE_URL_TOC_S1": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s1",
+      "DATABASE_URL_TOC_S2": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s2",
+      "DATABASE_URL_TOC_S3": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s3",
+      "DATABASE_URL_TOC_S4": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s4",
+      "AGENTKIT_API_BASE_URL": "https://agentkit.example.com/api",
+      "AGENTKIT_API_KEY": "",
+      "AGENTKIT_ORG_ID": "",
+      "AGENTKIT_TIMEOUT_SECONDS": "30",
+      "CHATKIT_WEBHOOK_SECRET": "",
+      "CHATKIT_ALLOWED_TOOLS": "",
+      "CHATKIT_API_KEY": "",
+      "CHATKIT_ORG_ID": "",
+      "SUPABASE_URL": "",
+      "SUPABASE_PROJECT_REF": "",
+      "SUPABASE_SERVICE_ROLE_KEY": "",
+      "SUPABASE_JWT_SECRET": ""
+    }
+  },
+  "scraper": {
+    "env": {
+      "BACKEND_BASE_URL": "http://backend:8080"
+    }
+  },
+  "frontend": {
+    "env": {
+      "VITE_PORT": "5173",
+      "VITE_API_BASE_URL": "http://localhost:8080",
+      "VITE_MAP_TILES_URL": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      "VITE_MAP_ATTRIBUTION": "© OpenStreetMap contributors",
+      "VITE_DEFAULT_DIV": "PR-SJU",
+      "VITE_RSS_ENABLED": "true",
+      "VITE_CHAT_ENABLED": "true",
+      "VITE_CHATKIT_WIDGET_URL": "https://cdn.chatkit.example.com/widget.js",
+      "VITE_CHATKIT_API_KEY": "",
+      "VITE_CHATKIT_TELEMETRY_CHANNEL": "vtoc-intel",
+      "VITE_AGENTKIT_ORG_ID": "",
+      "VITE_AGENTKIT_DEFAULT_STATION_CONTEXT": "PR-SJU",
+      "VITE_AGENTKIT_API_BASE_PATH": "/api/v1/agent-actions",
+      "VITE_SUPABASE_URL": "",
+      "VITE_SUPABASE_ANON_KEY": "",
+      "VITE_SUPABASE_TELEMETRY_TABLE": "telemetry_events"
+    }
+  },
+  "supabase": {
+    "project_ref": "",
+    "api_url": "",
+    "anon_key": "",
+    "service_role_key": "",
+    "jwt_secret": ""
+  },
+  "fly": {
+    "runtime": {
+      "app_name": "",
+      "api_token": "",
+      "ghcr_username": "",
+      "ghcr_token": "",
+      "backend_image": "",
+      "frontend_image": "",
+      "scraper_image": ""
+    },
+    "secrets_env": {}
+  },
+  "optional_integrations": {
+    "zerotier_network_id": "",
+    "tailscale_auth_key": ""
+  }
+}

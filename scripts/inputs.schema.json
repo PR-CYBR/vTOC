@@ -24,6 +24,10 @@
         "region": { "type": "string" }
       },
       "additionalProperties": false
+    },
+    "configBundle": {
+      "type": "object",
+      "description": "Optional override matching the Terraform config_bundle output. See scripts/defaults/config_bundle.local.json for the expected shape."
     }
   },
   "additionalProperties": false

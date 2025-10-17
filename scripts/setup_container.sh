@@ -16,12 +16,17 @@ USAGE
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TERRAFORM_DIR="$ROOT_DIR/infrastructure/terraform"
 OUTPUT_FILE="$ROOT_DIR/docker-compose.generated.yml"
-CONFIG_JSON="${VTOC_CONFIG_JSON:-{}}"
+CONFIG_JSON="${VTOC_CONFIG_JSON:-}"
+if [[ -z "$CONFIG_JSON" ]]; then
+  CONFIG_JSON="{}"
+fi
 APPLY="${VTOC_SETUP_APPLY:-false}"
 IMAGE_TAG="${VTOC_IMAGE_TAG:-main}"
 IMAGE_REPO="${VTOC_IMAGE_REPO:-ghcr.io/pr-cybr/vtoc}"
 USE_BUILD_LOCAL="${VTOC_BUILD_LOCAL:-false}"
 PULL_IMAGES="true"
+
+export CONFIG_JSON
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -57,14 +62,72 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-terraform -chdir="$TERRAFORM_DIR" init -input=false >/dev/null
+CONFIG_BUNDLE_OVERRIDE_JSON="$(python - <<'PY'
+import json
+import os
+import sys
+
+raw = os.environ.get("CONFIG_JSON", "{}")
+raw = raw.strip()
+try:
+    data = json.loads(raw)
+except json.JSONDecodeError as exc:
+    sys.stderr.write(f"Invalid VTOC_CONFIG_JSON payload: {exc}\n")
+    sys.exit(1)
+
+bundle = data.get("configBundle")
+if bundle is None:
+    sys.exit(0)
+
+sys.stdout.write(json.dumps(bundle))
+PY
+)"
+
+FALLBACK_BUNDLE_PATH="$ROOT_DIR/scripts/defaults/config_bundle.local.json"
+if [[ ! -f "$FALLBACK_BUNDLE_PATH" ]]; then
+  echo "Fallback bundle missing at $FALLBACK_BUNDLE_PATH" >&2
+  exit 1
+fi
+
+TERRAFORM_BUNDLE_JSON=""
+BUNDLE_SOURCE="fallback"
+
+if [[ -n "$CONFIG_BUNDLE_OVERRIDE_JSON" ]]; then
+  BUNDLE_SOURCE="override"
+else
+  if command -v terraform >/dev/null 2>&1; then
+    if terraform -chdir="$TERRAFORM_DIR" init -input=false >/dev/null; then
+      if TERRAFORM_BUNDLE_JSON="$(terraform -chdir="$TERRAFORM_DIR" output -json config_bundle)"; then
+        BUNDLE_SOURCE="terraform"
+      else
+        echo "terraform output failed; falling back to local defaults." >&2
+      fi
+    else
+      echo "terraform init failed; falling back to local defaults." >&2
+    fi
+  else
+    echo "terraform binary not found; using local defaults." >&2
+  fi
+fi
+
+case "$BUNDLE_SOURCE" in
+  override)
+    echo "Using config bundle override from VTOC_CONFIG_JSON."
+    ;;
+  terraform)
+    echo "Using config bundle from Terraform outputs."
+    ;;
+  fallback)
+    echo "Using local fallback config bundle at $FALLBACK_BUNDLE_PATH."
+    ;;
+esac
 
 export ROOT_DIR OUTPUT_FILE CONFIG_JSON IMAGE_TAG IMAGE_REPO USE_BUILD_LOCAL TERRAFORM_DIR
+export CONFIG_BUNDLE_OVERRIDE_JSON TERRAFORM_BUNDLE_JSON FALLBACK_BUNDLE_PATH BUNDLE_SOURCE
 
 python - <<'PY'
 import json
 import os
-import subprocess
 from pathlib import Path
 
 root_dir = Path(os.environ["ROOT_DIR"])
@@ -73,17 +136,17 @@ config = json.loads(os.environ.get("CONFIG_JSON", "{}"))
 image_repo = os.environ.get("IMAGE_REPO", "ghcr.io/pr-cybr/vtoc")
 image_tag = os.environ.get("IMAGE_TAG", "latest")
 use_build_local = os.environ.get("USE_BUILD_LOCAL", "false").lower() == "true"
-terraform_dir = Path(os.environ["TERRAFORM_DIR"])
+bundle_source = os.environ.get("BUNDLE_SOURCE", "fallback")
+override_json = os.environ.get("CONFIG_BUNDLE_OVERRIDE_JSON", "")
+terraform_bundle_json = os.environ.get("TERRAFORM_BUNDLE_JSON", "")
+fallback_bundle_path = Path(os.environ["FALLBACK_BUNDLE_PATH"])
 
-try:
-    bundle_raw = subprocess.check_output(
-        ["terraform", "-chdir", str(terraform_dir), "output", "-json", "config_bundle"],
-        text=True,
-    )
-except subprocess.CalledProcessError as exc:
-    raise SystemExit(
-        "Failed to read Terraform outputs. Run `terraform apply` in infrastructure/terraform to populate state."
-    ) from exc
+if bundle_source == "override" and override_json:
+    bundle_raw = override_json
+elif bundle_source == "terraform" and terraform_bundle_json:
+    bundle_raw = terraform_bundle_json
+else:
+    bundle_raw = fallback_bundle_path.read_text()
 
 bundle = json.loads(bundle_raw)
 if "value" in bundle:

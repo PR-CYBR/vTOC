@@ -88,8 +88,9 @@ The Terraform Cloud workflow handles Fly.io secrets, release rollbacks, and keep
 | Infrastructure | `python -m scripts.bootstrap_cli setup cloud` (or `make setup-cloud`) | Generates Terraform/Ansible scaffolding in `infra/` with multi-station Postgres plans. |
 | Cleanup | `python -m scripts.bootstrap_cli compose down` (or `make compose-down`) | Tears down services started from the generated compose file and removes role-specific temp volumes. |
 
-Supply configuration through `--config path.json` or `--config-json '{...}'`. The schema now includes `stationRoles[]` and
-`chatkit`/`agentkit` sections – see [`scripts/inputs.schema.json`](scripts/inputs.schema.json) for details.
+Supply configuration through `--config path.json` or `--config-json '{...}'`. The schema now includes `stationRoles[]`,
+`chatkit`/`agentkit` sections, and the optional `configBundle` override used by the container generator – see
+[`scripts/inputs.schema.json`](scripts/inputs.schema.json) for details.
 
 Codex CLI is detected automatically: if the `codex` binary exists, the setup scripts use `codex interpolate` for variable
 expansion; otherwise they fall back to portable Bash implementations. Commits that land on `main` now trigger the
@@ -125,6 +126,16 @@ To build locally, call the container setup helper with `--build-local` so the ge
 ```bash
 ./scripts/setup_container.sh --build-local
 ```
+
+`setup_container.sh` now prefers a `configBundle` override supplied through `VTOC_CONFIG_JSON`/`--config` before touching Terraform. When no override exists the script attempts to read the `config_bundle` output and falls back to [`scripts/defaults/config_bundle.local.json`](scripts/defaults/config_bundle.local.json) if Terraform is unavailable. The fallback mirrors the development defaults so `--build-local` continues to work without additional secrets.
+
+Teams that need to inject real credentials without Terraform can copy the fallback file, replace placeholder values, and pass it through the forwarded config:
+
+```bash
+python -m scripts.bootstrap_cli setup container --config path/to/override.json
+```
+
+Where `override.json` contains a `configBundle` object (see [`scripts/examples/container.json`](scripts/examples/container.json)).
 
 You can also select a published image tag during generation with `--image-tag <tag>` (equivalent to `VTOC_IMAGE_TAG`).
 
