@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import os
 import shlex
@@ -33,6 +34,7 @@ class BacklogPlanError(Exception):
 class PlanResult:
     project_item_id: str
     skipped: bool
+    entry_id: str | None = None
     plan_url: str | None = None
     tasks: List[Dict[str, Any]] | None = None
 
@@ -41,6 +43,8 @@ class PlanResult:
             "project_item_id": self.project_item_id,
             "skipped": self.skipped,
         }
+        if self.entry_id is not None:
+            data["entry_id"] = self.entry_id
         if self.plan_url is not None:
             data["plan_url"] = self.plan_url
         if self.tasks is not None:
@@ -53,23 +57,41 @@ def _load_json(path: Path) -> Dict[str, Any]:
         return json.load(handle)
 
 
-def _load_backlog(path: Path) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+def _load_backlog(path: Path) -> List[Dict[str, Any]]:
     if not path.exists():
-        return {"items": []}, []
+        return []
 
-    with path.open("r", encoding="utf-8") as handle:
-        data = yaml.safe_load(handle) or {}
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            data = yaml.safe_load(handle)
+    except OSError as exc:  # pragma: no cover - hard to simulate reliably
+        raise BacklogPlanError(f"Failed to read backlog file {path}: {exc}") from exc
 
-    if not isinstance(data, dict):
-        raise BacklogPlanError(f"Backlog file {path} must contain a mapping at the top level.")
+    if data is None:
+        return []
 
-    items = data.get("items", [])
-    if items is None:
-        items = []
-    if not isinstance(items, list):
-        raise BacklogPlanError("The 'items' key in the backlog file must map to a list of entries.")
+    if isinstance(data, list):
+        entries = data
+    elif isinstance(data, dict):
+        items = data.get("items", [])
+        if items is None:
+            return []
+        if not isinstance(items, list):
+            raise BacklogPlanError("The 'items' key in the backlog file must contain a list of entries.")
+        entries = items
+    else:
+        raise BacklogPlanError(
+            f"Backlog file {path} must contain either a list of entries or a mapping with an 'items' list."
+        )
 
-    return data, list(items)
+    normalised: List[Dict[str, Any]] = []
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            raise BacklogPlanError(
+                f"Backlog entry at index {index} must be a mapping, got {type(entry).__name__}."
+            )
+        normalised.append(entry)
+    return normalised
 
 
 def _normalize_multiline(value: str | None) -> str:
@@ -113,6 +135,8 @@ def _ensure_entry(
 ) -> Dict[str, Any]:
     for entry in items:
         if str(entry.get("project_item_id")) == project_item_id:
+            if "id" not in entry or not isinstance(entry["id"], str):
+                entry["id"] = _generate_entry_id(items)
             return entry
 
     content = context.get("content") or {}
@@ -131,6 +155,7 @@ def _ensure_entry(
         "summary": summary,
         "project_item_id": project_item_id,
         "codex_plan_url": None,
+        "codex_plan_tasks": [],
         "codex_run_ids": [],
         "last_updated_by": "codex",
         "metadata": {
@@ -138,6 +163,8 @@ def _ensure_entry(
             "field_values": context.get("field_values"),
             "content_url": content.get("url"),
             "content_type": content.get("type"),
+            "content_number": content.get("number"),
+            "content_title": content.get("title"),
         },
     }
     items.append(new_entry)
@@ -216,42 +243,66 @@ def _run_planning_command(command: str, context: Dict[str, Any]) -> Dict[str, An
 
 
 def _update_entry(entry: Dict[str, Any], context: Dict[str, Any], plan: Dict[str, Any]) -> None:
-    entry["project_item_id"] = context.get("project_item_id") or context.get("project_item_node_id")
+    project_item_ref = context.get("project_item_id") or context.get("project_item_node_id")
+    if project_item_ref is None:
+        raise BacklogPlanError("Context JSON did not include a project item identifier.")
+
+    entry["project_item_id"] = str(project_item_ref)
     entry["status"] = entry.get("status") or "proposed"
     entry["codex_plan_url"] = plan["plan_url"]
     entry["codex_plan_tasks"] = plan["tasks"]
-    entry.setdefault("metadata", {})
-    metadata = entry["metadata"]
-    if isinstance(metadata, dict):
-        metadata.setdefault("project", context.get("project"))
-        metadata["field_values"] = context.get("field_values")
-        content = context.get("content") or {}
-        if isinstance(content, dict):
-            metadata["content_url"] = content.get("url")
-            metadata["content_type"] = content.get("type")
-            metadata["content_number"] = content.get("number")
-    entry.setdefault("plan_history", [])
+
+    metadata = entry.setdefault("metadata", {})
+    if not isinstance(metadata, dict):
+        metadata = {}
+        entry["metadata"] = metadata
+    project = context.get("project")
+    if project is not None or "project" not in metadata:
+        metadata["project"] = project
+
+    metadata["field_values"] = context.get("field_values")
+
+    content = context.get("content") or {}
+    if isinstance(content, dict):
+        metadata["content_url"] = content.get("url")
+        metadata["content_type"] = content.get("type")
+        metadata["content_number"] = content.get("number")
+        metadata["content_title"] = content.get("title")
+
     generated_at = datetime.now(timezone.utc).strftime(ISO_FORMAT)
-    if isinstance(entry["plan_history"], list):
-        entry["plan_history"].append(
+    entry["codex_plan_generated_at"] = generated_at
+
+    plan_history = entry.setdefault("plan_history", [])
+    if isinstance(plan_history, list):
+        plan_history.append(
             {
                 "plan_url": plan["plan_url"],
-                "tasks": plan["tasks"],
+                "tasks": copy.deepcopy(plan["tasks"]),
                 "generated_at": generated_at,
             }
         )
+    else:
+        entry["plan_history"] = [
+            {
+                "plan_url": plan["plan_url"],
+                "tasks": copy.deepcopy(plan["tasks"]),
+                "generated_at": generated_at,
+            }
+        ]
+
     entry["last_updated_by"] = "codex"
-    entry["codex_plan_generated_at"] = generated_at
 
 
-def _write_backlog(path: Path, data: Dict[str, Any]) -> None:
-    items = data.get("items", [])
-    if isinstance(items, list):
-        items.sort(key=_item_sort_key)
-        data["items"] = items
+def _write_backlog(path: Path, items: List[Dict[str, Any]]) -> None:
+    sorted_items = list(items)
+    sorted_items.sort(key=_item_sort_key)
+    payload = {"items": sorted_items}
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        yaml.safe_dump(data, handle, sort_keys=False, allow_unicode=True)
+    try:
+        with path.open("w", encoding="utf-8") as handle:
+            yaml.safe_dump(payload, handle, sort_keys=False, allow_unicode=True)
+    except OSError as exc:  # pragma: no cover - hard to simulate reliably
+        raise BacklogPlanError(f"Failed to write backlog file {path}: {exc}") from exc
 
 
 def parse_args(argv: List[str]) -> argparse.Namespace:
@@ -297,11 +348,17 @@ def main(argv: List[str] | None = None) -> int:
         )
     project_item_id = str(raw_id)
 
-    data, items = _load_backlog(backlog_path)
+    items = _load_backlog(backlog_path)
     entry = _ensure_entry(items, project_item_id, context)
 
     if args.skip_if_exists and entry.get("codex_plan_url"):
-        result = PlanResult(project_item_id=project_item_id, skipped=True)
+        result = PlanResult(
+            project_item_id=project_item_id,
+            skipped=True,
+            entry_id=entry.get("id"),
+            plan_url=entry.get("codex_plan_url"),
+            tasks=entry.get("codex_plan_tasks"),
+        )
     else:
         command = (
             args.command
@@ -311,19 +368,22 @@ def main(argv: List[str] | None = None) -> int:
         plan_output = _run_planning_command(command, context)
         plan = _detect_plan_fields(plan_output)
         _update_entry(entry, context, plan)
-        data["items"] = items
-        _write_backlog(backlog_path, data)
+        _write_backlog(backlog_path, items)
         result = PlanResult(
             project_item_id=project_item_id,
             skipped=False,
+            entry_id=entry.get("id"),
             plan_url=plan["plan_url"],
             tasks=plan["tasks"],
         )
 
     if args.result:
         result_path = Path(args.result)
-        with result_path.open("w", encoding="utf-8") as handle:
-            json.dump(result.to_dict(), handle)
+        try:
+            with result_path.open("w", encoding="utf-8") as handle:
+                json.dump(result.to_dict(), handle)
+        except OSError as exc:  # pragma: no cover - hard to simulate reliably
+            raise BacklogPlanError(f"Failed to write result JSON to {result_path}: {exc}") from exc
 
     json.dump(result.to_dict(), sys.stdout)
     sys.stdout.write("\n")
