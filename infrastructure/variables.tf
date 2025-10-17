@@ -250,3 +250,77 @@ variable "additional_frontend_env" {
   type        = map(string)
   default     = {}
 }
+
+variable "fly_org_slug" {
+  description = "Fly.io organization slug used when creating the application."
+  type        = string
+}
+
+variable "fly_primary_region" {
+  description = "Primary region used by the Fly application and machines."
+  type        = string
+  default     = "iad"
+}
+
+variable "fly_machine_region" {
+  description = "Region for the managed Fly Machine. Defaults to the primary region when omitted."
+  type        = string
+  default     = ""
+}
+
+variable "fly_machine_name" {
+  description = "Name assigned to the managed Fly Machine. Defaults to `<fly_app_name>-primary` when empty."
+  type        = string
+  default     = ""
+}
+
+variable "fly_machine_image" {
+  description = "OCI image reference used by the Fly Machine."
+  type        = string
+  default     = ""
+}
+
+variable "fly_machine_env" {
+  description = "Environment variables applied to the Fly Machine configuration."
+  type        = map(string)
+  default     = {}
+}
+
+variable "fly_machine_services" {
+  description = "Service definitions published by the Fly Machine."
+  type = list(object({
+    protocol      = string
+    internal_port = number
+    ports = list(object({
+      port     = number
+      handlers = list(string)
+    }))
+  }))
+  default = [
+    {
+      protocol      = "tcp"
+      internal_port = 8080
+      ports = [
+        {
+          port     = 80
+          handlers = ["http"]
+        },
+        {
+          port     = 443
+          handlers = ["tls", "http"]
+        }
+      ]
+    }
+  ]
+}
+
+variable "fly_machine_mounts" {
+  description = "Volume mounts associated with the Fly Machine."
+  type = list(object({
+    path   = string
+    volume = string
+    encrypted = optional(bool)
+    size_gb  = optional(number)
+  }))
+  default = []
+}

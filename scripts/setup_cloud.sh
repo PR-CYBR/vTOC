@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/prereqs.sh"
 
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-TERRAFORM_DIR="$ROOT_DIR/infrastructure/terraform"
+TERRAFORM_DIR="$ROOT_DIR/infrastructure"
 CONFIG_JSON="${VTOC_CONFIG_JSON:-{}}"
 APPLY="${VTOC_SETUP_APPLY:-false}"
 CONFIGURE="${VTOC_SETUP_CONFIGURE:-false}"
@@ -50,7 +50,7 @@ try:
     )
 except subprocess.CalledProcessError as exc:
     raise SystemExit(
-        "Failed to read Terraform outputs. Run `terraform apply` in infrastructure/terraform to populate state."
+        "Failed to read Terraform outputs. Run `terraform apply` in infrastructure to populate state."
     ) from exc
 
 bundle = json.loads(bundle_raw)

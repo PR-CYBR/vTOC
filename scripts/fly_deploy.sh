@@ -2,17 +2,17 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-TERRAFORM_DIR="$ROOT_DIR/infrastructure/terraform"
+TERRAFORM_DIR="$ROOT_DIR/infrastructure"
 
 terraform -chdir="$TERRAFORM_DIR" init -input=false >/dev/null
 
 if ! FLY_SECRETS_PAYLOAD=$(terraform -chdir="$TERRAFORM_DIR" output -raw fly_secrets_env 2>/dev/null); then
-  echo "Failed to read fly_secrets_env from Terraform outputs. Run \`terraform apply\` in infrastructure/terraform to populate state." >&2
+  echo "Failed to read fly_secrets_env from Terraform outputs. Run \`terraform apply\` in infrastructure to populate state." >&2
   exit 1
 fi
 
 if ! RUNTIME_JSON=$(terraform -chdir="$TERRAFORM_DIR" output -json fly_runtime_credentials 2>/dev/null); then
-  echo "Failed to read fly_runtime_credentials from Terraform outputs. Run \`terraform apply\` in infrastructure/terraform to populate state." >&2
+  echo "Failed to read fly_runtime_credentials from Terraform outputs. Run \`terraform apply\` in infrastructure to populate state." >&2
   exit 1
 fi
 

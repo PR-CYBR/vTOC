@@ -1,7 +1,7 @@
 # Secret management and Terraform Cloud workflow
 
 This repository stores all runtime credentials and public configuration in the
-`infrastructure/terraform` workspace. The Terraform Cloud workspace variables
+`infrastructure` workspace. The Terraform Cloud workspace variables
 listed below are the single source of truth for every environment that consumes
 secrets (`docker-compose.yml`, `docker-stack.yml`, Fly deployments, GitHub
 workflows, the setup scripts, and the frontend `.env` files).
@@ -45,14 +45,14 @@ Terraform produces structured outputs that the scripts and pipelines consume:
 
 Every setup or deployment script invokes `terraform init` followed by the
 relevant `terraform output` call. If outputs are unavailable, the scripts abort
-with instructions to run `terraform apply` inside `infrastructure/terraform`
+with instructions to run `terraform apply` inside `infrastructure`
 (first locally, then via Terraform Cloud) to hydrate state from workspace
 variables.
 
 ## Secret rotation workflow
 
 1. **Update the Terraform Cloud workspace.** Change the variable value in the
-   `infrastructure/terraform` workspace (UI, CLI, or `terraform variables` API).
+   `infrastructure` workspace (UI, CLI, or `terraform variables` API).
    Use the names listed in the table above.
 2. **Re-apply the workspace.** Run `terraform apply` (locally or via Terraform
    Cloud) so the state reflects the updated variable values.

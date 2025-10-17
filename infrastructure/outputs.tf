@@ -52,3 +52,23 @@ output "fly_runtime_credentials" {
   value       = local.fly_runtime_credentials
   sensitive   = true
 }
+
+output "fly_app_id" {
+  description = "Identifier of the managed Fly application."
+  value       = fly_app.vtoc.id
+}
+
+output "fly_machine_id" {
+  description = "Identifier of the managed Fly Machine."
+  value       = fly_machine.vtoc_backend.id
+}
+
+output "fly_machine_region" {
+  description = "Region where the managed Fly Machine runs."
+  value       = fly_machine.vtoc_backend.region
+}
+
+output "fly_machine_image" {
+  description = "OCI image reference assigned to the Fly Machine."
+  value       = fly_machine.vtoc_backend.image
+}

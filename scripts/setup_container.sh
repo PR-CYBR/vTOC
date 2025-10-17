@@ -14,7 +14,7 @@ USAGE
 }
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-TERRAFORM_DIR="$ROOT_DIR/infrastructure/terraform"
+TERRAFORM_DIR="$ROOT_DIR/infrastructure"
 OUTPUT_FILE="$ROOT_DIR/docker-compose.generated.yml"
 CONFIG_JSON="${VTOC_CONFIG_JSON:-{}}"
 APPLY="${VTOC_SETUP_APPLY:-false}"
@@ -82,7 +82,7 @@ try:
     )
 except subprocess.CalledProcessError as exc:
     raise SystemExit(
-        "Failed to read Terraform outputs. Run `terraform apply` in infrastructure/terraform to populate state."
+        "Failed to read Terraform outputs. Run `terraform apply` in infrastructure to populate state."
     ) from exc
 
 bundle = json.loads(bundle_raw)

@@ -184,7 +184,7 @@ addition to ancillary infrastructure. When using Terraform Cloud:
 1. Create workspace variables for `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and station-role schema names. Mark the
    service-role key as **sensitive**.
 2. Use the Supabase Terraform provider to manage database roles, storage buckets, and Auth settings. The generated module under
-   `infrastructure/terraform/supabase` includes examples for creating schema-level policies and issuing anon keys for frontend
+   `infrastructure/` includes examples for creating schema-level policies and issuing anon keys for frontend
    deploys.
 3. Enable automatic runs so updates to Supabase configuration (RLS, Auth providers) are version-controlled. The provider surface
    also supports scheduled rotation by uploading new service-role keys and invalidating the prior key via `supabase projects
