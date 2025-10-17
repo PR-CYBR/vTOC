@@ -32,3 +32,15 @@ zerotier_network_id        = ""
 tailscale_auth_key         = ""
 additional_fly_secrets     = {}
 additional_frontend_env    = {}
+
+# Telemetry ingest defaults
+gps_serial_device          = "/dev/ttyUSB0"
+gps_baud_rate              = 9600
+gps_source_slug            = "station-gps"
+adsb_feed_url              = "http://dump1090:8080/data/aircraft.json"
+adsb_source_slug           = "station-adsb"
+rtlsdr_device_serial       = ""
+h4m_serial_device          = "/dev/ttyUSB1"
+h4m_baud_rate              = 115200
+h4m_channel                = "station-h4m"
+h4m_source_slug            = "station-h4m"
