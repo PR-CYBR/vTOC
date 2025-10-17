@@ -1,6 +1,6 @@
-"""Service utilities."""
+"""Hardware service exports."""
 
-from .hardware.manager import (
+from .manager import (
     AdsbConfig,
     AdsbToggleRequest,
     BaseStationConfig,
@@ -17,13 +17,6 @@ from .hardware.manager import (
     HardwareStatus,
     SerialPortInfo,
     get_hardware_manager,
-)
-from .supabase import (
-    SupabaseApiError,
-    SupabaseRepository,
-    get_station_context,
-    get_supabase_repository,
-    resolve_station_slug,
 )
 
 __all__ = [
@@ -43,9 +36,4 @@ __all__ = [
     "HardwareStatus",
     "SerialPortInfo",
     "get_hardware_manager",
-    "SupabaseApiError",
-    "SupabaseRepository",
-    "get_station_context",
-    "get_supabase_repository",
-    "resolve_station_slug",
 ]
