@@ -252,8 +252,20 @@ jobs:
 
       - name: Write backlog context
         if: steps.metadata.outputs.run == 'true'
+        env:
+          BACKLOG_CONTEXT_BASE64: ${{ steps.metadata.outputs.context_base64 }}
         run: |
-          echo "${{ steps.metadata.outputs.context_base64 }}" | base64 --decode > backlog/context.json
+          set -euo pipefail
+          python - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+
+          context_base64 = os.environ["BACKLOG_CONTEXT_BASE64"]
+          context_path = Path("backlog/context.json")
+          context_path.parent.mkdir(parents=True, exist_ok=True)
+          context_path.write_bytes(base64.b64decode(context_base64))
+          PY
 
       - name: Set up Python
         if: steps.metadata.outputs.run == 'true'
@@ -361,4 +373,5 @@ jobs:
       - name: Clean up temporary files
         if: steps.metadata.outputs.run == 'true'
         run: |
+          set -euo pipefail
           rm -f backlog/context.json backlog/plan-result.json
