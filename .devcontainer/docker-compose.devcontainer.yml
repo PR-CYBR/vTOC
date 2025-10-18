@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  devcontainer:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspace/vTOC:cached
+      - devcontainer-node-modules:/workspace/vTOC/frontend/node_modules
+      - devcontainer-pnpm-store:/workspace/vTOC/.pnpm-store
+      - devcontainer-python:/workspace/vTOC/.venv
+    environment:
+      VTOC_CONFIG_JSON: ${VTOC_CONFIG_JSON:-}
+    init: true
+    command: sleep infinity
+
+  database:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vtoc
+      POSTGRES_USER: vtoc
+      POSTGRES_PASSWORD: vtocpass
+    volumes:
+      - devcontainer-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vtoc"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  devcontainer-node-modules:
+  devcontainer-pnpm-store:
+  devcontainer-python:
+  devcontainer-postgres:

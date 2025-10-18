@@ -1,5 +1,6 @@
 .PHONY: help setup-local setup-container setup-cloud compose-up compose-down \
-    backend-test frontend-test scraper-run backend-lint station-migrate station-seed
+    backend-test frontend-test scraper-run backend-lint station-migrate station-seed \
+    dev-shell
 
 help: ## Show help
 	@echo 'Usage: make <target>'
@@ -37,4 +38,7 @@ station-migrate: ## Run Alembic migrations for all station schemas
 	python -m scripts.bootstrap_cli station migrate
 
 station-seed: ## Seed baseline telemetry for each station
-	python -m scripts.bootstrap_cli station seed
+        python -m scripts.bootstrap_cli station seed
+
+dev-shell: ## Launch the Docker-based developer shell (pass ARGS="--setup" to bootstrap)
+	./scripts/dev_shell.sh $(ARGS)
