@@ -30,16 +30,16 @@ jobs:
           apt-get install -y --no-install-recommends git curl
           rm -rf /var/lib/apt/lists/*
 
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Setup Codex CLI
         uses: ./.github/actions/setup-codex
         with:
           api-key: ${{ secrets.CODEX_API_KEY }}
           base-url: ${{ vars.CODEX_BASE_URL }}
-
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Determine commit range
         id: range
