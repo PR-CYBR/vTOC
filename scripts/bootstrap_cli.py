@@ -7,6 +7,7 @@ to the existing shell scripts or runs the equivalent commands directly.
 from __future__ import annotations
 
 import argparse
+import json
 import shlex
 import subprocess
 import sys
@@ -57,17 +58,60 @@ def run_setup(
     else:
         base_command = [str(script)]
 
+    processed_config_json: str | None = None
+    if config_json:
+        inline = config_json
+        if inline.startswith("@"):
+            file_path = Path(inline[1:])
+            if not file_path.exists():
+                raise SystemExit(f"Config JSON file not found: {file_path}")
+            inline = file_path.read_text()
+        inline = inline.strip()
+        if inline:
+            try:
+                parsed = json.loads(inline)
+            except json.JSONDecodeError as exc:
+                raise SystemExit(f"Invalid JSON payload for --config-json: {exc}") from exc
+            processed_config_json = json.dumps(parsed)
+    
     args: list[str] = base_command + ["--mode", mode]
     if config:
         args += ["--config", str(config)]
-    if config_json:
-        args += ["--config-json", config_json]
+    if processed_config_json:
+        args += ["--config-json", processed_config_json]
     if apply:
         args.append("--apply")
     if configure:
         args.append("--configure")
 
     run_command(args)
+    print_follow_up_instructions(mode)
+
+
+FOLLOW_UP_STEPS: dict[str, list[str]] = {
+    "local": [
+        "Source the generated env files: `set -a; source .env.local .env.station; set +a`.",
+        "Start the backend API: `uvicorn backend.app.main:app --host 0.0.0.0 --port 8080`.",
+        "Start the frontend dev server: `pnpm --dir frontend dev`.",
+    ],
+    "container": [
+        "Review docker-compose.generated.yml then run `python -m scripts.bootstrap_cli compose up` to launch the stack.",
+    ],
+    "cloud": [
+        "Inspect infrastructure/terraform and run `terraform apply` once secrets are configured.",
+    ],
+}
+
+
+def print_follow_up_instructions(mode: str) -> None:
+    steps = FOLLOW_UP_STEPS.get(mode)
+    if not steps:
+        return
+    print("\n=== Next steps ===")
+    for index, step in enumerate(steps, start=1):
+        print(f"{index}. {step}")
+    payload = {"mode": mode, "steps": steps}
+    print(f"NEXT_STEPS::{json.dumps(payload)}")
 
 
 def setup_command_factory(mode: str):
@@ -91,7 +135,10 @@ def add_setup_options(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--config-json",
-        help="Inline JSON configuration string",
+        help=(
+            "Inline JSON configuration string (matches scripts/inputs.schema.json). "
+            "Prefix with @path to read from a file."
+        ),
     )
     parser.add_argument(
         "--apply",

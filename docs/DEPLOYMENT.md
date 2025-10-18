@@ -22,6 +22,9 @@ managed backups, PITR, and Auth integration.
 
 1. Copy environment examples if desired: `cp .env.example .env`.
 2. Run `python -m scripts.bootstrap_cli setup local` (or the `make setup-local` alias) to install dependencies, generate `.env.local`/`.env.station`, and provision ChatKit sandbox channels.
+   Provide secrets interactively when prompted or forward a prepared payload via `--config-json` / `--config-json @path/to/config.json`.
+   The JSON accepts `chatkit`, `agentkit`, `supabase`, and `station` sections matching [`scripts/inputs.schema.json`](../scripts/inputs.schema.json);
+   the CLI compacts the payload, writes `.env.local`, `.env.station`, and `frontend/.env.local`, then prints structured next-step guidance.
 3. Launch the dev servers:
    ```bash
    uvicorn backend.app.main:app --host 0.0.0.0 --port 8080
@@ -33,8 +36,7 @@ managed backups, PITR, and Auth integration.
    - Frontend: http://localhost:5173
 
 When `.env.local` references a Supabase project the backend connects remotely while the frontend uses the anon key for Auth.
-For air-gapped development, set `USE_LOCAL_POSTGRES=1` before running the setup CLI to keep using the bundled Postgres
-container.
+For air-gapped development, set `USE_LOCAL_POSTGRES=1` before running the setup CLI to keep using the bundled Postgres container.
 
 ## Docker Compose (development + testing)
 

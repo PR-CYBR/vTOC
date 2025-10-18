@@ -28,6 +28,60 @@
     "configBundle": {
       "type": "object",
       "description": "Optional override matching the Terraform config_bundle output. See scripts/defaults/config_bundle.local.json for the expected shape."
+    },
+    "chatkit": {
+      "type": "object",
+      "description": "ChatKit credentials and channel metadata propagated to backend/frontend env files.",
+      "properties": {
+        "apiKey": { "type": "string" },
+        "orgId": { "type": "string" },
+        "webhookSecret": { "type": "string" },
+        "allowedTools": { "type": "string", "description": "Comma-separated list of tool identifiers." },
+        "widgetUrl": { "type": "string", "description": "Override for the embedded ChatKit widget script." },
+        "telemetryChannel": { "type": "string", "description": "Default telemetry channel name bound to the station." }
+      },
+      "additionalProperties": false
+    },
+    "agentkit": {
+      "type": "object",
+      "description": "AgentKit automation credentials and defaults.",
+      "properties": {
+        "apiBaseUrl": { "type": "string" },
+        "apiKey": { "type": "string" },
+        "orgId": { "type": "string" },
+        "timeoutSeconds": { "type": ["integer", "string"], "description": "HTTP timeout in seconds for AgentKit API calls." },
+        "defaultStationContext": { "type": "string", "description": "Default station context propagated to the frontend widget." },
+        "apiBasePath": { "type": "string", "description": "Frontend path prefix for AgentKit actions." }
+      },
+      "additionalProperties": false
+    },
+    "supabase": {
+      "type": "object",
+      "description": "Supabase project credentials shared between backend, agents, and frontend.",
+      "properties": {
+        "url": { "type": "string" },
+        "projectRef": { "type": "string" },
+        "anonKey": { "type": "string" },
+        "serviceRoleKey": { "type": "string" },
+        "jwtSecret": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "station": {
+      "type": "object",
+      "description": "Station metadata used to personalize the console and cache ChatKit channels.",
+      "properties": {
+        "role": { "type": "string", "description": "Station role identifier such as ops, intel, or logistics." },
+        "callsign": { "type": "string", "description": "Friendly station callsign rendered in the UI." },
+        "telemetryChannel": { "type": "string", "description": "ChatKit telemetry channel bound to the station." },
+        "missionChannel": { "type": "string", "description": "Primary ChatKit mission channel ID or slug." },
+        "channelCache": {
+          "type": "object",
+          "description": "Map of cached ChatKit channel identifiers keyed by purpose (mission, telemetry, etc).",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false
