@@ -59,11 +59,11 @@ To stop and clean up run `python -m scripts.bootstrap_cli compose down` (or the 
 
 ### Published images and demo refreshes
 
-The `Publish Containers` GitHub Actions workflow builds the backend, frontend, and scraper images after the full test matrix
-passes. Each run uploads a `docker-compose.generated.yml` artifact that pins the newly published tags; when a Git tag is
-created the same file is attached to the release assets. Prior to workshops or demos you can either download the latest compose
-artifact from the workflow run or trigger the workflow manually (optionally providing a release tag). Once the artifact is in
-hand, run:
+The [`Publish Containers` workflow](workflows/publish-containers.md) builds the backend, frontend, and scraper images after the
+full test matrix passes. Each run uploads a `docker-compose.generated.yml` artifact that pins the newly published tags; when a
+Git tag is created the same file is attached to the release assets. Prior to workshops or demos you can either download the
+latest compose artifact from the workflow run or trigger the workflow manually (optionally providing a release tag). Once the
+artifact is in hand, run:
 
 ```bash
 scripts/setup_container.sh --pull --image-tag <tag-from-workflow>
@@ -71,7 +71,8 @@ docker compose -f docker-compose.generated.yml up -d
 ```
 
 The `--pull` flag updates local caches and rewrites the manifest to point at the published images so attendees can launch the
-stack without rebuilding containers.
+stack without rebuilding containers. The [`Build Live Images` workflow](workflows/build-image-live.md) keeps Fly.io aligned by
+retagging the same containers with `:live` whenever the hardened branch advances.
 
 ## Docker Swarm (production)
 

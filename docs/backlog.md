@@ -84,7 +84,7 @@ When editing existing items:
 
 ## Automation behavior
 
-Codex and GitHub workflows will mutate the backlog with the following rules:
+Codex and GitHub workflows will mutate the backlog with the following rules (see [`Project backlog plan`](workflows/project-backlog-plan.md), [`Project Ready Execute`](workflows/project-ready-execute.md), and [`Project done discussion`](workflows/project-done-discussion.md) for implementation details):
 
 - **Codex plan generation**: When a Codex plan is created from a backlog item,
   the automation writes the plan URL to `codex_plan_url`, records a list of
