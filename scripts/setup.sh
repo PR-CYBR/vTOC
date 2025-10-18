@@ -6,6 +6,7 @@ CONFIG_PATH=""
 CONFIG_JSON_ARG=""
 APPLY="false"
 CONFIGURE="false"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 usage() {
   cat <<USAGE
@@ -119,14 +120,24 @@ expand_with_codex() {
   fi
 }
 
+validate_config_payload() {
+  local json_input="$1"
+  if ! python "$SCRIPT_DIR/lib/config_validator.py" "$SCRIPT_DIR/inputs.schema.json" <<<"$json_input"; then
+    echo "Configuration validation failed." >&2
+    return 1
+  fi
+}
+
 CONFIG_JSON=$(load_config)
 CONFIG_JSON=$(expand_with_codex "$CONFIG_JSON")
+
+if ! validate_config_payload "$CONFIG_JSON"; then
+  exit 1
+fi
 
 export VTOC_CONFIG_JSON="$CONFIG_JSON"
 export VTOC_SETUP_APPLY="$APPLY"
 export VTOC_SETUP_CONFIGURE="$CONFIGURE"
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 MODE_SCRIPT="$SCRIPT_DIR/setup_${MODE}.sh"
 
 if [[ ! -x "$MODE_SCRIPT" ]]; then
