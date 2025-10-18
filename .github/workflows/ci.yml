@@ -5,10 +5,6 @@ permissions:
   packages: read
 
 on:
-  push:
-    branches: [live]
-  pull_request:
-    branches: [live]
   workflow_dispatch:
 
 jobs:

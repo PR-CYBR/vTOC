@@ -75,9 +75,22 @@ An end-to-end overview is available in [`docs/ARCHITECTURE.md`](docs/ARCHITECTUR
 The repository keeps two long-lived branches with distinct deployment roles:
 
 * `main` retains the generic development defaults used by contributors when iterating locally or in preview environments.
+* `stage` is the continuously exercised promotion branch fed by Codex-driven automation; it mirrors `main`, runs the autonomous QA loop, and gates releases bound for `live`.
 * `live` is managed by Terraform Cloud, which applies the Fly.io workspace in [`infrastructure/README-infra.md`](infrastructure/README-infra.md) to promote approved container images and environment configuration.
 
 The Terraform Cloud workflow handles Fly.io secrets, release rollbacks, and keeps the `live` branch fast-forwarded to the exact commit running in production. Operators can inspect the job history, trigger re-runs, or apply manual overrides directly from Terraform Cloud using the linked infrastructure guide.
+
+## Stage branch QA loop
+
+Codex automation promotes green builds from `main` into `stage`, ensuring every change exercises the same workflows used for production without touching the `live` infrastructure state. The [`Stage CI` pipeline](.github/workflows/stage-ci.yml) fans out to the reusable test suite and container build workflows, tagging published images with `stage` when the branch is updated. A follow-on [`Stage CI Report`](.github/workflows/stage-ci-report.yml) job captures the latest run metadata through the GitHub REST API and persists the summary below so downstream operators can confirm the autonomous loop is healthy.
+
+Branch protection on `stage` requires the `Stage CI` check to succeed before Codex (or a human operator) can land changes, keeping the promotion gate aligned with the automated QA signal.
+
+### Stage CI run history
+
+<!-- stage-ci-report:start -->
+_No Stage CI runs have been recorded yet._
+<!-- stage-ci-report:end -->
 
 ## Deployment modes
 
@@ -105,8 +118,7 @@ repository so the automation can authenticate and target the correct discussion 
   (ZeroTier, Tailscale, MediaMTX, TAK Server)
 * `fly.toml` — Fly.io deployment descriptor for the backend container deployed from the `live` branch
 
-Images are built and pushed to GHCR via GitHub Actions as part of [`ci.yml`](.github/workflows/ci.yml) and the release-focused
-[`Publish Containers` workflow](docs/workflows/publish-containers.md):
+Images are built and pushed to GHCR via GitHub Actions through the [`Stage CI` workflow](.github/workflows/stage-ci.yml) (tagged as `stage`) and the release-focused [`Publish Containers` workflow](docs/workflows/publish-containers.md):
 
 - `ghcr.io/<repo>/frontend` (Vite static bundle served by nginx)
 - `ghcr.io/<repo>/backend` (FastAPI + Uvicorn on port 8080)

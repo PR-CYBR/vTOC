@@ -1,0 +1,70 @@
+name: Stage CI
+
+on:
+  push:
+    branches: [stage]
+  pull_request:
+    branches: [stage]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+  actions: read
+
+jobs:
+  tests:
+    name: Run reusable tests
+    uses: ./.github/workflows/reusable-tests.yml
+    secrets: inherit
+
+  build:
+    name: Build and publish stage containers
+    if: github.event_name == 'push'
+    needs: tests
+    uses: ./.github/workflows/reusable-build-containers.yml
+    with:
+      release_tag: stage
+    secrets: inherit
+
+  metadata:
+    name: Publish run metadata
+    runs-on: ubuntu-latest
+    needs:
+      - tests
+      - build
+    if: always()
+    outputs:
+      tests_status: ${{ steps.capture.outputs.tests_status }}
+      scan_status: ${{ steps.capture.outputs.scan_status }}
+      push_status: ${{ steps.capture.outputs.push_status }}
+    steps:
+      - name: Capture job results
+        id: capture
+        run: |
+          tests_status="${{ needs.tests.outputs.status }}"
+          if [ -z "$tests_status" ]; then
+            tests_status="unknown"
+          fi
+          scan_status="${{ needs.build.outputs.scan_status }}"
+          if [ -z "$scan_status" ]; then
+            scan_status="skipped"
+          fi
+          push_status="${{ needs.build.outputs.push_status }}"
+          if [ -z "$push_status" ]; then
+            push_status="skipped"
+          fi
+          {
+            echo "tests_status=$tests_status"
+            echo "scan_status=$scan_status"
+            echo "push_status=$push_status"
+          } >> "$GITHUB_OUTPUT"
+          cat <<REPORT >> "$GITHUB_STEP_SUMMARY"
+          ## Stage CI results
+
+          | Step | Status |
+          | --- | --- |
+          | Tests | $tests_status |
+          | Container scan | $scan_status |
+          | Container push | $push_status |
+          REPORT
