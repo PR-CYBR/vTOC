@@ -68,7 +68,7 @@ Copy the title/body above into a new GitHub Discussion so operators can subscrib
 
 ## Automated discussion summaries
 
-Commits merged into `main` trigger the [discussion-summary GitHub Action](../../.github/workflows/discussion-summary.yml),
+Commits merged into `main` trigger the [discussion-summary GitHub Action](https://github.com/vasa-dev/vTOC/blob/main/.github/workflows/discussion-summary.yml),
 which calls the Codex CLI to convert the latest deployment notes into a formatted post inside the deployment-focused
 discussion category. The workflow writes to the category referenced by the `DOCS_DISCUSSION_CATEGORY_ID` repository
 configuration and authenticates with the `CODEX_API_KEY` secret. When the job succeeds it appends a new comment to the pinned
