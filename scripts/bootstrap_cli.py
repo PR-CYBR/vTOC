@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shlex
 import subprocess
 import sys
 from pathlib import Path
-from typing import Sequence
+from typing import Mapping, Sequence
+
+from scripts.bootstrap.local import DEFAULT_CONFIG_JSON
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
@@ -29,15 +32,37 @@ def _echo_command(command: Sequence[str]) -> None:
     print(f"$ {quoted}")
 
 
-def run_command(command: Sequence[str], *, cwd: Path | None = None) -> None:
+def run_command(
+    command: Sequence[str],
+    *,
+    cwd: Path | None = None,
+    env: Mapping[str, str] | None = None,
+) -> None:
     """Run *command* and exit with the same status on failure."""
 
     command = [str(arg) for arg in command]
     _echo_command(command)
+    merged_env = None
+    if env is not None:
+        merged_env = os.environ.copy()
+        merged_env.update(env)
     try:
-        subprocess.run(command, cwd=cwd, check=True)
+        subprocess.run(command, cwd=cwd, check=True, env=merged_env)
     except subprocess.CalledProcessError as exc:  # pragma: no cover - passthrough
         raise SystemExit(exc.returncode) from exc
+
+
+def load_config_payload(args: argparse.Namespace) -> str:
+    if args.config_json:
+        return args.config_json
+    if args.config:
+        if not args.config.exists():
+            raise SystemExit(f"Configuration file not found: {args.config}")
+        return args.config.read_text()
+    env_payload = os.environ.get("VTOC_CONFIG_JSON")
+    if env_payload:
+        return env_payload
+    return json.dumps(DEFAULT_CONFIG_JSON)
 
 
 def run_setup(
@@ -115,6 +140,12 @@ def print_follow_up_instructions(mode: str) -> None:
 
 
 def setup_command_factory(mode: str):
+    if mode == "local":
+        def command(args: argparse.Namespace) -> None:
+            run_local_bootstrap(args)
+
+        return command
+
     def command(args: argparse.Namespace) -> None:
         run_setup(
             mode,
@@ -125,6 +156,20 @@ def setup_command_factory(mode: str):
         )
 
     return command
+
+
+def run_local_bootstrap(args: argparse.Namespace) -> None:
+    payload = load_config_payload(args)
+    env = os.environ.copy()
+    env["VTOC_CONFIG_JSON"] = payload
+    command = [
+        PYTHON,
+        "-m",
+        "scripts.bootstrap.local",
+        "--terraform-dir",
+        str(REPO_ROOT / "infrastructure" / "terraform"),
+    ]
+    run_command(command, env=env)
 
 
 def add_setup_options(parser: argparse.ArgumentParser) -> None:
