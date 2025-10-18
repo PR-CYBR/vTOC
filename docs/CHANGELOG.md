@@ -11,7 +11,7 @@ existing operators. Cross-links point to updated documentation for deeper detail
 - Introduced new environment variables (`CHATKIT_API_KEY`, `CHATKIT_ORG_ID`, `AGENTKIT_CLIENT_ID`, `AGENTKIT_CLIENT_SECRET`,
   `POSTGRES_STATION_ROLE`, `STATION_CALLSIGN`, `TELEMETRY_BROADCAST_URL`).
 - Updated setup scripts (`make setup-local`, `make setup-container`, `make setup-cloud`) to provision ChatKit resources.
-- Revamped documentation: [`README.md`](../README.md), [`docs/QUICKSTART.md`](QUICKSTART.md),
+- Revamped documentation: [`README.md`](https://github.com/vasa-dev/vTOC/blob/main/README.md), [`docs/QUICKSTART.md`](QUICKSTART.md),
   [`docs/ARCHITECTURE.md`](ARCHITECTURE.md), [`docs/DEPLOYMENT.md`](DEPLOYMENT.md), [`docs/TELEMETRY_CONNECTORS.md`](TELEMETRY_CONNECTORS.md).
 - Introduced an automated discussion summary workflow that posts release notes to GitHub Discussions when `main` is updated (see [`Main discussion summary`](workflows/main-discussion-summary.md)).
 

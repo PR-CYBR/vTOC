@@ -99,3 +99,6 @@ secrets/
 *.crt
 
 docker-compose.generated.yml
+
+# MkDocs
+site/
