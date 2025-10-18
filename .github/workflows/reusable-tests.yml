@@ -1,0 +1,58 @@
+name: Reusable Tests
+
+on:
+  workflow_call:
+    outputs:
+      status:
+        description: Overall result of the test suite.
+        value: ${{ jobs.tests.outputs.status }}
+
+jobs:
+  tests:
+    name: Run test suites
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.tests_summary.outputs.status }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Enable corepack
+        run: corepack enable
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Frontend tests
+        working-directory: frontend
+        run: |
+          CI=1 pnpm test -- --watch=false --passWithNoTests
+          pnpm build
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps
+      - name: Playwright smoke tests
+        working-directory: frontend
+        run: pnpm test:playwright -- --reporter=line
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+      - name: Backend tests
+        working-directory: backend
+        run: pytest -q
+      - name: Record test status
+        id: tests_summary
+        if: success()
+        run: echo "status=passed" >> "$GITHUB_OUTPUT"

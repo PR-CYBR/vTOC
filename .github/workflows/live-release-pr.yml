@@ -1,19 +1,13 @@
-name: Publish Containers
+name: Live Release PR Gate
 
 on:
-  workflow_dispatch:
-    inputs:
-      release_tag:
-        description: 'Optional release tag for images (overrides SHA in compose manifest).'
-        required: false
-  schedule:
-    - cron: '0 12 * * 1'
-  push:
+  pull_request:
     branches:
-      - main
       - live
-    tags:
-      - 'v*'
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 permissions:
   contents: write
@@ -21,13 +15,13 @@ permissions:
 
 jobs:
   tests:
+    if: github.head_ref == 'stage'
     uses: ./.github/workflows/reusable-tests.yml
 
   publish:
+    if: github.head_ref == 'stage'
     needs: tests
     uses: ./.github/workflows/reusable-build-containers.yml
-    with:
-      release_tag: ${{ github.event.inputs.release_tag }}
     secrets: inherit
 
   summary:
@@ -35,7 +29,7 @@ jobs:
     needs:
       - tests
       - publish
-    if: always()
+    if: github.head_ref == 'stage' && always()
     runs-on: ubuntu-latest
     steps:
       - name: Publish summary

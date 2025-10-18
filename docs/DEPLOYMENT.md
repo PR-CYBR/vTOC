@@ -59,11 +59,11 @@ To stop and clean up run `python -m scripts.bootstrap_cli compose down` (or the 
 
 ### Published images and demo refreshes
 
-The `Publish Containers` GitHub Actions workflow builds the backend, frontend, and scraper images after the full test matrix
-passes. Each run uploads a `docker-compose.generated.yml` artifact that pins the newly published tags; when a Git tag is
-created the same file is attached to the release assets. Prior to workshops or demos you can either download the latest compose
-artifact from the workflow run or trigger the workflow manually (optionally providing a release tag). Once the artifact is in
-hand, run:
+The `Publish Containers` GitHub Actions workflow now delegates to reusable jobs that execute the full test matrix, run Trivy
+scans, and build multi-architecture images before publishing them to both GHCR and Docker Hub. Each successful run uploads a
+`docker-compose.generated.yml` artifact that pins the newly published tags; when a Git tag is created the same file is attached
+to the release assets. Prior to workshops or demos you can either download the latest compose artifact from the workflow run or
+trigger the workflow manually (optionally providing a release tag). Once the artifact is in hand, run:
 
 ```bash
 scripts/setup_container.sh --pull --image-tag <tag-from-workflow>
@@ -71,7 +71,15 @@ docker compose -f docker-compose.generated.yml up -d
 ```
 
 The `--pull` flag updates local caches and rewrites the manifest to point at the published images so attendees can launch the
-stack without rebuilding containers.
+stack without rebuilding containers. Review the workflow summary in the associated GitHub Action run for a single confirmation
+that tests, vulnerability scans, and registry pushes all passed.
+
+#### Live release guardrail
+
+Pull requests that merge `stage` into `live` must pass the `Live Release PR Gate` workflow. It reuses the same test/build
+pipeline described above, ensuring the release branch cannot advance until images pass tests, Trivy scans, and registry pushes.
+After enabling the workflow secrets described in [Secret management](secret-management.md), update PR #64's branch protection
+settings to require `Live Release PR Gate` before approving the merge.
 
 ## Docker Swarm (production)
 
