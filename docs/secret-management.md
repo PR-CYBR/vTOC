@@ -17,6 +17,7 @@ workflows, the setup scripts, and the frontend `.env` files).
 | Backend services | `AGENTKIT_API_BASE_URL`, `AGENTKIT_API_KEY`, `AGENTKIT_ORG_ID`, `AGENTKIT_TIMEOUT_SECONDS`, `CHATKIT_WEBHOOK_SECRET`, `CHATKIT_ALLOWED_TOOLS`, `CHATKIT_API_KEY`, `CHATKIT_ORG_ID`, `SUPABASE_URL`, `SUPABASE_PROJECT_REF`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET` | `agentkit_api_base_url`, `agentkit_api_key`, `agentkit_org_id`, `agentkit_timeout_seconds`, `chatkit_webhook_secret`, `chatkit_allowed_tools`, `chatkit_api_key`, `chatkit_org_id`, `supabase_api_url`, `supabase_project_ref`, `supabase_service_role_key`, `supabase_jwt_secret` | Delivered to Docker, Fly secrets, and Ansible roles through the Terraform outputs. |
 | Fly deployment secrets | `DATABASE_URL*`, `SUPABASE_*`, `CHATKIT_*`, `AGENTKIT_*` | Same inputs as backend/frontends | `terraform output -raw fly_secrets_env` yields the payload consumed by `flyctl secrets import`. |
 | Fly API + GHCR auth | `FLY_API_TOKEN`, `FLY_APP_NAME`, `GHCR_USERNAME`, `GHCR_TOKEN`, image repositories | `fly_api_token`, `fly_app_name`, `ghcr_deploy_username`, `ghcr_deploy_token`, `backend_image_repository`, `frontend_image_repository`, `scraper_image_repository` | Parsed by `terraform output fly_runtime_credentials` and exported for deploy scripts. |
+| GitHub Actions (container publishing) | `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` | GitHub repository secrets | Required for reusable container workflows so they can authenticate to Docker Hub, tag images under `<username>/*`, and push alongside GHCR. |
 | Optional networking | `ZEROTIER_NETWORK_ID`, `TS_AUTHKEY` | `zerotier_network_id`, `tailscale_auth_key` | Included for optional Docker stack integrations. |
 | Terraform Cloud API | `TF_TOKEN_app_terraform_io` (GitHub Actions secret) | N/A | Required so CI can run `terraform output` against the workspace. |
 
@@ -48,6 +49,14 @@ relevant `terraform output` call. If outputs are unavailable, the scripts abort
 with instructions to run `terraform apply` inside `infrastructure/terraform`
 (first locally, then via Terraform Cloud) to hydrate state from workspace
 variables.
+
+### GitHub Actions configuration
+
+Add the `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` secrets to the repository
+settings before triggering container publication workflows. The username should
+match the Docker Hub namespace that will own the images; the token must have
+`write:packages` access so the reusable jobs can log in, push tags, and satisfy
+the `Publish Containers` and `Live Release PR Gate` checks.
 
 ## Secret rotation workflow
 
