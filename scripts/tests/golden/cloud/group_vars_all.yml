@@ -1,0 +1,2 @@
+---
+backend_ip: "{{ lookup('pipe', 'terraform -chdir=../terraform output -raw backend_ip') }}"

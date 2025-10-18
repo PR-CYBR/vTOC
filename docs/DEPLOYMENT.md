@@ -130,6 +130,26 @@ Existing operators can lift-and-shift data with the following approach:
 Supabase enforces RLS by default; the bootstrap CLI applies policies aligned with station roles. When importing data manually,
 reapply policies or run `python -m scripts.bootstrap_cli setup cloud --apply` to let the automation restore them.
 
+### Cloud bootstrap workflow
+
+Running `python -m scripts.bootstrap_cli setup cloud` now delegates to a Python generator that mirrors the container workflow:
+
+- A `configBundle` override supplied via `--config`/`--config-json` is preferred. When no override is present the generator
+  attempts to read the `config_bundle` Terraform output from `infrastructure/terraform` and gracefully falls back to
+  [`scripts/defaults/config_bundle.local.json`](../scripts/defaults/config_bundle.local.json) when state or the Terraform binary
+  is unavailable.
+- Terraform and Ansible assets are written under `infra/terraform` and `infra/ansible` along with
+  `infra/cloud-manifest.json`. The manifest captures Fly.io image references, required secrets, next commands, and the dynamic
+  inventory source so AI assistants can return structured guidance to operators.
+- `infra/ansible/inventory.ini` resolves the backend host IP from Terraform outputs. Until `terraform apply` completes the
+  companion `group_vars/all.yml` issues `terraform -chdir infra/terraform output -raw backend_ip` at playbook runtime, avoiding
+  the previous `1.2.3.4` placeholder.
+- The CLI prints the manifest JSON after generation, making it easy to hand the structured summary back to an operator or feed
+  it into downstream automation.
+
+When `--apply` or `--configure` is specified, the generator runs `terraform apply`/`ansible-playbook` from the generated
+directories and refreshes the manifest so the inventory reflects the assigned address.
+
 ### Supabase Auth considerations
 
 - Operator logins use Supabase Auth. Configure providers (email, SSO) in the Supabase dashboard and align JWT claims with the
