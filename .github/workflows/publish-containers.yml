@@ -12,12 +12,14 @@ on:
     branches:
       - main
       - live
+      - prod
     tags:
       - 'v*'
 
 permissions:
   contents: write
   packages: write
+  issues: write
 
 jobs:
   tests:
@@ -27,14 +29,141 @@ jobs:
     needs: tests
     uses: ./.github/workflows/reusable-build-containers.yml
     with:
-      release_tag: ${{ github.event.inputs.release_tag }}
+      release_tag: ${{ github.ref == 'refs/heads/prod' ? 'prod' : github.event.inputs.release_tag }}
     secrets: inherit
+
+  verify-dockerhub:
+    name: Verify Docker Hub prod images
+    needs: publish
+    if: ${{ needs.publish.result == 'success' && github.ref == 'refs/heads/prod' }}
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_REGISTRY: docker.io
+      RELEASE_TAG: prod
+    steps:
+      - name: Prepare log directory
+        run: mkdir -p verify-logs
+
+      - name: Determine Docker Hub namespace
+        id: repo
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${DOCKERHUB_USERNAME:-}" ]]; then
+            echo "Docker Hub username secret must be provided" >&2
+            exit 1
+          fi
+          echo "dockerhub_namespace=$(echo "${DOCKERHUB_USERNAME}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKERHUB_REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Pull prod images
+        env:
+          NAMESPACE: ${{ steps.repo.outputs.dockerhub_namespace }}
+        run: |
+          set -euo pipefail
+          for service in backend frontend scraper; do
+            docker pull "${DOCKERHUB_REGISTRY}/${NAMESPACE}/${service}:${RELEASE_TAG}"
+          done
+
+      - name: Backend smoke test
+        env:
+          IMAGE: ${{ env.DOCKERHUB_REGISTRY }}/${{ steps.repo.outputs.dockerhub_namespace }}/backend:${{ env.RELEASE_TAG }}
+        run: |
+          set -euo pipefail
+          docker run -d --name backend-smoke -p 18080:8080 "${IMAGE}"
+          attempts=0
+          until curl -fsS "http://127.0.0.1:18080/healthz" >/dev/null; do
+            attempts=$((attempts + 1))
+            if [[ ${attempts} -ge 10 ]]; then
+              echo "Backend health check failed" >&2
+              docker logs backend-smoke > verify-logs/backend.log || true
+              docker rm -f backend-smoke >/dev/null 2>&1 || true
+              exit 1
+            fi
+            sleep 3
+          done
+          docker rm -f backend-smoke >/dev/null 2>&1 || true
+
+      - name: Frontend smoke test
+        env:
+          IMAGE: ${{ env.DOCKERHUB_REGISTRY }}/${{ steps.repo.outputs.dockerhub_namespace }}/frontend:${{ env.RELEASE_TAG }}
+        run: |
+          set -euo pipefail
+          docker run -d --name frontend-smoke -p 18081:8081 "${IMAGE}"
+          attempts=0
+          until curl -fsS "http://127.0.0.1:18081/" >/dev/null; do
+            attempts=$((attempts + 1))
+            if [[ ${attempts} -ge 10 ]]; then
+              echo "Frontend health check failed" >&2
+              docker logs frontend-smoke > verify-logs/frontend.log || true
+              docker rm -f frontend-smoke >/dev/null 2>&1 || true
+              exit 1
+            fi
+            sleep 3
+          done
+          docker rm -f frontend-smoke >/dev/null 2>&1 || true
+
+      - name: Scraper smoke test
+        env:
+          IMAGE: ${{ env.DOCKERHUB_REGISTRY }}/${{ steps.repo.outputs.dockerhub_namespace }}/scraper:${{ env.RELEASE_TAG }}
+        run: |
+          set -euo pipefail
+          if ! docker run --name scraper-smoke --entrypoint python "${IMAGE}" -c "print('scraper image ready')"; then
+            echo "Scraper exit check failed" >&2
+            docker logs scraper-smoke > verify-logs/scraper.log || true
+            docker rm -f scraper-smoke >/dev/null 2>&1 || true
+            exit 1
+          fi
+          docker rm -f scraper-smoke >/dev/null 2>&1 || true
+
+      - name: Upload verification logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dockerhub-verification-logs
+          path: verify-logs
+          if-no-files-found: warn
+
+      - name: File verification failure issue
+        if: failure()
+        uses: actions/github-script@v7
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const tag = process.env.RELEASE_TAG || 'prod';
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+            const title = `Prod Docker Hub verification failed (${tag})`;
+            const body = [
+              `Verification of Docker Hub images tagged \`${tag}\` failed.`,
+              '',
+              `- Workflow run: ${runUrl}`,
+              `- Trigger: ${context.eventName} on ${context.ref}`,
+              '',
+              'Review the attached verification logs for details.'
+            ].join('\n');
+            try {
+              await github.rest.issues.create({ owner, repo, title, body });
+            } catch (error) {
+              if (error.status !== 422) {
+                throw error;
+              }
+            }
 
   summary:
     name: Release pipeline summary
     needs:
       - tests
       - publish
+      - verify-dockerhub
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -44,6 +173,7 @@ jobs:
           PUBLISH_RESULT: ${{ needs.publish.result }}
           SCAN_STATUS: ${{ needs.publish.outputs.scan_status }}
           PUSH_STATUS: ${{ needs.publish.outputs.push_status }}
+          VERIFY_RESULT: ${{ needs.verify-dockerhub.result }}
         run: |
           tests_line="- ❌ Tests ${TESTS_RESULT}"
           if [[ "${TESTS_RESULT}" == "success" ]]; then
@@ -64,10 +194,18 @@ jobs:
               push_line="- ⚠️ Multi-arch image push status unavailable"
             fi
           fi
+          if [[ "${VERIFY_RESULT}" == "success" ]]; then
+            verify_line="- ✅ Docker Hub prod verification passed"
+          elif [[ "${VERIFY_RESULT}" == "skipped" ]]; then
+            verify_line="- ⚠️ Docker Hub verification skipped"
+          else
+            verify_line="- ❌ Docker Hub verification ${VERIFY_RESULT}"
+          fi
           {
             echo "## Release Pipeline Summary"
             echo
             echo "${tests_line}"
             echo "${scan_line}"
             echo "${push_line}"
+            echo "${verify_line}"
           } >> "$GITHUB_STEP_SUMMARY"
