@@ -1,0 +1,20 @@
+name: Configure Main Branch Protection
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: "Repository in owner/name format (optional)"
+        required: false
+
+jobs:
+  protect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply branch protection rules
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO_INPUT="${{ github.event.inputs.repo }}"
+          scripts/automation/protect-main-branch.sh "${REPO_INPUT:-${{ github.repository }}}"
