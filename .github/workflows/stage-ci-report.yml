@@ -1,0 +1,110 @@
+name: Stage CI Report
+
+on:
+  workflow_run:
+    workflows: ["Stage CI"]
+    types:
+      - completed
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  update-stage-readme:
+    name: Update stage README report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update stage report table
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const workflowId = 'stage-ci.yml';
+            const perPage = 10;
+            const branch = 'stage';
+            const readmePath = 'README.md';
+            const startMarker = '<!-- stage-ci-report:start -->';
+            const endMarker = '<!-- stage-ci-report:end -->';
+
+            async function listRecentRuns(page = 1) {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                owner,
+                repo,
+                workflow_id: workflowId,
+                per_page: perPage,
+                page
+              });
+              return data.workflow_runs || [];
+            }
+
+            const runs = [];
+            for (let page = 1; page <= 2 && runs.length < perPage; page++) {
+              const pageRuns = await listRecentRuns(page);
+              if (!pageRuns.length) break;
+              runs.push(
+                ...pageRuns.filter((run) => run.head_branch === branch)
+              );
+            }
+
+            if (!runs.length) {
+              runs.push({
+                status: 'completed',
+                conclusion: 'none',
+                event: 'n/a',
+                html_url: 'https://github.com/' + owner + '/' + repo + '/actions',
+                head_sha: 'n/a',
+                updated_at: new Date().toISOString()
+              });
+            }
+
+            const tableRows = runs.slice(0, 5).map((run) => {
+              const finished = run.updated_at ? new Date(run.updated_at) : null;
+              const timestamp = finished ? finished.toISOString().replace('T', ' ').replace('Z', 'Z') : '—';
+              const shortSha = run.head_sha && run.head_sha !== 'n/a' ? run.head_sha.substring(0, 7) : 'n/a';
+              const conclusion = run.conclusion ? run.conclusion : (run.status || 'unknown');
+              return `| ${timestamp} | ${run.event} | ${conclusion} | [${shortSha}](${run.html_url}) |`;
+            }).join('\n');
+
+            const table = [
+              '| Completed (UTC) | Event | Result | Details |',
+              '| --- | --- | --- | --- |',
+              tableRows
+            ].join('\n');
+
+            const { data: currentContent } = await github.rest.repos.getContent({
+              owner,
+              repo,
+              path: readmePath,
+              ref: branch
+            });
+
+            const decoded = Buffer.from(currentContent.content, 'base64').toString();
+
+            if (!decoded.includes(startMarker) || !decoded.includes(endMarker)) {
+              throw new Error('Stage README markers are missing; ensure the stage CI report markers exist.');
+            }
+
+            const markerRegex = new RegExp(`${startMarker}[\s\S]*?${endMarker}`);
+            const updated = decoded.replace(markerRegex, `${startMarker}\n${table}\n${endMarker}`);
+
+            if (updated === decoded) {
+              core.info('No README changes required.');
+              return;
+            }
+
+            await github.rest.repos.createOrUpdateFileContents({
+              owner,
+              repo,
+              path: readmePath,
+              message: 'docs(stage): refresh Stage CI report',
+              content: Buffer.from(updated).toString('base64'),
+              branch,
+              sha: currentContent.sha
+            });
+            core.info('Stage README updated with latest Stage CI run metadata.');
