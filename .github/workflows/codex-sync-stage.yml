@@ -1,0 +1,181 @@
+name: Codex sync to stage
+
+on:
+  push:
+    branches:
+      - codex
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  tests:
+    name: Validate codex branch
+    uses: ./.github/workflows/reusable-tests.yml
+    secrets: inherit
+
+  publish-status:
+    name: Record validation outcome
+    needs: tests
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.capture.outputs.status }}
+    steps:
+      - id: capture
+        env:
+          TEST_RESULT: ${{ needs.tests.result }}
+          TEST_STATUS: ${{ needs.tests.outputs.status }}
+        run: |
+          status="${TEST_STATUS}"
+          if [ -z "$status" ]; then
+            status="$TEST_RESULT"
+          fi
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+      - name: Summarize validation
+        run: |
+          echo "## Codex validation" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Status: ${{ steps.capture.outputs.status }}" >> "$GITHUB_STEP_SUMMARY"
+
+  promote:
+    name: Promote codex to stage
+    needs:
+      - tests
+      - publish-status
+    if: needs.tests.result == 'success' && needs.tests.outputs.status == 'passed'
+    runs-on: ubuntu-latest
+    env:
+      STAGE_MAINTAINERS: ${{ vars.CODEX_STAGE_MAINTAINERS }}
+      AUTO_MERGE_LABEL: ${{ vars.CODEX_AUTO_MERGE_LABEL }}
+    steps:
+      - name: Note successful validation
+        run: |
+          echo "Validation succeeded for $GITHUB_SHA." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Ensure promotion pull request exists
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const head = 'codex';
+            const base = 'stage';
+            const { data: existing } = await github.rest.pulls.list({
+              owner,
+              repo,
+              head: `${owner}:${head}`,
+              base,
+              state: 'open',
+            });
+            let pr;
+            if (existing.length > 0) {
+              pr = existing[0];
+              core.info(`Found existing promotion PR #${pr.number}`);
+            } else {
+              const body = [
+                'Automated promotion from `codex` to `stage`.',
+                '',
+                'This pull request was opened by the codex-sync-stage workflow after passing all reusable tests.',
+              ].join('\n');
+              pr = (
+                await github.rest.pulls.create({
+                  owner,
+                  repo,
+                  head,
+                  base,
+                  title: 'Promote codex to stage',
+                  body,
+                })
+              ).data;
+              core.info(`Created promotion PR #${pr.number}`);
+            }
+            core.setOutput('number', String(pr.number));
+            core.setOutput('url', pr.html_url);
+
+      - name: Apply auto-merge label
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = Number('${{ steps.pr.outputs.number }}');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const label = process.env.AUTO_MERGE_LABEL || 'auto-merge';
+            try {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: prNumber,
+                labels: [label],
+              });
+              core.info(`Applied label "${label}" to #${prNumber}.`);
+            } catch (error) {
+              if (error.status === 404) {
+                core.warning(`Label "${label}" does not exist yet.`);
+              } else if (error.status === 422) {
+                core.info(`Label "${label}" already present on #${prNumber}.`);
+              } else {
+                throw error;
+              }
+            }
+
+      - name: Enable auto-merge or notify maintainers
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = Number('${{ steps.pr.outputs.number }}');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const mention = process.env.STAGE_MAINTAINERS || '@maintainers';
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+            try {
+              await github.graphql(
+                `mutation($id:ID!){
+                  enablePullRequestAutoMerge(input:{pullRequestId:$id, mergeMethod:SQUASH}) {
+                    clientMutationId
+                  }
+                }`,
+                { id: pr.node_id }
+              );
+              core.notice(`Auto-merge enabled for promotion PR #${prNumber}.`);
+            } catch (error) {
+              core.warning(`Auto-merge enable failed: ${error.message}`);
+
+              const message = [
+                `${mention} – auto-merge could not be enabled for this codex → stage promotion.`,
+                '',
+                `> ${error.message}`,
+                '',
+                'Please review branch protections or merge manually when ready.',
+              ].join('\n');
+
+              const { data: comments } = await github.rest.issues.listComments({
+                owner,
+                repo,
+                issue_number: prNumber,
+              });
+              const duplicate = comments.find((comment) => comment.body === message);
+              if (!duplicate) {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: prNumber,
+                  body: message,
+                });
+              } else {
+                core.info('Notification comment already exists.');
+              }
+            }
+
+      - name: Share promotion link
+        run: |
+          echo "Codex → stage promotion PR: ${{ steps.pr.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
