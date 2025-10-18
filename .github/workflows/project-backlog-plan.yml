@@ -14,12 +14,14 @@ permissions:
 jobs:
   plan:
     runs-on: ubuntu-latest
+    env:
+      PROJECTS_TOKEN: ${{ secrets.PROJECTS_WORKFLOW_TOKEN != '' && secrets.PROJECTS_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
     steps:
       - name: Gather project item metadata
         id: metadata
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.PROJECTS_WORKFLOW_TOKEN != '' && secrets.PROJECTS_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
+          github-token: ${{ env.PROJECTS_TOKEN }}
           script: |
             const item = context.payload.projects_v2_item;
             if (!item) {
@@ -335,7 +337,7 @@ jobs:
         if: steps.metadata.outputs.run == 'true' && steps.plan_result.outputs.skipped != 'true'
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.PROJECTS_WORKFLOW_TOKEN != '' && secrets.PROJECTS_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
+          github-token: ${{ env.PROJECTS_TOKEN }}
           script: |
             const projectId = '${{ steps.metadata.outputs.project_id }}';
             const itemId = '${{ steps.metadata.outputs.project_item_node_id }}';
