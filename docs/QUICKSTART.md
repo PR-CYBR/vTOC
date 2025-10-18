@@ -53,20 +53,50 @@ python -m scripts.bootstrap_cli setup local
 
 All Make targets remain as wrappers around this entry point, so existing automation can continue using `make setup-local`.
 
-When prompted supply or confirm the following values:
+Interactive runs prompt for the required secrets. To automate the process (for example when driving the setup through an AI
+assistant) supply the payload non-interactively via `--config-json` or `--config-json @path/to/config.json`. The JSON must match
+[`scripts/inputs.schema.json`](../scripts/inputs.schema.json):
 
-- `POSTGRES_STATION_ROLE`
-- `STATION_CALLSIGN`
-- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`
-- `CHATKIT_API_KEY` and `CHATKIT_ORG_ID`
-- `AGENTKIT_CLIENT_ID` and `AGENTKIT_CLIENT_SECRET`
-- Optional `TELEMETRY_BROADCAST_URL`
+```bash
+python -m scripts.bootstrap_cli setup local --config-json @- <<'JSON'
+{
+  "station": {
+    "role": "ops",
+    "callsign": "TOC-S1",
+    "missionChannel": "ch_mission_123",
+    "telemetryChannel": "ch_telemetry_123"
+  },
+  "chatkit": {
+    "apiKey": "ck_live_xxx",
+    "orgId": "org_abc123",
+    "webhookSecret": "replace-me",
+    "allowedTools": "intel-search,supply-lookup",
+    "telemetryChannel": "ch_telemetry_123"
+  },
+  "agentkit": {
+    "apiBaseUrl": "https://agentkit.example.com/api",
+    "apiKey": "ak_live_xxx",
+    "orgId": "org_abc123",
+    "timeoutSeconds": 30,
+    "defaultStationContext": "PR-SJU"
+  },
+  "supabase": {
+    "url": "https://your-project.supabase.co",
+    "projectRef": "your-project",
+    "anonKey": "supabase-anon",
+    "serviceRoleKey": "supabase-service-role"
+  }
+}
+JSON
+```
 
-The script seeds `scripts/cache/` with the generated ChatKit channel IDs for reuse by other stations.
+The CLI writes the merged secrets to `.env.local`, `.env.station`, and `frontend/.env.local` and echoes follow-up instructions in
+both human-friendly and machine-readable formats. ChatKit channel IDs and station metadata are stored in `.env.station` so other
+automation can reuse the values without rerunning the provisioning flow.
 
 Supabase credentials can be generated from the [Supabase dashboard](https://supabase.com/dashboard). The bootstrap CLI persists
-the anon key to `.env.local`/`.env.station` for frontend use while storing the service-role key only in backend-specific
-environment files.
+the anon key to both `.env.local` and `.env.station` for frontend use while keeping the service-role key scoped to backend
+services.
 
 ### Environment variables
 
