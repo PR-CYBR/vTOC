@@ -15,11 +15,11 @@ permissions:
 
 jobs:
   tests:
-    if: github.head_ref == 'stage'
+    if: github.head_ref == 'stage' || github.head_ref == 'prod'
     uses: ./.github/workflows/reusable-tests.yml
 
   publish:
-    if: github.head_ref == 'stage'
+    if: github.head_ref == 'stage' || github.head_ref == 'prod'
     needs: tests
     uses: ./.github/workflows/reusable-build-containers.yml
     secrets: inherit
@@ -29,7 +29,7 @@ jobs:
     needs:
       - tests
       - publish
-    if: github.head_ref == 'stage' && always()
+    if: (github.head_ref == 'stage' || github.head_ref == 'prod') && always()
     runs-on: ubuntu-latest
     steps:
       - name: Publish summary
