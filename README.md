@@ -94,9 +94,9 @@ Supply configuration through `--config path.json` or `--config-json '{...}'`. Th
 
 Codex CLI is detected automatically: if the `codex` binary exists, the setup scripts use `codex interpolate` for variable
 expansion; otherwise they fall back to portable Bash implementations. Commits that land on `main` now trigger the
-[discussion-summary workflow](.github/workflows/discussion-summary.yml) which renders a release note style update in GitHub
-Discussions using Codex. Configure the `CODEX_API_KEY` and `DOCS_DISCUSSION_CATEGORY_ID` secrets/variables in the repository
-so the automation can authenticate and target the correct discussion category.
+[`Main discussion summary` workflow](docs/workflows/main-discussion-summary.md) which renders a release note style update in
+GitHub Discussions using Codex. Configure the `CODEX_API_KEY` and `DOCS_DISCUSSION_CATEGORY_ID` secrets/variables in the
+repository so the automation can authenticate and target the correct discussion category.
 
 ## Containers and orchestration
 
@@ -106,7 +106,7 @@ so the automation can authenticate and target the correct discussion category.
 * `fly.toml` — Fly.io deployment descriptor for the backend container deployed from the `live` branch
 
 Images are built and pushed to GHCR via GitHub Actions as part of [`ci.yml`](.github/workflows/ci.yml) and the release-focused
-[`publish-containers.yml`](.github/workflows/publish-containers.yml) workflow:
+[`Publish Containers` workflow](docs/workflows/publish-containers.md):
 
 - `ghcr.io/<repo>/frontend` (Vite static bundle served by nginx)
 - `ghcr.io/<repo>/backend` (FastAPI + Uvicorn on port 8080)
