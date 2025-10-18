@@ -1,0 +1,152 @@
+name: Promote prod to live
+
+on:
+  push:
+    branches:
+      - prod
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+  checks: read
+  administration: write
+
+jobs:
+  promote:
+    name: Promote prod changes to live
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out prod branch
+        uses: actions/checkout@v4
+        with:
+          ref: prod
+
+      - name: Open promotion pull request
+        id: create_pr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: live
+          branch: prod
+          delete-branch: false
+          commit-message: "chore: promote prod to live"
+          title: "Promote prod to live"
+          body: |
+            ## Summary
+            - Automated promotion of the `prod` branch into `live` after a successful production deployment.
+
+            ## Notes
+            - Auto-merge will be enabled once required checks succeed.
+
+      - name: Enable auto-merge on promotion PR
+        if: steps.create_pr.outputs.pull-request-number
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = Number('${{ steps.create_pr.outputs.pull-request-number }}');
+            if (!prNumber) {
+              core.info('No pull request created or updated; skipping auto-merge configuration.');
+              return;
+            }
+
+            const { repository } = await github.graphql(
+              `query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    id
+                    autoMergeRequest {
+                      enabledAt
+                    }
+                  }
+                }
+              }`,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                number: prNumber,
+              }
+            );
+
+            const pullRequest = repository?.pullRequest;
+            if (!pullRequest?.id) {
+              core.setFailed(`Failed to resolve pull request ID for #${prNumber}.`);
+              return;
+            }
+
+            if (pullRequest.autoMergeRequest?.enabledAt) {
+              core.info(`Auto-merge is already enabled for pull request #${prNumber}.`);
+              return;
+            }
+
+            try {
+              await github.graphql(
+                `mutation($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
+                  enablePullRequestAutoMerge(input: { pullRequestId: $pullRequestId, mergeMethod: $mergeMethod }) {
+                    pullRequest {
+                      number
+                      autoMergeRequest {
+                        enabledAt
+                      }
+                    }
+                  }
+                }`,
+                {
+                  pullRequestId: pullRequest.id,
+                  mergeMethod: 'SQUASH',
+                }
+              );
+              core.info(`Auto-merge enabled for pull request #${prNumber}.`);
+            } catch (error) {
+              core.warning(`Failed to enable auto-merge for pull request #${prNumber}: ${error.message}`);
+            }
+
+      - name: Require live branch release checks
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const requiredChecks = [
+              'Live Release PR Gate / tests',
+              'Live Release PR Gate / publish',
+            ];
+
+            try {
+              await github.rest.repos.updateStatusCheckProtection({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                branch: 'live',
+                strict: true,
+                contexts: requiredChecks,
+              });
+              core.info('Updated required status checks for the live branch.');
+              return;
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+              core.info('Status check protection not yet configured; creating full branch protection rule.');
+            }
+
+            await github.rest.repos.updateBranchProtection({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch: 'live',
+              required_status_checks: {
+                strict: true,
+                contexts: requiredChecks,
+              },
+              enforce_admins: true,
+              required_pull_request_reviews: {
+                required_approving_review_count: 0,
+              },
+              restrictions: null,
+              allow_force_pushes: false,
+              allow_deletions: false,
+              required_linear_history: false,
+              lock_branch: false,
+              allow_fork_syncing: true,
+              block_creations: false,
+            });
+            core.info('Created branch protection for live with required status checks.');
