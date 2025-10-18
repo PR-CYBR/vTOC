@@ -15,6 +15,8 @@ jobs:
   prepare:
     name: Prepare project item context
     runs-on: ubuntu-latest
+    env:
+      PROJECTS_TOKEN: ${{ secrets.PROJECTS_WORKFLOW_TOKEN != '' && secrets.PROJECTS_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
     outputs:
       should_run: ${{ steps.inspect.outputs.should_run }}
       item_id: ${{ steps.inspect.outputs.item_id }}
@@ -35,6 +37,7 @@ jobs:
         id: inspect
         uses: actions/github-script@v7
         with:
+          github-token: ${{ env.PROJECTS_TOKEN }}
           script: |
             const action = context.payload.action;
             const change = context.payload.changes?.field_value;
@@ -212,6 +215,7 @@ jobs:
     if: needs.prepare.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     env:
+      PROJECTS_TOKEN: ${{ secrets.PROJECTS_WORKFLOW_TOKEN != '' && secrets.PROJECTS_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
       PLAN_B64: ${{ needs.prepare.outputs.plan_b64 }}
       CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
       CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
@@ -323,6 +327,7 @@ jobs:
           HTTP_CODE: ${{ steps.codex_run.outputs.http_code }}
           PLAN_PREVIEW: ${{ needs.prepare.outputs.plan_preview }}
         with:
+          github-token: ${{ env.PROJECTS_TOKEN }}
           script: |
             const projectId = process.env.PROJECT_ID;
             const itemId = process.env.ITEM_ID;
@@ -396,6 +401,7 @@ jobs:
           SUMMARY_LINE: ${{ steps.update_item.outputs.summary_line }}
           REVIEWERS_TO_NOTIFY: ${{ env.REVIEWERS_TO_NOTIFY }}
         with:
+          github-token: ${{ env.PROJECTS_TOKEN }}
           script: |
             const contentType = process.env.CONTENT_TYPE;
             const contentNumber = process.env.CONTENT_NUMBER ? parseInt(process.env.CONTENT_NUMBER, 10) : undefined;
