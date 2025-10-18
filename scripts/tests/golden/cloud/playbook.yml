@@ -1,0 +1,54 @@
+---
+- name: Configure vTOC backend host
+  hosts: vtoc
+  become: true
+  vars:
+    docker_image: {{ docker_image | default("ghcr.io/pr-cybr/vtoc/backend:latest") }}
+    database_url: {{ database_url | default("postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc") }}
+    AGENTKIT_API_BASE_URL: 'https://agentkit.example.com/api'
+    AGENTKIT_API_KEY: ''
+    AGENTKIT_ORG_ID: ''
+    AGENTKIT_TIMEOUT_SECONDS: '30'
+    CHATKIT_ALLOWED_TOOLS: ''
+    CHATKIT_API_KEY: ''
+    CHATKIT_ORG_ID: ''
+    CHATKIT_WEBHOOK_SECRET: ''
+    DATABASE_URL_TOC_S1: 'postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s1'
+    DATABASE_URL_TOC_S2: 'postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s2'
+    DATABASE_URL_TOC_S3: 'postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s3'
+    DATABASE_URL_TOC_S4: 'postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s4'
+    SUPABASE_JWT_SECRET: ''
+    SUPABASE_PROJECT_REF: ''
+    SUPABASE_SERVICE_ROLE_KEY: ''
+    SUPABASE_URL: ''
+  tasks:
+    - name: Ensure Docker is installed
+      ansible.builtin.package:
+        name: docker.io
+        state: present
+
+    - name: Run backend container
+      community.docker.docker_container:
+        name: vtoc-backend
+        image: "{{ docker_image }}"
+        restart_policy: unless-stopped
+        env:
+          DATABASE_URL: "{{ database_url }}"
+          AGENTKIT_API_BASE_URL: "{{ station_urls.AGENTKIT_API_BASE_URL | default('https://agentkit.example.com/api') }}"
+          AGENTKIT_API_KEY: "{{ station_urls.AGENTKIT_API_KEY | default('') }}"
+          AGENTKIT_ORG_ID: "{{ station_urls.AGENTKIT_ORG_ID | default('') }}"
+          AGENTKIT_TIMEOUT_SECONDS: "{{ station_urls.AGENTKIT_TIMEOUT_SECONDS | default('30') }}"
+          CHATKIT_ALLOWED_TOOLS: "{{ station_urls.CHATKIT_ALLOWED_TOOLS | default('') }}"
+          CHATKIT_API_KEY: "{{ station_urls.CHATKIT_API_KEY | default('') }}"
+          CHATKIT_ORG_ID: "{{ station_urls.CHATKIT_ORG_ID | default('') }}"
+          CHATKIT_WEBHOOK_SECRET: "{{ station_urls.CHATKIT_WEBHOOK_SECRET | default('') }}"
+          DATABASE_URL_TOC_S1: "{{ station_urls.DATABASE_URL_TOC_S1 | default('postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s1') }}"
+          DATABASE_URL_TOC_S2: "{{ station_urls.DATABASE_URL_TOC_S2 | default('postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s2') }}"
+          DATABASE_URL_TOC_S3: "{{ station_urls.DATABASE_URL_TOC_S3 | default('postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s3') }}"
+          DATABASE_URL_TOC_S4: "{{ station_urls.DATABASE_URL_TOC_S4 | default('postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s4') }}"
+          SUPABASE_JWT_SECRET: "{{ station_urls.SUPABASE_JWT_SECRET | default('') }}"
+          SUPABASE_PROJECT_REF: "{{ station_urls.SUPABASE_PROJECT_REF | default('') }}"
+          SUPABASE_SERVICE_ROLE_KEY: "{{ station_urls.SUPABASE_SERVICE_ROLE_KEY | default('') }}"
+          SUPABASE_URL: "{{ station_urls.SUPABASE_URL | default('') }}"
+        published_ports:
+          - "8080:8080"
