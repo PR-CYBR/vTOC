@@ -3,6 +3,21 @@
 The CLI mirrors the developer Makefile so Windows or non-POSIX users can
 invoke the same automation tasks without `make`. Each subcommand delegates
 to the existing shell scripts or runs the equivalent commands directly.
+
+The :mod:`spec` command group proxies GitHub's Spec Kit (`specify`) CLI so
+developers can run planning workflows without installing additional tools.
+Spec Kit relies on several environment variables that the wrapper documents
+and forwards to subprocesses:
+
+``SPECIFY_FEATURE``
+    Feature flag sent to Spec Kit. Defaults to ``"bootstrap"`` when unset.
+
+``CODEX_API_KEY`` / ``CODEX_BASE_URL``
+    Credentials and endpoint used by Spec Kit when contacting Codex. These
+    must be present in the environment before invoking the wrapper.
+
+The wrapper automatically executes from the repository root and uses ``uvx``
+to fetch Spec Kit unless a ``SPECIFY_BIN`` override is provided.
 """
 from __future__ import annotations
 
@@ -25,6 +40,9 @@ SCRAPER_DIR = REPO_ROOT / "agents" / "scraper"
 STATIONS_DIR = REPO_ROOT / "stations"
 DEFAULT_STATIONS = ("TOC-S1", "TOC-S2", "TOC-S3", "TOC-S4")
 PYTHON = sys.executable or "python"
+SPEC_KIT_PACKAGE = "git+https://github.com/github/spec-kit.git"
+SPECIFY_EXECUTABLE_ENV = "SPECIFY_BIN"
+SPECIFY_DEFAULT_FEATURE = "bootstrap"
 
 
 def _echo_command(command: Sequence[str]) -> None:
@@ -170,6 +188,31 @@ def run_local_bootstrap(args: argparse.Namespace) -> None:
         str(REPO_ROOT / "infrastructure" / "terraform"),
     ]
     run_command(command, env=env)
+
+
+def _resolve_specify_command(subcommand: str, extra_args: Sequence[str]) -> list[str]:
+    override = os.environ.get(SPECIFY_EXECUTABLE_ENV)
+    if override:
+        command = [override, subcommand]
+    else:
+        command = [
+            "uvx",
+            "--from",
+            SPEC_KIT_PACKAGE,
+            "specify",
+            subcommand,
+        ]
+    passthrough = list(extra_args)
+    if passthrough and passthrough[0] == "--":
+        passthrough = passthrough[1:]
+    return command + passthrough
+
+
+def run_spec_command(subcommand: str, extra_args: Sequence[str]) -> None:
+    command = _resolve_specify_command(subcommand, extra_args)
+    feature = os.environ.get("SPECIFY_FEATURE") or SPECIFY_DEFAULT_FEATURE
+    env = {"SPECIFY_FEATURE": feature}
+    run_command(command, cwd=REPO_ROOT, env=env)
 
 
 def add_setup_options(parser: argparse.ArgumentParser) -> None:
@@ -368,6 +411,57 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add_station_arguments(station_seed_parser)
     station_seed_parser.set_defaults(func=station_seed)
+
+    # spec group
+    spec_parser = subparsers.add_parser(
+        "spec",
+        help="Spec Kit ideation helpers",
+        description=(
+            "Run Spec Kit planning commands against the repository.\n\n"
+            "Environment:\n"
+            f"  SPECIFY_FEATURE   Feature flag forwarded to Spec Kit (default: {SPECIFY_DEFAULT_FEATURE})\n"
+            "  CODEX_API_KEY     Codex API token required for authenticated requests\n"
+            "  CODEX_BASE_URL    Optional Codex endpoint override\n"
+            "Set SPECIFY_BIN to reuse a vendored Spec Kit executable instead of uvx.\n\n"
+            "Append `--` before extra arguments to forward them directly to Spec Kit."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    spec_subparsers = spec_parser.add_subparsers(dest="spec_command")
+
+    def register_spec_subcommand(name: str, help_text: str) -> None:
+        sub = spec_subparsers.add_parser(
+            name,
+            help=help_text,
+            description=help_text,
+        )
+        sub.add_argument(
+            "args",
+            nargs=argparse.REMAINDER,
+            help="Arguments forwarded directly to Spec Kit",
+        )
+        sub.set_defaults(func=lambda args, n=name: run_spec_command(n, args.args))
+
+    register_spec_subcommand(
+        "constitution",
+        "Generate or review the project's Spec Kit constitution",
+    )
+    register_spec_subcommand(
+        "specify",
+        "Run arbitrary Spec Kit commands via the `specify` entry point",
+    )
+    register_spec_subcommand(
+        "plan",
+        "Draft implementation plans using Spec Kit",
+    )
+    register_spec_subcommand(
+        "tasks",
+        "Break down work into trackable tasks using Spec Kit",
+    )
+    register_spec_subcommand(
+        "implement",
+        "Follow Spec Kit's implementation guidance",
+    )
 
     return parser
 
