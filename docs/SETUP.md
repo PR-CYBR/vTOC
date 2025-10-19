@@ -4,6 +4,11 @@ This guide walks operators through the end-to-end onboarding sequence for a new 
 application-focused [`docs/QUICKSTART.md`](QUICKSTART.md) by emphasizing physical hardware preparation, configuration
 capture, and validation checkpoints that must be completed before a station goes live.
 
+> **New workflow:** After the bootstrap wizard finishes, review the Spec Kit rollout announcement in
+> [`docs/communications/spec-kit-rollout.md`](communications/spec-kit-rollout.md) and complete the `/speckit.init` dry run
+> listed in the onboarding checklist. The generated `specs/<feature>/` folder will anchor subsequent planning and deployment
+> steps referenced throughout this guide.
+
 ## Prerequisites
 
 * A validated station kit (see the inventory checklist below).
