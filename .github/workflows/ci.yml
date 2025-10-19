@@ -110,6 +110,8 @@ PY
         run: mypy --config-file mypy.ini
       - name: Backend tests
         run: pytest -q
+      - name: Validate Spec Kit tasks
+        run: python -m scripts.bootstrap_cli spec check
       - name: Set backend image tag (PR)
         if: github.event_name == 'pull_request'
         run: echo "BACKEND_IMAGE_TAG=vtoc-backend:pr-${{ github.sha }}" >> "$GITHUB_ENV"
