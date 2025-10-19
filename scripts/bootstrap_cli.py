@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 from scripts.bootstrap.local import DEFAULT_CONFIG_JSON
+from scripts.automation.spec_tasks import SpecTaskError, sync_spec_tasks, validate_spec_tasks
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
@@ -237,6 +238,29 @@ def scraper_run(_: argparse.Namespace) -> None:
     run_command([PYTHON, "main.py"], cwd=SCRAPER_DIR)
 
 
+def spec_sync(args: argparse.Namespace) -> None:
+    feature = args.feature or os.environ.get("SPECIFY_FEATURE", "")
+    tasks_path = args.tasks_path
+    if tasks_path is not None:
+        tasks_path = Path(tasks_path)
+    try:
+        sync_spec_tasks(
+            feature=feature,
+            plan_result=Path(args.plan_result),
+            tasks_path=tasks_path,
+        )
+    except SpecTaskError as exc:
+        raise SystemExit(str(exc)) from exc
+
+
+def spec_check(args: argparse.Namespace) -> None:
+    base = Path(args.base) if args.base else REPO_ROOT / "specs"
+    try:
+        validate_spec_tasks(base)
+    except SpecTaskError as exc:
+        raise SystemExit(str(exc)) from exc
+
+
 def station_migrate(args: argparse.Namespace) -> None:
     stations = args.station or DEFAULT_STATIONS
     for station in stations:
@@ -350,6 +374,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     scraper_run_parser = scraper_subparsers.add_parser("run", help="Run the telemetry scraper")
     scraper_run_parser.set_defaults(func=scraper_run)
+
+    # spec group
+    spec_parser = subparsers.add_parser("spec", help="Spec Kit automation")
+    spec_subparsers = spec_parser.add_subparsers(dest="spec_command")
+    spec_subparsers.required = True
+
+    spec_sync_parser = spec_subparsers.add_parser("sync", help="Update Spec Kit tasks from a Codex plan result")
+    spec_sync_parser.add_argument("--plan-result", required=True, type=Path, help="Path to backlog/plan-result.json")
+    spec_sync_parser.add_argument("--feature", help="Feature slug (defaults to SPECIFY_FEATURE or plan metadata)")
+    spec_sync_parser.add_argument("--tasks-path", type=Path, help="Override the generated tasks.md path")
+    spec_sync_parser.set_defaults(func=spec_sync)
+
+    spec_check_parser = spec_subparsers.add_parser("check", help="Validate generated Spec Kit task files")
+    spec_check_parser.add_argument("--base", type=Path, default=REPO_ROOT / "specs", help="Base directory of Spec Kit features")
+    spec_check_parser.set_defaults(func=spec_check)
 
     # station group
     station_parser = subparsers.add_parser("station", help="Station bootstrap helpers")

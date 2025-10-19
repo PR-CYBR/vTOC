@@ -4,7 +4,7 @@ items:
     status: planned
     owners: []
     links:
-      - docs/tasks/bot-integrations.md#1-cross-cutting-discovery-and-infrastructure
+      - specs/bot-integrations/tasks.md#1-cross-cutting-discovery-and-infrastructure
     notes: "Lay the groundwork for Telegram, Slack, and Discord services by defining shared clients, config, and deployment patterns."
     codex_plan_url: null
     codex_plan_tasks: []
@@ -16,7 +16,7 @@ items:
     status: planned
     owners: []
     links:
-      - docs/tasks/bot-integrations.md#2-telegram-management-bot
+      - specs/bot-integrations/tasks.md#2-telegram-management-bot
     notes: "Deliver Telegram command handlers, transports, and deployment assets for vTOC operators."
     codex_plan_url: null
     codex_plan_tasks: []
@@ -28,7 +28,7 @@ items:
     status: planned
     owners: []
     links:
-      - docs/tasks/bot-integrations.md#3-slack-monitoring-bot
+      - specs/bot-integrations/tasks.md#3-slack-monitoring-bot
     notes: "Capture Slack channel activity and surface it through shared telemetry pipelines."
     codex_plan_url: null
     codex_plan_tasks: []
@@ -40,7 +40,7 @@ items:
     status: planned
     owners: []
     links:
-      - docs/tasks/bot-integrations.md#4-discord-operations-bot
+      - specs/bot-integrations/tasks.md#4-discord-operations-bot
     notes: "Expose mission management and real-time data to Discord users."
     codex_plan_url: null
     codex_plan_tasks: []
@@ -52,7 +52,7 @@ items:
     status: planned
     owners: []
     links:
-      - docs/tasks/bot-integrations.md#5-documentation-qa-and-rollout
+      - specs/bot-integrations/tasks.md#5-documentation-qa-and-rollout
     notes: "Update diagrams, automation, and rollout guides for the multi-bot initiative."
     codex_plan_url: null
     codex_plan_tasks: []

@@ -126,6 +126,7 @@ jobs:
                         body
                         number
                         url
+                        headRefName
                       }
                     }
                   }
@@ -202,6 +203,57 @@ jobs:
               return base;
             });
 
+            const normaliseFeature = (raw) => {
+              if (!raw) {
+                return '';
+              }
+              return raw
+                .toString()
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9/_-]+/g, '-')
+                .replace(/^-+/, '')
+                .replace(/-+$/, '');
+            };
+
+            const featureFieldCandidates = [
+              'spec feature',
+              'feature',
+              'feature directory',
+              'feature slug',
+              'feature branch',
+              'branch',
+              'target branch',
+            ];
+
+            let rawFeature = '';
+            for (const value of fieldValues) {
+              const fieldName = (value?.field?.name || '').toLowerCase().trim();
+              if (!fieldName || !featureFieldCandidates.includes(fieldName)) {
+                continue;
+              }
+              const candidates = [];
+              if (typeof value?.text === 'string') candidates.push(value.text);
+              if (typeof value?.name === 'string') candidates.push(value.name);
+              if (typeof value?.title === 'string') candidates.push(value.title);
+              if (typeof value?.number === 'number') candidates.push(String(value.number));
+              if (typeof value?.date === 'string') candidates.push(value.date);
+              for (const candidate of candidates) {
+                if (candidate && candidate.toString().trim()) {
+                  rawFeature = candidate.toString().trim();
+                  break;
+                }
+              }
+              if (rawFeature) {
+                break;
+              }
+            }
+
+            if (!rawFeature && node.content?.__typename === 'PullRequest') {
+              rawFeature = node.content.headRefName || '';
+            }
+            const specFeature = normaliseFeature(rawFeature);
+
             const content = node.content;
             let contentData = null;
             if (content) {
@@ -232,7 +284,13 @@ jobs:
               status: statusName,
               field_values: fieldSummaries,
               content: contentData,
+              spec: {
+                feature: specFeature || null,
+                raw_feature: rawFeature || null,
+              },
             };
+
+            core.setOutput('spec_feature', specFeature || '');
 
             const base64Context = Buffer.from(JSON.stringify(contextData)).toString('base64');
             core.setOutput('context_base64', base64Context);
@@ -292,12 +350,23 @@ jobs:
       - name: Generate Codex plan
         if: steps.metadata.outputs.run == 'true'
         id: plan
+        env:
+          SPECIFY_FEATURE: ${{ steps.metadata.outputs.spec_feature }}
         run: |
           python scripts/automation/backlog_plan.py \
             --context backlog/context.json \
             --backlog-file backlog/backlog.yaml \
             --skip-if-exists \
             --result backlog/plan-result.json
+
+      - name: Sync Spec Kit tasks
+        if: steps.metadata.outputs.run == 'true'
+        env:
+          SPECIFY_FEATURE: ${{ steps.metadata.outputs.spec_feature }}
+        run: |
+          set -euo pipefail
+          python -m scripts.bootstrap_cli spec sync \
+            --plan-result backlog/plan-result.json
 
       - name: Capture plan result
         if: steps.metadata.outputs.run == 'true'
@@ -331,7 +400,9 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: record Codex plan for project item ${{ steps.metadata.outputs.project_item_id }}"
-          file_pattern: backlog/backlog.yaml
+          file_pattern: |
+            backlog/backlog.yaml
+            specs/**/tasks.md
 
       - name: Move project item to Ready
         if: steps.metadata.outputs.run == 'true' && steps.plan_result.outputs.skipped != 'true'
