@@ -4,6 +4,23 @@ This guide covers local workflows, containerized deployments, multi-station Post
 Fly.io delivery from the `live` branch. The ChatKit/AgentKit rollout introduces additional environment variables and setup steps
 described below.
 
+## Raspberry Pi (low-power)
+
+Operators provisioning Raspberry Pi 5 stations should follow the dedicated
+[`docs/deployment/raspberry-pi.md`](deployment/raspberry-pi.md) checklist. It
+documents hardware expectations (8 GB RAM, NVMe storage, active cooling),
+headless Raspberry Pi OS tuning (GPU split, cgroups, ZRAM, minimal swap),
+service enablement/disablement guidance, and a resource-conscious bootstrap
+command:
+
+```bash
+python3 -m scripts.bootstrap_cli setup local --headless --prefer-remote-supabase
+```
+
+The companion compose profile keeps Postgres remote (Supabase) and disables
+optional scrapers so the Pi remains within the 2–3 GB RAM envelope during
+missions.
+
 ## Supabase integration overview
 
 Supabase now hosts the managed Postgres cluster backing vTOC along with row-level security (RLS) policies and authentication

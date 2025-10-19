@@ -1,5 +1,5 @@
-.PHONY: help setup-local setup-container setup-cloud compose-up compose-down \
-    backend-install backend-test frontend-test scraper-run backend-lint station-migrate station-seed \
+.PHONY: help setup-local setup-container setup-cloud setup-pi compose-up compose-down \
+    backend-test frontend-test scraper-run backend-lint station-migrate station-seed \
     spec-constitution spec-plan spec-tasks spec-implement spec-specify
 
 help: ## Show help
@@ -11,10 +11,13 @@ setup-local: ## Run setup script in local mode
 	python -m scripts.bootstrap_cli setup local
 
 setup-container: ## Run setup script in container mode
-	python -m scripts.bootstrap_cli setup container --apply
+        python -m scripts.bootstrap_cli setup container --apply
+
+setup-pi: ## Run setup script in Raspberry Pi mode
+        python -m scripts.bootstrap_cli setup pi
 
 setup-cloud: ## Generate Terraform/Ansible scaffolding
-	python -m scripts.bootstrap_cli setup cloud
+        python -m scripts.bootstrap_cli setup cloud
 
 compose-up: ## Start dev stack using generated compose file
 	python -m scripts.bootstrap_cli compose up

@@ -10,10 +10,10 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 usage() {
   cat <<USAGE
-Usage: $0 [--mode local|container|cloud] [--config path.json] [--config-json '{...}'] [--apply] [--configure]
+Usage: $0 [--mode local|container|cloud|pi] [--config path.json] [--config-json '{...}'] [--apply] [--configure]
 
 Flags:
-  --mode           Deployment mode to run (local, container, cloud)
+  --mode           Deployment mode to run (local, container, cloud, pi)
   --config         Path to a JSON configuration file
   --config-json    Inline JSON configuration string
   --apply          Execute infrastructure changes automatically when supported
