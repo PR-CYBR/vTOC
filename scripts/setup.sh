@@ -18,6 +18,10 @@ Flags:
   --config-json    Inline JSON configuration string
   --apply          Execute infrastructure changes automatically when supported
   --configure      Run configuration management automatically when supported
+
+Spec Kit planning helpers (requires CODEX_API_KEY and optional CODEX_BASE_URL):
+  python -m scripts.bootstrap_cli spec plan
+  python -m scripts.bootstrap_cli spec tasks
 USAGE
 }
 
@@ -144,5 +148,7 @@ if [[ ! -x "$MODE_SCRIPT" ]]; then
   echo "Unsupported mode: $MODE" >&2
   exit 1
 fi
+
+echo "Spec Kit ready: export SPECIFY_FEATURE if needed and run 'python -m scripts.bootstrap_cli spec plan' to draft work."
 
 "$MODE_SCRIPT"

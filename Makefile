@@ -1,5 +1,6 @@
 .PHONY: help setup-local setup-container setup-cloud compose-up compose-down \
-    backend-test frontend-test scraper-run backend-lint station-migrate station-seed
+    backend-test frontend-test scraper-run backend-lint station-migrate station-seed \
+    spec-constitution spec-plan spec-tasks spec-implement spec-specify
 
 help: ## Show help
 	@echo 'Usage: make <target>'
@@ -37,4 +38,19 @@ station-migrate: ## Run Alembic migrations for all station schemas
 	python -m scripts.bootstrap_cli station migrate
 
 station-seed: ## Seed baseline telemetry for each station
-	python -m scripts.bootstrap_cli station seed
+        python -m scripts.bootstrap_cli station seed
+
+spec-constitution: ## Run Spec Kit constitution workflow
+        python -m scripts.bootstrap_cli spec constitution
+
+spec-plan: ## Generate a Spec Kit implementation plan
+        python -m scripts.bootstrap_cli spec plan
+
+spec-tasks: ## Expand tasks using Spec Kit
+        python -m scripts.bootstrap_cli spec tasks
+
+spec-implement: ## Follow Spec Kit implementation guidance
+        python -m scripts.bootstrap_cli spec implement
+
+spec-specify: ## Run arbitrary Spec Kit commands via specify
+        python -m scripts.bootstrap_cli spec specify
