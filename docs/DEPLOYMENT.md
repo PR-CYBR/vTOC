@@ -177,6 +177,11 @@ directories and refreshes the manifest so the inventory reflects the assigned ad
   expose the service-role key to the frontend.
 - Enable email confirmations or password resets per your security posture; vTOC reads Supabase user metadata to personalize the
   mission console.
+- Raspberry Pi deployments benefit from the slimmer backend container. Summing the arm64 base image layers (~46.8 MiB), the
+  packaged runtime dependencies (~38.5 MiB), and the runtime shared libraries (~0.14 MiB) yields an ~85.4 MiB image. The
+  previous single-stage build kept build toolchains (~8.7 MiB compressed) and larger wheels (~40.9 MiB), pushing the image to
+  roughly 96.4 MiB. The multi-stage builder therefore trims about 11 MiB (≈11%) from the Raspberry Pi footprint while still
+  delivering the same FastAPI application bundles.【b86e62†L1-L8】【39f59f†L1-L2】【1d2815†L1-L2】【51d630†L1-L8】【e4814d†L1-L2】
 
 ## Fly.io (live branch)
 

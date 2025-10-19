@@ -103,7 +103,7 @@ PY
           fi
           ./scripts/setup_container.sh --build-local
       - name: Install Python dependencies
-        run: python -m pip install -r backend/requirements.txt
+        run: python -m pip install -r backend/requirements.runtime.txt -r backend/requirements.dev.txt
       - name: Python lint
         run: ruff check backend agents
       - name: Python type check
