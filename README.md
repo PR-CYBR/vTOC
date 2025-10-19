@@ -188,6 +188,7 @@ The FastAPI backend (`backend/app`) provides:
 * `/api/v1/telemetry/*` — CRUD for telemetry sources and events
 * `/api/v1/chatkit/webhook` — Receives ChatKit events and launches AgentKit runs scoped to the station role
 * `/api/v1/stations` — Registers and reports station metadata
+* `/api/v1/stations/{station_slug}/timeline` — Returns a merged, paginated timeline of telemetry events and AgentKit audits
 
 Database connectivity is supplied through `DATABASE_URL`. SQLAlchemy models and Alembic migrations live under `backend/app` and
 `alembic/`. Run migrations with:

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Annotated, Any, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -334,3 +334,47 @@ class AgentActionAuditRead(
     ORMModelMixin, AgentActionAuditBase, IdentifierMixin, TimestampsMixin
 ):
     completed_at: Optional[datetime] = None
+
+
+class StationTimelineBase(BaseModel):
+    """Base fields for station timeline entries."""
+
+    occurred_at: datetime
+
+
+class StationTimelineTelemetryEntry(StationTimelineBase):
+    """Timeline entry representing a telemetry event."""
+
+    entry_type: Literal["telemetry_event"] = "telemetry_event"
+    event_id: int
+    status: Optional[str] = None
+    source_slug: Optional[str] = None
+    source_name: Optional[str] = None
+    payload: Optional[dict[str, Any]] = None
+
+
+class StationTimelineAgentActionEntry(StationTimelineBase):
+    """Timeline entry representing an AgentKit audit row."""
+
+    entry_type: Literal["agent_action_audit"] = "agent_action_audit"
+    audit_id: int
+    action_id: str
+    tool_name: str
+    status: str
+    response_payload: Optional[dict[str, Any]] = None
+    error_message: Optional[str] = None
+
+
+StationTimelineEntry = Annotated[
+    Union[StationTimelineTelemetryEntry, StationTimelineAgentActionEntry],
+    Field(discriminator="entry_type"),
+]
+
+
+class StationTimelinePage(BaseModel):
+    """Paginated collection of station timeline entries."""
+
+    items: List[StationTimelineEntry]
+    limit: int
+    offset: int
+    total: Optional[int] = None
