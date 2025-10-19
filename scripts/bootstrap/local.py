@@ -16,11 +16,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 DEFAULT_CONFIG_JSON = {
     "projectName": "vtoc",
+    "hardwareProfile": "full",
     "services": {
         "traefik": False,
         "postgres": True,
         "n8n": False,
         "wazuh": False,
+        "adsb": True,
+        "gps": True,
+        "h4m": True,
     },
 }
 

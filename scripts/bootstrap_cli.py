@@ -144,6 +144,11 @@ FOLLOW_UP_STEPS: dict[str, list[str]] = {
     "cloud": [
         "Inspect infrastructure/terraform and run `terraform apply` once secrets are configured.",
     ],
+    "pi": [
+        "Copy docker-compose.pi.yml to the Raspberry Pi host before running it.",
+        "Provision remote Supabase credentials or a SQLite DATABASE_URL on the Pi before first boot.",
+        "Start the Pi stack: `docker compose -f docker-compose.pi.yml up -d`.",
+    ],
 }
 
 
@@ -359,6 +364,13 @@ def build_parser() -> argparse.ArgumentParser:
     add_setup_options(setup_container)
     setup_container.set_defaults(func=setup_command_factory("container"))
 
+    setup_pi = setup_subparsers.add_parser(
+        "pi",
+        help="Generate Raspberry Pi optimized container configuration",
+    )
+    add_setup_options(setup_pi)
+    setup_pi.set_defaults(func=setup_command_factory("pi"))
+
     setup_cloud = setup_subparsers.add_parser(
         "cloud",
         help="Generate infrastructure scaffolding",
@@ -418,21 +430,6 @@ def build_parser() -> argparse.ArgumentParser:
     scraper_run_parser = scraper_subparsers.add_parser("run", help="Run the telemetry scraper")
     scraper_run_parser.set_defaults(func=scraper_run)
 
-    # spec group
-    spec_parser = subparsers.add_parser("spec", help="Spec Kit automation")
-    spec_subparsers = spec_parser.add_subparsers(dest="spec_command")
-    spec_subparsers.required = True
-
-    spec_sync_parser = spec_subparsers.add_parser("sync", help="Update Spec Kit tasks from a Codex plan result")
-    spec_sync_parser.add_argument("--plan-result", required=True, type=Path, help="Path to backlog/plan-result.json")
-    spec_sync_parser.add_argument("--feature", help="Feature slug (defaults to SPECIFY_FEATURE or plan metadata)")
-    spec_sync_parser.add_argument("--tasks-path", type=Path, help="Override the generated tasks.md path")
-    spec_sync_parser.set_defaults(func=spec_sync)
-
-    spec_check_parser = spec_subparsers.add_parser("check", help="Validate generated Spec Kit task files")
-    spec_check_parser.add_argument("--base", type=Path, default=REPO_ROOT / "specs", help="Base directory of Spec Kit features")
-    spec_check_parser.set_defaults(func=spec_check)
-
     # station group
     station_parser = subparsers.add_parser("station", help="Station bootstrap helpers")
     station_subparsers = station_parser.add_subparsers(dest="station_command")
@@ -467,6 +464,22 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     spec_subparsers = spec_parser.add_subparsers(dest="spec_command")
+    spec_subparsers.required = True
+
+    spec_sync_parser = spec_subparsers.add_parser("sync", help="Update Spec Kit tasks from a Codex plan result")
+    spec_sync_parser.add_argument("--plan-result", required=True, type=Path, help="Path to backlog/plan-result.json")
+    spec_sync_parser.add_argument("--feature", help="Feature slug (defaults to SPECIFY_FEATURE or plan metadata)")
+    spec_sync_parser.add_argument("--tasks-path", type=Path, help="Override the generated tasks.md path")
+    spec_sync_parser.set_defaults(func=spec_sync)
+
+    spec_check_parser = spec_subparsers.add_parser("check", help="Validate generated Spec Kit task files")
+    spec_check_parser.add_argument(
+        "--base",
+        type=Path,
+        default=REPO_ROOT / "specs",
+        help="Base directory of Spec Kit features",
+    )
+    spec_check_parser.set_defaults(func=spec_check)
 
     def register_spec_subcommand(name: str, help_text: str) -> None:
         sub = spec_subparsers.add_parser(

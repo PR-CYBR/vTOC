@@ -15,7 +15,13 @@ USAGE
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TERRAFORM_DIR="$ROOT_DIR/infrastructure/terraform"
-OUTPUT_FILE="$ROOT_DIR/docker-compose.generated.yml"
+DEFAULT_OUTPUT_FILE="$ROOT_DIR/docker-compose.generated.yml"
+OUTPUT_FILE_RAW="${VTOC_COMPOSE_FILENAME:-$DEFAULT_OUTPUT_FILE}"
+if [[ "$OUTPUT_FILE_RAW" = /* ]]; then
+  OUTPUT_FILE="$OUTPUT_FILE_RAW"
+else
+  OUTPUT_FILE="$ROOT_DIR/$OUTPUT_FILE_RAW"
+fi
 CONFIG_JSON="${VTOC_CONFIG_JSON:-}"
 if [[ -z "$CONFIG_JSON" ]]; then
   CONFIG_JSON="{}"
@@ -24,7 +30,12 @@ APPLY="${VTOC_SETUP_APPLY:-false}"
 IMAGE_TAG="${VTOC_IMAGE_TAG:-main}"
 IMAGE_REPO="${VTOC_IMAGE_REPO:-ghcr.io/pr-cybr/vtoc}"
 USE_BUILD_LOCAL="${VTOC_BUILD_LOCAL:-false}"
-PULL_IMAGES="true"
+COMPOSE_PLATFORM="${VTOC_COMPOSE_PLATFORM:-}"
+PULL_IMAGES="${VTOC_PULL_IMAGES:-true}"
+
+if [[ "$USE_BUILD_LOCAL" == "true" ]]; then
+  PULL_IMAGES="false"
+fi
 
 export CONFIG_JSON
 
@@ -124,6 +135,7 @@ esac
 
 export ROOT_DIR OUTPUT_FILE CONFIG_JSON IMAGE_TAG IMAGE_REPO USE_BUILD_LOCAL TERRAFORM_DIR
 export CONFIG_BUNDLE_OVERRIDE_JSON TERRAFORM_BUNDLE_JSON FALLBACK_BUNDLE_PATH BUNDLE_SOURCE
+export COMPOSE_PLATFORM
 
 python - <<'PY'
 import json
@@ -140,6 +152,7 @@ bundle_source = os.environ.get("BUNDLE_SOURCE", "fallback")
 override_json = os.environ.get("CONFIG_BUNDLE_OVERRIDE_JSON", "")
 terraform_bundle_json = os.environ.get("TERRAFORM_BUNDLE_JSON", "")
 fallback_bundle_path = Path(os.environ["FALLBACK_BUNDLE_PATH"])
+compose_platform = os.environ.get("COMPOSE_PLATFORM", "").strip()
 
 if bundle_source == "override" and override_json:
     bundle_raw = override_json
@@ -259,6 +272,13 @@ if wazuh_enabled:
         "ports": ["55000:55000"],
     }
 
+if compose_platform:
+    for service in compose["services"].values():
+        service["platform"] = compose_platform
+        build = service.get("build")
+        if isinstance(build, dict):
+            build.setdefault("platform", compose_platform)
+
 
 def dump_yaml(value, indent=0):
     spaces = "  " * indent
@@ -283,6 +303,7 @@ def dump_yaml(value, indent=0):
     return [f"{spaces}{value}"]
 
 lines = dump_yaml(compose)
+output_file.parent.mkdir(parents=True, exist_ok=True)
 output_file.write_text("\n".join(lines) + "\n")
 PY
 
