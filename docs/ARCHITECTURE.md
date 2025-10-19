@@ -73,6 +73,16 @@ Playbook identifiers are defined under `agents/config/agentkit.yml`. The backend
 5. Results are stored in Supabase Postgres and posted back to ChatKit. Frontend receives updates through the standard REST
    polling cycle.
 
+#### Agent action audit context
+
+- AgentKit invocations that flow through `/api/v1/agent-actions/execute` may carry optional ChatKit hints in the payload.
+  Supply `channel_slug` and `initiator_id` either at the top level of the request body or inside the `metadata` object to
+  persist the originating chat context alongside the audit record.
+- ChatKit requests should include `X-ChatKit-Channel` (or `X-ChatKit-Thread`) and `X-ChatKit-User`/`X-ChatKit-Initiator`
+  headers. The backend uses them as fallbacks when the JSON payload omits explicit context.
+- Webhook callbacks can mirror the same `channel_slug` and `initiator_id` fields in their JSON body. The backend keeps the
+  audit log up to date when the action completes, ensuring Supabase rows contain both execution status and chat metadata.
+
 ### Telemetry ingestion
 
 1. Telemetry connector (standalone agent or AgentKit task) fetches external data.
