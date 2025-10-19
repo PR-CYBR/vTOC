@@ -259,6 +259,27 @@ export interface StationAgentCatalog {
   actions: AgentAction[];
 }
 
+export type StationTimelineEventType =
+  | 'telemetry'
+  | 'task'
+  | 'incident'
+  | 'agent'
+  | 'communication'
+  | string;
+
+export interface StationTimelineEntry {
+  id: string;
+  type: StationTimelineEventType;
+  occurred_at: string;
+  title: string;
+  summary?: string;
+  source?: string;
+  icon: string;
+  payload?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  raw: Record<string, unknown>;
+}
+
 const stationHeaders = (stationSlug?: string) =>
   stationSlug
     ? {
@@ -267,6 +288,205 @@ const stationHeaders = (stationSlug?: string) =>
         },
       }
     : {};
+
+const TIMELINE_ICON_MAP: Record<string, string> = {
+  telemetry: '📡',
+  task: '📝',
+  incident: '⚠️',
+  agent: '🤖',
+  communication: '💬',
+  default: '🛰️',
+};
+
+const toStringSafe = (value: unknown): string | undefined => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value.toString();
+  }
+
+  return undefined;
+};
+
+const toISODate = (value: unknown): string | undefined => {
+  if (typeof value === 'string') {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toISOString();
+    }
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toISOString();
+    }
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString();
+  }
+
+  return undefined;
+};
+
+const toRecord = (value: unknown): Record<string, unknown> | undefined => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return undefined;
+};
+
+const stableTimelineId = (value: Record<string, unknown>): string => {
+  const candidates = [
+    toStringSafe(value['id']),
+    toStringSafe(value['uuid']),
+    toStringSafe(value['event_id']),
+    toStringSafe(value['timeline_id']),
+    toStringSafe(value['reference']),
+  ];
+
+  const explicit = candidates.find((candidate) => candidate && candidate.trim().length > 0);
+  if (explicit) {
+    return explicit;
+  }
+
+  const type = toStringSafe(value['type']) ?? toStringSafe(value['event_type']) ?? 'event';
+  const timestamp =
+    toStringSafe(value['occurred_at']) ??
+    toStringSafe(value['timestamp']) ??
+    toStringSafe(value['event_time']) ??
+    toStringSafe(value['created_at']) ??
+    toStringSafe(value['received_at']) ??
+    'unknown';
+
+  const fingerprint = `${type}-${timestamp}`;
+
+  let hash = 0;
+  for (let index = 0; index < fingerprint.length; index += 1) {
+    const charCode = fingerprint.charCodeAt(index);
+    hash = (hash << 5) - hash + charCode;
+    hash |= 0;
+  }
+
+  return `timeline-${Math.abs(hash)}`;
+};
+
+const normalizeTimelinePayload = (
+  value: unknown,
+): Record<string, unknown> | undefined => {
+  const record = toRecord(value);
+  if (record) {
+    return record;
+  }
+
+  return undefined;
+};
+
+const pickTimelineIcon = (type: string | undefined): string => {
+  if (!type) {
+    return TIMELINE_ICON_MAP.default;
+  }
+
+  const normalized = type.toLowerCase();
+
+  if (TIMELINE_ICON_MAP[normalized]) {
+    return TIMELINE_ICON_MAP[normalized];
+  }
+
+  const baseType = normalized.split('.')[0];
+  if (TIMELINE_ICON_MAP[baseType]) {
+    return TIMELINE_ICON_MAP[baseType];
+  }
+
+  return TIMELINE_ICON_MAP.default;
+};
+
+const normalizeStationTimelineEntry = (
+  value: Record<string, unknown>,
+): StationTimelineEntry => {
+  const type =
+    (toStringSafe(value['type']) ??
+      toStringSafe(value['event_type']) ??
+      toStringSafe(value['kind']) ??
+      'event') as StationTimelineEventType;
+
+  const occurredAt =
+    toISODate(value['occurred_at']) ??
+    toISODate(value['timestamp']) ??
+    toISODate(value['event_time']) ??
+    toISODate(value['created_at']) ??
+    toISODate(value['received_at']) ??
+    new Date().toISOString();
+
+  const sourceRecord = toRecord(value['source']);
+  const metadataRecord =
+    normalizeTimelinePayload(value['metadata']) ??
+    normalizeTimelinePayload(value['context']) ??
+    undefined;
+
+  const payloadRecord =
+    normalizeTimelinePayload(value['payload']) ??
+    normalizeTimelinePayload(value['data']) ??
+    normalizeTimelinePayload(value['details']) ??
+    undefined;
+
+  const summaryCandidate =
+    toStringSafe(value['summary']) ??
+    toStringSafe(value['description']) ??
+    toStringSafe(value['status']);
+
+  const titleCandidate =
+    toStringSafe(value['title']) ??
+    toStringSafe(value['name']) ??
+    (sourceRecord ? toStringSafe(sourceRecord['name']) : undefined) ??
+    type;
+
+  const sourceName =
+    (sourceRecord ? toStringSafe(sourceRecord['name']) : undefined) ??
+    toStringSafe(value['source']);
+
+  return {
+    id: stableTimelineId(value),
+    type,
+    occurred_at: occurredAt,
+    title: titleCandidate ?? type,
+    summary: summaryCandidate ?? undefined,
+    source: sourceName ?? undefined,
+    icon: pickTimelineIcon(type),
+    payload: payloadRecord,
+    metadata: metadataRecord,
+    raw: value,
+  };
+};
+
+const unwrapTimelineResponse = (
+  payload: unknown,
+): Record<string, unknown>[] => {
+  if (Array.isArray(payload)) {
+    return payload as Record<string, unknown>[];
+  }
+
+  if (payload && typeof payload === 'object') {
+    const candidate = payload as Record<string, unknown>;
+    const entries = candidate['entries'] ?? candidate['timeline'] ?? candidate['items'];
+    if (Array.isArray(entries)) {
+      return entries as Record<string, unknown>[];
+    }
+  }
+
+  return [];
+};
+
+export const normalizeStationTimeline = (
+  entries: Record<string, unknown>[],
+): StationTimelineEntry[] =>
+  entries
+    .map((entry) => normalizeStationTimelineEntry(entry))
+    .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime());
 
 export const useSupabaseSession = () => {
   const queryClient = useQueryClient();
@@ -392,6 +612,19 @@ export const useStationAgentActions = (stationSlug: string) =>
       const response = await api.get(`/api/v1/stations/${stationSlug}/agentkit/actions`);
       return response.data;
     },
+  });
+
+const fetchStationTimeline = async (stationSlug: string): Promise<StationTimelineEntry[]> => {
+  const response = await api.get(`/api/v1/stations/${stationSlug}/timeline`);
+  const rawEntries = unwrapTimelineResponse(response.data);
+  return normalizeStationTimeline(rawEntries);
+};
+
+export const useStationTimeline = (stationSlug: string) =>
+  useQuery<StationTimelineEntry[]>({
+    queryKey: ['station-timeline', stationSlug],
+    queryFn: () => fetchStationTimeline(stationSlug),
+    staleTime: 30_000,
   });
 
 export default api;

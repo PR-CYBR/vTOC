@@ -197,7 +197,25 @@ full context.
 2. **Create a mission** from the Operations pane. The mission timeline now includes ChatKit transcript references.
 3. **Subscribe telemetry connectors** using the Telemetry admin page, or push sample data with `python -m scripts.bootstrap_cli scraper run` (or the `make scraper-run` alias).
 4. **Trigger an AgentKit playbook** by posting `@agent run recon sweep` in the ChatKit channel. The backend webhook will launch
-   the matching playbook and post a summary back to ChatKit.
+  the matching playbook and post a summary back to ChatKit.
+
+## Station timeline UI
+
+Every TOC station page now ships with a unified timeline that merges telemetry pings, task updates, agent automations, and incident alerts. The panel lives alongside the existing KPI cards and map widgets so operators can correlate spatial data with recent actions at a glance.
+
+- **Where to find it:** The `StationTimelinePanel` component renders inside each `frontend/src/pages/stations/TOCS*.tsx` view. It automatically groups entries by day and surfaces payload excerpts for quick triage.
+- **Data source:** A dedicated React Query hook (`useStationTimeline`) fetches `/api/v1/stations/<slug>/timeline`, normalizes mixed event types, and ensures icons/labels stay consistent.
+- **Re-use it elsewhere:**
+
+  ```tsx
+  import StationTimelinePanel from '../components/telemetry/StationTimelinePanel';
+
+  const CustomStationView = ({ slug }: { slug: string }) => (
+    <StationTimelinePanel stationSlug={slug} className="station-timeline-panel--card" />
+  );
+  ```
+
+The panel ships with loading, empty, and error states out of the box. Drop it into any dashboard grid to give operators the same merged timeline context as the main TOC pages.
 
 ## Common commands
 

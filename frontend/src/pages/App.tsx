@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
 import AppRouter from '../router';
+import SetupWizard from '../features/setup/SetupWizard';
 
 const StationNav = () => {
   const items = [
