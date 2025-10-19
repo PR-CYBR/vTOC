@@ -1,5 +1,5 @@
 .PHONY: help setup-local setup-container setup-cloud compose-up compose-down \
-    backend-test frontend-test scraper-run backend-lint station-migrate station-seed \
+    backend-install backend-test frontend-test scraper-run backend-lint station-migrate station-seed \
     spec-constitution spec-plan spec-tasks spec-implement spec-specify
 
 help: ## Show help
@@ -23,7 +23,10 @@ compose-down: ## Stop dev stack started from generated compose file
 	python -m scripts.bootstrap_cli compose down
 
 backend-test: ## Run backend pytest suite
-	python -m scripts.bootstrap_cli backend test
+        python -m scripts.bootstrap_cli backend test
+
+backend-install: ## Install backend runtime and dev dependencies
+	python -m pip install -r backend/requirements.runtime.txt -r backend/requirements.dev.txt
 
 frontend-test: ## Run frontend tests
 	python -m scripts.bootstrap_cli frontend test
