@@ -11,7 +11,10 @@ capture, and validation checkpoints that must be completed before a station goes
 
 ## Prerequisites
 
-* A validated station kit (see the inventory checklist below).
+* A validated station kit (see the inventory checklist below). Raspberry Pi 5
+  deployments should align with the low-power checklist in
+  [`docs/deployment/raspberry-pi.md`](deployment/raspberry-pi.md) before first
+  boot.
 * Access to the station's ChatKit organization, AgentKit workspace, and the shared vTOC repository.
 * Credentials required by the bootstrap wizard (ChatKit API key, AgentKit OAuth client, Supabase service key). Manage
   these secrets according to [`docs/secret-management.md`](secret-management.md).
