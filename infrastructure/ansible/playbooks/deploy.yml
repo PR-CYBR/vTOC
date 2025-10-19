@@ -7,6 +7,9 @@
   gather_facts: yes
   become: yes
 
+  vars_files:
+    - ../vars/defaults.yml
+
   vars:
     vtoc_home: "{{ ansible_env.HOME }}/vtoc"
     docker_compose_version: "2.23.0"
@@ -52,6 +55,15 @@
         dest: "{{ vtoc_home }}"
         mode: '0755'
 
+    - name: Install udev rule for telemetry devices
+      copy:
+        src: "{{ vtoc_udev_rule_src }}"
+        dest: /etc/udev/rules.d/99-vtoc.rules
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload udev rules
+
     - name: Ensure station directories exist
       file:
         path: "{{ vtoc_home }}/stations/{{ item }}"
@@ -94,3 +106,7 @@
           - "Access the application at: http://localhost"
           - "Traefik Dashboard: http://localhost:8080"
           - "n8n Workflows: http://localhost/n8n"
+
+  handlers:
+    - name: Reload udev rules
+      command: udevadm control --reload

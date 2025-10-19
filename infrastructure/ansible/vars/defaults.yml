@@ -1,0 +1,3 @@
+---
+# Default Ansible variables for vTOC infrastructure automation
+vtoc_udev_rule_src: "{{ playbook_dir }}/../../deploy/udev/99-vtoc.rules"
