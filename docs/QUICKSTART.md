@@ -160,6 +160,29 @@ curl -X POST http://localhost:8080/api/v1/chatkit/webhook -H 'Content-Type: appl
   -d '{"channel":"'"${STATION_CALLSIGN}"'","text":"ping"}'
 ```
 
+### 5. Draft specs and plans with Spec Kit
+
+Once your environment is online, use the Spec Kit slash commands (available in ChatKit and Codex) to convert ideas into
+actionable work:
+
+1. **Seed the feature folder** — Run `/speckit.init flight-tracking-overlays` to create `specs/flight-tracking-overlays/` with a
+   README and `context.yaml`. Confirm that the backlog id is recorded before you continue.
+2. **Author the spec** — Use `/speckit.spec flight-tracking-overlays` to generate `spec.md`. Fill in user stories, data sources,
+   and UX notes; then rerun the command to lock the file and post the summary back to the backlog item.
+3. **Build the implementation plan** — Call `/speckit.plan flight-tracking-overlays` to scaffold `plan.md` and
+   `qa-checklist.md`. Document backend API changes (FastAPI routers, database migrations) alongside frontend updates
+   (React feature modules, telemetry hooks).
+4. **Create execution tasks** — Execute `/speckit.tasks flight-tracking-overlays` to produce Markdown cards under
+   `specs/flight-tracking-overlays/tasks/`. The CLI injects labels like `Workstream: backend` or `Workstream: frontend` to help
+   GitHub Projects swimlanes and Codex follow-ups stay organized.
+5. **Sync with automation** — Finish with `/speckit.sync flight-tracking-overlays` so Codex, GitHub Projects, and deployment
+   pipelines subscribe to the latest plan. The sync updates `backlog/backlog.yaml`, refreshes CI gating metadata, and posts a
+   digest to `docs/workflows/spec-kit-integration.md` for historical reference.
+
+If you are iterating offline, you can run `pnpm --dir codex speckit --help` (see [`codex/README.md`](../codex/README.md) if
+available) to execute the same commands from the terminal. Commit the generated files with your feature branch so reviewers have
+full context.
+
 ### 5. Access applications
 
 - **Frontend**: http://localhost:5173 (dev) or http://localhost:8081 (compose)
