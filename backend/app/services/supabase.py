@@ -9,13 +9,7 @@ from fastapi import Depends, HTTPException, Request, status
 
 from .. import schemas
 from ..config import Settings, get_settings
-
-STATION_HEADER_CANDIDATES = (
-    "x-station-id",
-    "x-station-slug",
-    "x-chatkit-station",
-    "x-toc-station",
-)
+from ..utils.stations import resolve_station_slug as _resolve_station_slug_from_headers
 
 TELEMETRY_SCHEMA = "telemetry"
 
@@ -841,14 +835,7 @@ class SupabaseRepository:
 
 def resolve_station_slug(request: Request) -> Optional[str]:
     """Infer the station slug from common headers."""
-    for header in STATION_HEADER_CANDIDATES:
-        value = request.headers.get(header)
-        if not value:
-            continue
-        slug = value.replace("_", "-").lower()
-        if slug:
-            return slug
-    return None
+    return _resolve_station_slug_from_headers(request.headers, None)
 
 
 def get_station_context(request: Request) -> Optional[str]:
