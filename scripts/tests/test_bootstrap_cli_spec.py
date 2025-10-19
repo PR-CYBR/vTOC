@@ -83,3 +83,35 @@ def test_spec_parser_passes_through_arguments(monkeypatch: pytest.MonkeyPatch) -
         "subcommand": "implement",
         "extra_args": ["--", "--fast", "--owner", "@vtoc"],
     }
+
+
+def test_setup_parser_supports_pi_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    called: dict[str, Any] = {}
+
+    def fake_run_setup(
+        mode: str,
+        *,
+        config: Path | None,
+        config_json: str | None,
+        apply: bool,
+        configure: bool,
+    ) -> None:
+        called.update(
+            {
+                "mode": mode,
+                "config": config,
+                "config_json": config_json,
+                "apply": apply,
+                "configure": configure,
+            }
+        )
+
+    monkeypatch.setattr(bootstrap_cli, "run_setup", fake_run_setup)
+    parser = bootstrap_cli.build_parser()
+    args = parser.parse_args(["setup", "pi"])
+
+    args.func(args)
+
+    assert called["mode"] == "pi"
+    assert called["apply"] is False
+    assert called["configure"] is False
