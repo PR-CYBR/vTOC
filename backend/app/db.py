@@ -63,9 +63,14 @@ def _initialise_supabase_client() -> None:
     if not settings.supabase_enabled:
         return
 
+    url = settings.supabase_url or ""
+    key = settings.supabase_key
+    if not url or not key:
+        return
+
     SUPABASE_CLIENT = create_client(
-        settings.supabase_url,
-        settings.supabase_service_role_key,
+        url,
+        key,
         options=ClientOptions(
             postgrest_client_timeout=settings.supabase_pool_timeout_seconds,
         ),

@@ -37,15 +37,16 @@ class SupabaseRepository:
             raise SupabaseApiError(
                 status.HTTP_503_SERVICE_UNAVAILABLE, "Supabase is not configured"
             )
-        base_url = settings.supabase_url.rstrip("/")
+        base_url = (settings.supabase_url or "").rstrip("/")
+        key = settings.supabase_key
         self._client = client or httpx.Client(
             base_url=f"{base_url}/rest/v1",
             timeout=settings.supabase_timeout_seconds,
         )
         self._schema = settings.supabase_schema
         self._headers: Dict[str, str] = {
-            "apikey": settings.supabase_key,
-            "Authorization": f"Bearer {settings.supabase_key}",
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
             "Content-Type": "application/json",
             "Accept": "application/json",
         }
