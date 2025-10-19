@@ -129,3 +129,22 @@ A lightweight CI job runs `yamllint` and a schema check against
 `backlog/backlog.schema.json` (to be added in a future iteration) to ensure
 formatting and field types remain consistent. If the job fails, update the local
 file and re-run the checks before opening a pull request.
+
+## Spec Kit migration notes
+
+Bot integration backlog items now map to dedicated Spec Kit directories under
+`specs/`. Replace references to `docs/tasks/bot-integrations.md` with the
+corresponding feature directory when updating backlog entries, PRs, or project
+notes:
+
+- `specs/001-bot-integrations-shared/` – shared runtime, clients, deployment, and observability foundations.
+- `specs/002-bot-telegram/` – Telegram management bot transport, handlers, and rollout.
+- `specs/003-bot-slack/` – Slack monitoring bot events pipeline and command surface.
+- `specs/004-bot-discord/` – Discord operations bot gateway, commands, and resilience.
+- `specs/005-bot-docs-qa-rollout/` – documentation, QA automation, and rollout orchestration.
+
+Each directory includes `spec.md`, `plan.md`, `research.md`, `quickstart.md`,
+`tasks.md`, and `contracts/` assets generated with the `/speckit.specify`,
+`/speckit.plan`, and `/speckit.tasks` commands. When backlog scope changes,
+update the relevant Spec Kit documents first, then link to them from
+`backlog/backlog.yaml` via the `links` and `plan_history` fields.
