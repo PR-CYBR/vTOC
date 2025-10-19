@@ -13,6 +13,7 @@ from supabase import Client, create_client
 from supabase.lib.client_options import ClientOptions
 
 from .config import get_settings
+from .utils.stations import resolve_station_slug as _resolve_station_slug_from_headers
 
 Base = declarative_base()
 
@@ -125,21 +126,9 @@ def session_scope(station_slug: Optional[str] = None) -> Generator[Session, None
 
 
 def _resolve_station_slug(request: Request) -> Optional[str]:
-    candidate_headers = (
-        "x-station-id",
-        "x-station-slug",
-        "x-chatkit-station",
-        "x-toc-station",
+    return _resolve_station_slug_from_headers(
+        request.headers, SESSION_FACTORY_BY_STATION.keys()
     )
-
-    for header in candidate_headers:
-        value = request.headers.get(header)
-        if not value:
-            continue
-        slug = value.replace("_", "-").lower()
-        if slug in SESSION_FACTORY_BY_STATION:
-            return slug
-    return None
 
 
 def get_db(station_slug: Optional[str] = None) -> Generator[Session, None, None]:
