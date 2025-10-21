@@ -12,6 +12,65 @@ on:
   workflow_dispatch:
 
 jobs:
+  alembic-migrations:
+    name: Alembic migrations (${{ matrix.station.slug }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        station:
+          - slug: toc-s1
+            schema: toc_s1
+          - slug: toc-s2
+            schema: toc_s2
+          - slug: toc-s3
+            schema: toc_s3
+          - slug: toc-s4
+            schema: toc_s4
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: vtoc
+          POSTGRES_USER: vtoc
+          POSTGRES_PASSWORD: vtocpass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vtoc"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Alembic dependencies
+        run: python -m pip install -r backend/requirements.runtime.txt
+      - name: Ensure schema exists
+        env:
+          BASE_DATABASE_URL: postgresql+psycopg2://vtoc:vtocpass@localhost:5432/vtoc
+          TARGET_SCHEMA: ${{ matrix.station.schema }}
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+
+          engine = create_engine(os.environ["BASE_DATABASE_URL"], future=True)
+          schema = os.environ["TARGET_SCHEMA"]
+
+          with engine.begin() as connection:
+              connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
+          PY
+      - name: Run Alembic upgrade
+        working-directory: backend
+        env:
+          POSTGRES_STATION_ROLE: ${{ matrix.station.slug }}
+          DATABASE_URL: postgresql+psycopg2://vtoc:vtocpass@localhost:5432/vtoc?options=-csearch_path%3D${{ matrix.station.schema }}
+        run: alembic upgrade head
+
   build-and-test:
     permissions:
       packages: ${{ github.event_name == 'push' && 'write' || 'read' }}
@@ -97,11 +156,17 @@ PY
             CLEAN_PATH="$CLEAN_PATH:$PY_DIR"
           fi
           export PATH="$CLEAN_PATH"
+          export VTOC_COMPOSE_FILENAME="$GITHUB_WORKSPACE/docker-compose.generated.yml"
           if command -v terraform >/dev/null 2>&1; then
             echo "Terraform still available on PATH" >&2
             exit 1
           fi
           ./scripts/setup_container.sh --build-local
+      - name: Upload generated compose artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-compose-generated
+          path: '${{ github.workspace }}/docker-compose.generated.yml'
       - name: Install Python dependencies
         run: python -m pip install -r backend/requirements.runtime.txt -r backend/requirements.dev.txt
       - name: Python lint

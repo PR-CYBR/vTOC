@@ -34,6 +34,9 @@ This summary captures the major components that make up the ChatKit-augmented vT
 - ChatKit organizes channels per station and threads per mission.
 - Backend webhook normalizes messages, applies station role policies, and schedules AgentKit runs.
 - AgentKit executes playbooks declared in `agents/config/agentkit.yml`, publishing summaries back to ChatKit and the mission log.
+- Station AgentKit catalog exposes tools such as `mission_timeline`, which proxies
+  `/api/v1/stations/{slug}/mission-timeline` so automations can retrieve recent mission
+  events and log entries for context-aware prompts.
 - `scripts/setup.sh` provisions sandbox channels and stores their IDs inside `.env.station`.
 
 ## Infrastructure & automation

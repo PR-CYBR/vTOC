@@ -293,6 +293,8 @@ class AgentActionExecuteRequest(BaseModel):
     tool_name: str
     action_input: dict[str, Any]
     metadata: dict[str, Any] | None = None
+    channel_slug: Optional[str] = None
+    initiator_id: Optional[str] = None
 
 
 class AgentActionExecuteResponse(BaseModel):
@@ -307,6 +309,8 @@ class AgentActionWebhookEvent(BaseModel):
     status: str
     result: Optional[dict[str, Any]] = None
     error: Optional[str] = None
+    channel_slug: Optional[str] = None
+    initiator_id: Optional[str] = None
 
 
 class AgentActionAuditBase(BaseModel):
@@ -316,6 +320,8 @@ class AgentActionAuditBase(BaseModel):
     request_payload: Optional[dict[str, Any]] = None
     response_payload: Optional[dict[str, Any]] = None
     error_message: Optional[str] = None
+    channel_slug: Optional[str] = None
+    initiator_id: Optional[str] = None
 
 
 class AgentActionAuditCreate(AgentActionAuditBase):
