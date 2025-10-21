@@ -27,6 +27,13 @@ When `terraform output -json fly_secret_map` is rendered these keys are now incl
 allowing operators to push consistent secrets into Fly.io or other target platforms.
 Override any value within `terraform.tfvars` or environment-specific tfvars files.
 
+### Mission timeline configuration
+
+The backend exposes a `timeline_event_limit` variable that caps the number of mission
+timeline events returned in API responses. Adjust the default of `100` to trim payloads or
+increase retention when exporting telemetry. The value is surfaced to Fly.io as the
+`MISSION_TIMELINE_LIMIT` secret so runtime deployments stay aligned with Terraform state.
+
 ## Udev rules for telemetry devices
 
 Udev rules under `deploy/udev/99-vtoc.rules` grant non-root access to USB serial adapters
