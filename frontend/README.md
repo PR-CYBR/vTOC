@@ -48,6 +48,11 @@ The build output lands in `dist/` and is consumed by the nginx-based container i
 - `VITE_API_URL` — override backend base URL (defaults to `http://localhost:8080`).
 - `VITE_STATION_CALLSIGN` — set automatically from `.env.station`.
 - `VITE_STATION_ROLE` — used to scope mission widgets and ChatKit thread filters.
+- `VITE_CHATKIT_API_KEY` — enables the embedded ChatKit console when paired with the variables below.
+- `VITE_AGENTKIT_ORG_ID` — organization identifier passed to ChatKit for routing agent actions.
+- `VITE_CHATKIT_WIDGET_URL` — URL of the ChatKit web component bundle to hydrate the console UI.
+- `VITE_AGENTKIT_DEFAULT_STATION_CONTEXT` — optional override for the default station context shared with ChatKit (defaults to `toc-s1`).
+- `VITE_CHATKIT_TELEMETRY_CHANNEL` — optional telemetry channel name used to scope real-time event streams.
 
 Refer to [`docs/QUICKSTART.md`](../docs/QUICKSTART.md) for the station bootstrap workflow and to [`CONTRIBUTING.md`](../CONTRIBUTING.md)
 for testing expectations.
