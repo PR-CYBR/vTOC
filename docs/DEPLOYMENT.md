@@ -40,7 +40,7 @@ managed backups, PITR, and Auth integration.
 1. Copy environment examples if desired: `cp .env.example .env`.
 2. Run `python -m scripts.bootstrap_cli setup local` (or the `make setup-local` alias) to install dependencies, generate `.env.local`/`.env.station`, and provision ChatKit sandbox channels.
    Provide secrets interactively when prompted or forward a prepared payload via `--config-json` / `--config-json @path/to/config.json`.
-   The JSON accepts `chatkit`, `agentkit`, `supabase`, and `station` sections matching [`scripts/inputs.schema.json`](../scripts/inputs.schema.json);
+   The JSON accepts `chatkit`, `agentkit`, `supabase`, and `station` sections matching [`scripts/inputs.schema.json`](https://github.com/vasa-dev/vTOC/blob/main/scripts/inputs.schema.json);
    the CLI compacts the payload, writes `.env.local`, `.env.station`, and `frontend/.env.local`, then prints structured next-step guidance.
 3. Launch the dev servers:
    ```bash
@@ -160,7 +160,7 @@ Running `python -m scripts.bootstrap_cli setup cloud` now delegates to a Python 
 
 - A `configBundle` override supplied via `--config`/`--config-json` is preferred. When no override is present the generator
   attempts to read the `config_bundle` Terraform output from `infrastructure/terraform` and gracefully falls back to
-  [`scripts/defaults/config_bundle.local.json`](../scripts/defaults/config_bundle.local.json) when state or the Terraform binary
+  [`scripts/defaults/config_bundle.local.json`](https://github.com/vasa-dev/vTOC/blob/main/scripts/defaults/config_bundle.local.json) when state or the Terraform binary
   is unavailable.
 - Terraform and Ansible assets are written under `infra/terraform` and `infra/ansible` along with
   `infra/cloud-manifest.json`. The manifest captures Fly.io image references, required secrets, next commands, and the dynamic

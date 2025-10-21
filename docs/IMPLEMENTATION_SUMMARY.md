@@ -9,7 +9,7 @@ This summary captures the major components that make up the ChatKit-augmented vT
 - Exposes REST routers for telemetry, stations, and mission management (`/api/v1/*`).
 - Hosts `/api/v1/chatkit/webhook` for ChatKit event ingestion and `/api/v1/agentkit/runs` for internal job tracking.
 - Uses SQLAlchemy models synced via Alembic migrations (`alembic/`).
-- Integrates with ChatKit and AgentKit using environment variables documented in [`README.md`](../README.md).
+- Integrates with ChatKit and AgentKit using environment variables documented in [`README.md`](https://github.com/vasa-dev/vTOC/blob/main/README.md).
 - Provides role-aware dependency overrides so that each station resolves its own Postgres database.
 
 ## Frontend application (Vite + React + TypeScript)
@@ -49,4 +49,4 @@ This summary captures the major components that make up the ChatKit-augmented vT
 
 - Quick start, deployment, and architecture docs are synchronized with ChatKit/AgentKit requirements.
 - [`docs/CHANGELOG.md`](CHANGELOG.md) describes the migration path from the pre-ChatKit release.
-- [`CONTRIBUTING.md`](../CONTRIBUTING.md) outlines development standards and testing expectations.
+- [`CONTRIBUTING.md`](https://github.com/vasa-dev/vTOC/blob/main/CONTRIBUTING.md) outlines development standards and testing expectations.
