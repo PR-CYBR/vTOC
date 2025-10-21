@@ -143,6 +143,13 @@ VTOC_IMAGE_TAG=main docker compose up
 VTOC_IMAGE_REPO=ghcr.io/myfork/vtoc VTOC_IMAGE_TAG=pr-123 docker compose up
 ```
 
+When running `docker compose up` directly, make sure the ChatKit, AgentKit, and Supabase credentials expected by the backend and frontend are present in your shell (or a `.env` file). The compose file reads the following variables:
+
+* **Backend**: `AGENTKIT_API_BASE_URL`, `AGENTKIT_API_KEY`, `AGENTKIT_ORG_ID`, `AGENTKIT_TIMEOUT_SECONDS`, `CHATKIT_WEBHOOK_SECRET`, `CHATKIT_ALLOWED_TOOLS`, `CHATKIT_API_KEY`, `CHATKIT_ORG_ID`, `SUPABASE_URL`, `SUPABASE_PROJECT_REF`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `SUPABASE_ANON_KEY`
+* **Frontend**: `VITE_CHATKIT_WIDGET_URL`, `VITE_CHATKIT_API_KEY`, `VITE_CHATKIT_TELEMETRY_CHANNEL`, `VITE_AGENTKIT_ORG_ID`, `VITE_AGENTKIT_DEFAULT_STATION_CONTEXT`, `VITE_AGENTKIT_API_BASE_PATH`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+
+Populate these from your Terraform outputs, config bundle override, or the bootstrap helper (`python -m scripts.bootstrap_cli setup container --config ...`).
+
 To build locally, call the container setup helper with `--build-local` so the generated compose file includes `build:` blocks:
 
 ```bash
