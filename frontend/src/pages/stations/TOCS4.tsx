@@ -1,4 +1,5 @@
 import { useStations, useStationDashboard } from '../../services/api';
+import StationTimelinePanel from '../../components/telemetry/StationTimelinePanel';
 
 const STATION_SLUG = 'toc-s4';
 
@@ -22,6 +23,8 @@ const TOCS4Dashboard = () => {
           </div>
         </div>
       </section>
+
+      <StationTimelinePanel stationSlug={STATION_SLUG} className="station-timeline-panel--card" />
 
       <section className="station-table">
         <header>

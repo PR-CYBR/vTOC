@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
 import ChatKitWidget from '../components/chatkit/ChatKitWidget';
 import SetupWizard from '../features/setup/SetupWizard';
 import AppRouter from '../router';
+import SetupWizard from '../features/setup/SetupWizard';
 import { useSupabaseSession, useTelemetryEvents } from '../services/api';
 
 const StationNav = () => {

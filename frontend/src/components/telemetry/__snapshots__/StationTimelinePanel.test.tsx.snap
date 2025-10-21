@@ -1,0 +1,177 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`StationTimelinePanel > renders grouped entries with payload excerpts and icons 1`] = `
+<section
+  aria-label="Station timeline"
+  class="station-timeline-panel"
+>
+  <header
+    class="station-timeline-panel__header"
+  >
+    <div>
+      <h3>
+        Station Timeline
+      </h3>
+      <p
+        class="station-timeline-panel__subtitle"
+      >
+        Unified view of telemetry, tasks, agent actions, and alerts
+      </p>
+    </div>
+    <span
+      aria-label="Timeline entry count"
+      class="station-timeline-panel__count"
+    >
+      2
+    </span>
+  </header>
+  <div
+    class="station-timeline-panel__body"
+  >
+    <div
+      class="station-timeline-panel__groups"
+    >
+      <section
+        class="timeline-group"
+      >
+        <h4
+          class="timeline-group__label"
+        >
+          Wed, Jan 3, 2024
+        </h4>
+        <ul
+          class="timeline-group__entries"
+        >
+          <li
+            class="timeline-entry timeline-entry--telemetry"
+          >
+            <span
+              aria-hidden="true"
+              class="timeline-entry__icon"
+            >
+              📡
+            </span>
+            <div
+              class="timeline-entry__content"
+            >
+              <header
+                class="timeline-entry__header"
+              >
+                <div>
+                  <h5>
+                    Signal received
+                  </h5>
+                  <div
+                    class="timeline-entry__meta"
+                  >
+                    <span
+                      class="timeline-entry__type"
+                    >
+                      telemetry
+                    </span>
+                    <span
+                      class="timeline-entry__source"
+                    >
+                      Sensor Alpha
+                    </span>
+                  </div>
+                  <p
+                    class="timeline-entry__summary"
+                  >
+                    Thermal spike detected
+                  </p>
+                </div>
+                <time
+                  class="timeline-entry__timestamp"
+                  datetime="2024-01-03T10:00:00Z"
+                >
+                  10:00 AM
+                </time>
+              </header>
+              <pre
+                aria-label="Event payload excerpt"
+                class="timeline-entry__payload"
+              >
+                {
+  "temperature": 28.3,
+  "unit": "C"
+}
+              </pre>
+            </div>
+          </li>
+        </ul>
+      </section>
+      <section
+        class="timeline-group"
+      >
+        <h4
+          class="timeline-group__label"
+        >
+          Tue, Jan 2, 2024
+        </h4>
+        <ul
+          class="timeline-group__entries"
+        >
+          <li
+            class="timeline-entry timeline-entry--task"
+          >
+            <span
+              aria-hidden="true"
+              class="timeline-entry__icon"
+            >
+              📝
+            </span>
+            <div
+              class="timeline-entry__content"
+            >
+              <header
+                class="timeline-entry__header"
+              >
+                <div>
+                  <h5>
+                    Task assigned
+                  </h5>
+                  <div
+                    class="timeline-entry__meta"
+                  >
+                    <span
+                      class="timeline-entry__type"
+                    >
+                      task
+                    </span>
+                    <span
+                      class="timeline-entry__source"
+                    >
+                      Mission Control
+                    </span>
+                  </div>
+                  <p
+                    class="timeline-entry__summary"
+                  >
+                    Deploy search drone
+                  </p>
+                </div>
+                <time
+                  class="timeline-entry__timestamp"
+                  datetime="2024-01-02T18:30:00Z"
+                >
+                  06:30 PM
+                </time>
+              </header>
+              <pre
+                aria-label="Event payload excerpt"
+                class="timeline-entry__payload"
+              >
+                {
+  "priority": "high",
+  "assignee": "Falcon-1"
+}
+              </pre>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</section>
+`;

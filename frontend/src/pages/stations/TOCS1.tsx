@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 
 import { useStationDashboard, useTelemetryEvents } from '../../services/api';
 import MockTelemetryOverlay from '../../components/telemetry/MockTelemetryOverlay';
+import StationTimelinePanel from '../../components/telemetry/StationTimelinePanel';
 
 const STATION_SLUG = 'toc-s1';
 const DEFAULT_POSITION: LatLngExpression = [18.4663, -66.1057];
@@ -23,7 +24,7 @@ const TOCS1Dashboard = () => {
   const [panelOpen, setPanelOpen] = useState(true);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const { data: dashboard } = useStationDashboard(STATION_SLUG);
-  const { data: events = [], isLoading } = useTelemetryEvents(STATION_SLUG);
+  const { data: events = [] } = useTelemetryEvents(STATION_SLUG);
 
   const markers = useMemo(() => {
     return events.filter((event) => event.latitude && event.longitude);
@@ -62,17 +63,7 @@ const TOCS1Dashboard = () => {
               <pre>{JSON.stringify(dashboard.metrics.last_event.payload ?? {}, null, 2)}</pre>
             </div>
           )}
-          {isLoading && <p>Loading telemetry…</p>}
-          {!isLoading && events.length === 0 && <p>No telemetry events available.</p>}
-          <ul>
-            {events.map((event) => (
-              <li key={event.id}>
-                <h3>{event.source.name}</h3>
-                <p>{new Date(event.event_time ?? event.received_at).toLocaleString()}</p>
-                <pre>{JSON.stringify(event.payload ?? {}, null, 2)}</pre>
-              </li>
-            ))}
-          </ul>
+          <StationTimelinePanel stationSlug={STATION_SLUG} />
         </div>
       </aside>
       <section className="map-container">
