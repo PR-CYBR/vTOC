@@ -187,9 +187,29 @@ directories and refreshes the manifest so the inventory reflects the assigned ad
 
 The Fly deployment ships the backend container using the `live` branch as the source of truth.
 
-1. Ensure `fly.toml` has `primary_region`, `app`, and `[env]` entries for ChatKit/AgentKit secrets or references to Fly secrets.
-   Store `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` with `flyctl secrets set` so the backend can authenticate against
-   Supabase.
+1. Ensure `fly.toml` has `primary_region`, `app`, and `[env]` entries for the backend secrets managed by Terraform. The
+   manifest ships blank values for `AGENTKIT_*`, `CHATKIT_*`, and `SUPABASE_*` variables so Fly secrets replace them at
+   deploy time. Populate the values with `flyctl secrets set` before deploying:
+
+   ```bash
+   flyctl secrets set \
+     AGENTKIT_API_BASE_URL=<agentkit-api-base-url> \
+     AGENTKIT_API_KEY=<agentkit-api-key> \
+     AGENTKIT_ORG_ID=<agentkit-org-id> \
+     AGENTKIT_TIMEOUT_SECONDS=<agentkit-timeout-seconds> \
+     CHATKIT_ALLOWED_TOOLS=<chatkit-allowed-tools> \
+     CHATKIT_API_KEY=<chatkit-api-key> \
+     CHATKIT_ORG_ID=<chatkit-org-id> \
+     CHATKIT_WEBHOOK_SECRET=<chatkit-webhook-secret> \
+     SUPABASE_ANON_KEY=<supabase-anon-key> \
+     SUPABASE_JWT_SECRET=<supabase-jwt-secret> \
+     SUPABASE_PROJECT_REF=<supabase-project-ref> \
+     SUPABASE_SERVICE_ROLE_KEY=<supabase-service-role-key> \
+     SUPABASE_URL=<supabase-url>
+   ```
+
+   The values typically come from Terraform outputs (or `terraform output fly_secrets_env`) and should match the secrets used
+   by your other deployment targets.
 2. Authenticate: `flyctl auth login` (or set `FLY_API_TOKEN`).
 3. Generate a **read-only** GitHub Container Registry token:
    - Navigate to <https://github.com/settings/tokens?type=beta>.

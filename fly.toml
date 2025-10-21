@@ -5,6 +5,21 @@ primary_region = "iad"
 [build]
   image = "ghcr.io/pr-cybr/vtoc/backend:latest"
 
+[env]
+  AGENTKIT_API_BASE_URL = ""
+  AGENTKIT_API_KEY = ""
+  AGENTKIT_ORG_ID = ""
+  AGENTKIT_TIMEOUT_SECONDS = ""
+  CHATKIT_ALLOWED_TOOLS = ""
+  CHATKIT_API_KEY = ""
+  CHATKIT_ORG_ID = ""
+  CHATKIT_WEBHOOK_SECRET = ""
+  SUPABASE_ANON_KEY = ""
+  SUPABASE_JWT_SECRET = ""
+  SUPABASE_PROJECT_REF = ""
+  SUPABASE_SERVICE_ROLE_KEY = ""
+  SUPABASE_URL = ""
+
 [http_service]
   internal_port = 8080
   force_https = true
