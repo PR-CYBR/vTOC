@@ -22,3 +22,22 @@ jobs:
           TAG: ${{ github.sha }}
           TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
         run: scripts/fly_deploy.sh
+
+  verify-sync:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Check Fly.io deployment health
+        run: |
+          curl -fsSL https://vtoc.pr-cybr.com/healthz
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Upsert prod → main sync PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const path = require('path');
+            const upsert = require(path.join(process.cwd(), '.github/scripts/upsert-prod-sync-pr.js'));
+            await upsert({ github, context, core });
