@@ -41,6 +41,8 @@ ChatKit organization. This document describes the high-level architecture and th
   mission console. Reads `STATION_CALLSIGN` and `POSTGRES_STATION_ROLE` from `.env.station`.
 - **Backend** — FastAPI service exposing REST endpoints, ChatKit webhook listeners, and telemetry ingestion APIs. It maps channel
   events to AgentKit playbooks based on the station role and persists results to Supabase-hosted Postgres schemas.
+  - `/api/v1/stations/{station_slug}/timeline` merges recent telemetry events with AgentKit audits so operators can review a
+    unified activity feed per station.
 - **Supabase Postgres** — Managed Postgres instance with per-role schemas (`ops`, `intel`, `logistics`). Supabase enforces
   row-level security policies aligned with station metadata and exposes realtime feeds for the frontend.
 - **ChatKit Organization** — Shared chat fabric for operators and automated agents. Each station owns a default channel named
