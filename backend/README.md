@@ -8,7 +8,7 @@ run either alongside the full stack (`make setup-container`) or as a standalone 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.runtime.txt -r requirements.dev.txt
 export DATABASE_URL="postgresql+psycopg2://vtoc:vtocpass@localhost:5432/vtoc_ops"
 export POSTGRES_STATION_ROLE="ops"
 export CHATKIT_API_KEY="..." CHATKIT_ORG_ID="..."

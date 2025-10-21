@@ -2,15 +2,22 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Annotated, Any, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
+
+from .schema_mixins import (
+    ActivationFields,
+    DescriptionMixin,
+    IdentifierMixin,
+    ORMModelMixin,
+    SlugNameMixin,
+    TimestampsMixin,
+    create_partial_model,
+)
 
 
-class StationBase(BaseModel):
-    slug: str
-    name: str
-    description: Optional[str] = None
+class StationBase(SlugNameMixin, DescriptionMixin):
     timezone: str = "UTC"
     telemetry_schema: Optional[str] = None
 
@@ -19,25 +26,14 @@ class StationCreate(StationBase):
     pass
 
 
-class StationUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    timezone: Optional[str] = None
-    telemetry_schema: Optional[str] = None
+StationUpdate = create_partial_model("StationUpdate", StationBase)
 
 
-class StationRead(StationBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    created_at: datetime
-    updated_at: datetime
+class StationRead(ORMModelMixin, StationBase, IdentifierMixin, TimestampsMixin):
+    pass
 
 
-class BaseStationBase(BaseModel):
-    slug: str
-    name: str
-    description: Optional[str] = None
+class BaseStationBase(SlugNameMixin, DescriptionMixin):
     status: str = "active"
     latitude: Optional[float] = None
     longitude: Optional[float] = None
@@ -50,34 +46,17 @@ class BaseStationCreate(BaseStationBase):
     station_id: int
 
 
-class BaseStationUpdate(BaseModel):
-    slug: Optional[str] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-    status: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    altitude_m: Optional[float] = None
-    metadata: Optional[dict[str, Any]] = None
-    station_id: Optional[int] = None
+BaseStationUpdate = create_partial_model("BaseStationUpdate", BaseStationBase)
 
 
-class BaseStationRead(BaseStationBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    created_at: datetime
-    updated_at: datetime
+class BaseStationRead(ORMModelMixin, BaseStationBase, IdentifierMixin, TimestampsMixin):
+    pass
 
 
-class TelemetrySourceBase(BaseModel):
-    name: str
-    slug: str
+class TelemetrySourceBase(SlugNameMixin, DescriptionMixin, ActivationFields):
     source_type: str
-    description: Optional[str] = None
-    is_active: bool = True
     connection_mode: str = "online"
-    configuration: Optional[dict] = None
+    configuration: Optional[dict[str, Any]] = None
     station_id: Optional[int] = None
 
 
@@ -85,30 +64,17 @@ class TelemetrySourceCreate(TelemetrySourceBase):
     pass
 
 
-class TelemetrySourceUpdate(BaseModel):
-    name: Optional[str] = None
-    slug: Optional[str] = None
-    source_type: Optional[str] = None
-    description: Optional[str] = None
-    is_active: Optional[bool] = None
-    connection_mode: Optional[str] = None
-    configuration: Optional[dict] = None
-    station_id: Optional[int] = None
+TelemetrySourceUpdate = create_partial_model("TelemetrySourceUpdate", TelemetrySourceBase)
 
 
-class TelemetrySourceRead(TelemetrySourceBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
+class TelemetrySourceRead(
+    ORMModelMixin, TelemetrySourceBase, IdentifierMixin, TimestampsMixin
+):
     last_ingested_at: Optional[datetime] = None
-    created_at: datetime
-    updated_at: datetime
     station: Optional[StationRead] = None
 
 
-class DeviceBase(BaseModel):
-    slug: str
-    name: str
+class DeviceBase(SlugNameMixin, ActivationFields):
     device_type: str
     base_station_id: Optional[int] = None
     station_id: Optional[int] = None
@@ -116,7 +82,6 @@ class DeviceBase(BaseModel):
     model: Optional[str] = None
     serial_number: Optional[str] = None
     firmware_version: Optional[str] = None
-    is_active: bool = True
     last_seen_at: Optional[datetime] = None
     configuration: Optional[dict[str, Any]] = None
     metadata: Optional[dict[str, Any]] = None
@@ -126,28 +91,10 @@ class DeviceCreate(DeviceBase):
     pass
 
 
-class DeviceUpdate(BaseModel):
-    slug: Optional[str] = None
-    name: Optional[str] = None
-    device_type: Optional[str] = None
-    base_station_id: Optional[int] = None
-    station_id: Optional[int] = None
-    manufacturer: Optional[str] = None
-    model: Optional[str] = None
-    serial_number: Optional[str] = None
-    firmware_version: Optional[str] = None
-    is_active: Optional[bool] = None
-    last_seen_at: Optional[datetime] = None
-    configuration: Optional[dict[str, Any]] = None
-    metadata: Optional[dict[str, Any]] = None
+DeviceUpdate = create_partial_model("DeviceUpdate", DeviceBase)
 
 
-class DeviceRead(DeviceBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    created_at: datetime
-    updated_at: datetime
+class DeviceRead(ORMModelMixin, DeviceBase, IdentifierMixin, TimestampsMixin):
     base_station: Optional[BaseStationRead] = None
     station: Optional[StationRead] = None
 
@@ -161,7 +108,7 @@ class TelemetryEventBase(BaseModel):
     speed: Optional[float] = Field(default=None)
     payload: Optional[dict] = None
     raw_data: Optional[str] = None
-    status: Optional[str] = 'received'
+    status: Optional[str] = "received"
     station_id: Optional[int] = None
 
 
@@ -171,37 +118,24 @@ class TelemetryEventCreate(TelemetryEventBase):
     source_name: Optional[str] = None
 
 
-class TelemetryEventUpdate(BaseModel):
-    event_time: Optional[datetime] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    altitude: Optional[float] = None
-    heading: Optional[float] = None
-    speed: Optional[float] = None
-    payload: Optional[dict] = None
-    raw_data: Optional[str] = None
-    status: Optional[str] = None
+TelemetryEventUpdate = create_partial_model(
+    "TelemetryEventUpdate", TelemetryEventBase, exclude={"station_id"}
+)
 
 
-class TelemetryEventRead(TelemetryEventBase):
-    model_config = ConfigDict(from_attributes=True)
-
+class TelemetryEventRead(ORMModelMixin, TelemetryEventBase):
     id: int
     received_at: datetime
 
 
-class RfStreamBase(BaseModel):
-    slug: str
-    name: str
+class RfStreamBase(SlugNameMixin, DescriptionMixin, ActivationFields):
     device_id: int
     source_id: Optional[int] = None
-    description: Optional[str] = None
     center_frequency_hz: Optional[int] = None
     bandwidth_hz: Optional[int] = None
     sample_rate: Optional[int] = None
     modulation: Optional[str] = None
     gain: Optional[float] = None
-    is_active: bool = True
     configuration: Optional[dict[str, Any]] = None
 
 
@@ -209,27 +143,11 @@ class RfStreamCreate(RfStreamBase):
     pass
 
 
-class RfStreamUpdate(BaseModel):
-    slug: Optional[str] = None
-    name: Optional[str] = None
-    device_id: Optional[int] = None
-    source_id: Optional[int] = None
-    description: Optional[str] = None
-    center_frequency_hz: Optional[int] = None
-    bandwidth_hz: Optional[int] = None
-    sample_rate: Optional[int] = None
-    modulation: Optional[str] = None
-    gain: Optional[float] = None
-    is_active: Optional[bool] = None
-    configuration: Optional[dict[str, Any]] = None
+RfStreamUpdate = create_partial_model("RfStreamUpdate", RfStreamBase)
 
 
-class RfStreamRead(RfStreamBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    created_at: datetime
-    updated_at: datetime
+class RfStreamRead(ORMModelMixin, RfStreamBase, IdentifierMixin, TimestampsMixin):
+    pass
 
 
 class TelemetryEventWithSource(TelemetryEventRead):
@@ -237,36 +155,21 @@ class TelemetryEventWithSource(TelemetryEventRead):
     station: Optional[StationRead] = None
 
 
-class OverlayBase(BaseModel):
-    slug: str
-    name: str
+class OverlayBase(SlugNameMixin, DescriptionMixin, ActivationFields):
     station_id: int
     overlay_type: str
-    description: Optional[str] = None
     configuration: Optional[dict[str, Any]] = None
-    is_active: bool = True
 
 
 class OverlayCreate(OverlayBase):
     pass
 
 
-class OverlayUpdate(BaseModel):
-    slug: Optional[str] = None
-    name: Optional[str] = None
-    station_id: Optional[int] = None
-    overlay_type: Optional[str] = None
-    description: Optional[str] = None
-    configuration: Optional[dict[str, Any]] = None
-    is_active: Optional[bool] = None
+OverlayUpdate = create_partial_model("OverlayUpdate", OverlayBase)
 
 
-class OverlayRead(OverlayBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    created_at: datetime
-    updated_at: datetime
+class OverlayRead(ORMModelMixin, OverlayBase, IdentifierMixin, TimestampsMixin):
+    pass
 
 
 class TelemetryGpsFixBase(BaseModel):
@@ -288,9 +191,7 @@ class TelemetryGpsFixCreate(TelemetryGpsFixBase):
     pass
 
 
-class TelemetryGpsFixRead(TelemetryGpsFixBase):
-    model_config = ConfigDict(from_attributes=True)
-
+class TelemetryGpsFixRead(ORMModelMixin, TelemetryGpsFixBase):
     id: int
     recorded_at: datetime
     created_at: datetime
@@ -318,32 +219,26 @@ class TelemetryAircraftPositionCreate(TelemetryAircraftPositionBase):
     pass
 
 
-class TelemetryAircraftPositionRead(TelemetryAircraftPositionBase):
-    model_config = ConfigDict(from_attributes=True)
-
+class TelemetryAircraftPositionRead(ORMModelMixin, TelemetryAircraftPositionBase):
     id: int
     position_time: datetime
     received_at: datetime
     created_at: datetime
 
 
-class StationAssignmentBase(BaseModel):
+class StationAssignmentBase(ActivationFields):
     station_id: int
     source_id: int
     role: str = "primary"
-    is_active: bool = True
 
 
 class StationAssignmentCreate(StationAssignmentBase):
     pass
 
 
-class StationAssignmentRead(StationAssignmentBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    created_at: datetime
-    updated_at: datetime
+class StationAssignmentRead(
+    ORMModelMixin, StationAssignmentBase, IdentifierMixin, TimestampsMixin
+):
     station: StationRead
     source: TelemetrySourceRead
 
@@ -398,6 +293,8 @@ class AgentActionExecuteRequest(BaseModel):
     tool_name: str
     action_input: dict[str, Any]
     metadata: dict[str, Any] | None = None
+    channel_slug: Optional[str] = None
+    initiator_id: Optional[str] = None
 
 
 class AgentActionExecuteResponse(BaseModel):
@@ -412,6 +309,8 @@ class AgentActionWebhookEvent(BaseModel):
     status: str
     result: Optional[dict[str, Any]] = None
     error: Optional[str] = None
+    channel_slug: Optional[str] = None
+    initiator_id: Optional[str] = None
 
 
 class AgentActionAuditBase(BaseModel):
@@ -421,25 +320,67 @@ class AgentActionAuditBase(BaseModel):
     request_payload: Optional[dict[str, Any]] = None
     response_payload: Optional[dict[str, Any]] = None
     error_message: Optional[str] = None
+    channel_slug: Optional[str] = None
+    initiator_id: Optional[str] = None
 
 
 class AgentActionAuditCreate(AgentActionAuditBase):
     completed_at: Optional[datetime] = None
 
 
-class AgentActionAuditUpdate(BaseModel):
-    tool_name: Optional[str] = None
+AgentActionAuditUpdate = create_partial_model(
+    "AgentActionAuditUpdate",
+    AgentActionAuditBase,
+    exclude={"action_id"},
+    additional_fields={"completed_at": (Optional[datetime], None)},
+)
+
+
+class AgentActionAuditRead(
+    ORMModelMixin, AgentActionAuditBase, IdentifierMixin, TimestampsMixin
+):
+    completed_at: Optional[datetime] = None
+
+
+class StationTimelineBase(BaseModel):
+    """Base fields for station timeline entries."""
+
+    occurred_at: datetime
+
+
+class StationTimelineTelemetryEntry(StationTimelineBase):
+    """Timeline entry representing a telemetry event."""
+
+    entry_type: Literal["telemetry_event"] = "telemetry_event"
+    event_id: int
     status: Optional[str] = None
-    request_payload: Optional[dict[str, Any]] = None
+    source_slug: Optional[str] = None
+    source_name: Optional[str] = None
+    payload: Optional[dict[str, Any]] = None
+
+
+class StationTimelineAgentActionEntry(StationTimelineBase):
+    """Timeline entry representing an AgentKit audit row."""
+
+    entry_type: Literal["agent_action_audit"] = "agent_action_audit"
+    audit_id: int
+    action_id: str
+    tool_name: str
+    status: str
     response_payload: Optional[dict[str, Any]] = None
     error_message: Optional[str] = None
-    completed_at: Optional[datetime] = None
 
 
-class AgentActionAuditRead(AgentActionAuditBase):
-    model_config = ConfigDict(from_attributes=True)
+StationTimelineEntry = Annotated[
+    Union[StationTimelineTelemetryEntry, StationTimelineAgentActionEntry],
+    Field(discriminator="entry_type"),
+]
 
-    id: int
-    created_at: datetime
-    updated_at: datetime
-    completed_at: Optional[datetime] = None
+
+class StationTimelinePage(BaseModel):
+    """Paginated collection of station timeline entries."""
+
+    items: List[StationTimelineEntry]
+    limit: int
+    offset: int
+    total: Optional[int] = None

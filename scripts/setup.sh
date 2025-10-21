@@ -10,14 +10,18 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 usage() {
   cat <<USAGE
-Usage: $0 [--mode local|container|cloud] [--config path.json] [--config-json '{...}'] [--apply] [--configure]
+Usage: $0 [--mode local|container|cloud|pi] [--config path.json] [--config-json '{...}'] [--apply] [--configure]
 
 Flags:
-  --mode           Deployment mode to run (local, container, cloud)
+  --mode           Deployment mode to run (local, container, cloud, pi)
   --config         Path to a JSON configuration file
   --config-json    Inline JSON configuration string
   --apply          Execute infrastructure changes automatically when supported
   --configure      Run configuration management automatically when supported
+
+Spec Kit planning helpers (requires CODEX_API_KEY and optional CODEX_BASE_URL):
+  python -m scripts.bootstrap_cli spec plan
+  python -m scripts.bootstrap_cli spec tasks
 USAGE
 }
 
@@ -144,5 +148,7 @@ if [[ ! -x "$MODE_SCRIPT" ]]; then
   echo "Unsupported mode: $MODE" >&2
   exit 1
 fi
+
+echo "Spec Kit ready: export SPECIFY_FEATURE if needed and run 'python -m scripts.bootstrap_cli spec plan' to draft work."
 
 "$MODE_SCRIPT"

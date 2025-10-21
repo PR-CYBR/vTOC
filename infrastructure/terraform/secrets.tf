@@ -71,6 +71,7 @@ locals {
       AGENTKIT_API_KEY        = var.agentkit_api_key
       AGENTKIT_ORG_ID         = var.agentkit_org_id
       AGENTKIT_TIMEOUT_SECONDS = tostring(var.agentkit_timeout_seconds)
+      MISSION_TIMELINE_LIMIT  = tostring(var.timeline_event_limit)
       CHATKIT_WEBHOOK_SECRET  = var.chatkit_webhook_secret
       CHATKIT_ALLOWED_TOOLS   = join(",", var.chatkit_allowed_tools)
       CHATKIT_API_KEY         = var.chatkit_api_key

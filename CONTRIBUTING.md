@@ -104,6 +104,7 @@ frontend/
 
 - Always create migrations for schema updates: `alembic revision --autogenerate -m "message"`.
 - Run `alembic upgrade head` for each station role or use the helper loop documented in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md#multi-station-postgres).
+- Continuous integration runs `POSTGRES_STATION_ROLE`-scoped `alembic upgrade head` checks for every station schema, so make sure migrations succeed for each role before pushing.
 - Document breaking changes in [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
 
 ### AgentKit / ChatKit integrations

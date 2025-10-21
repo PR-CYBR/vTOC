@@ -53,6 +53,12 @@ variable "backend_public_base_url" {
   type        = string
 }
 
+variable "timeline_event_limit" {
+  description = "Maximum number of timeline events the backend returns per mission."
+  type        = number
+  default     = 100
+}
+
 variable "frontend_port" {
   description = "Port used by the Vite dev server."
   type        = number

@@ -4,9 +4,17 @@ This guide walks operators through the end-to-end onboarding sequence for a new 
 application-focused [`docs/QUICKSTART.md`](QUICKSTART.md) by emphasizing physical hardware preparation, configuration
 capture, and validation checkpoints that must be completed before a station goes live.
 
+> **New workflow:** After the bootstrap wizard finishes, review the Spec Kit rollout announcement in
+> [`docs/communications/spec-kit-rollout.md`](communications/spec-kit-rollout.md) and complete the `/speckit.init` dry run
+> listed in the onboarding checklist. The generated `specs/<feature>/` folder will anchor subsequent planning and deployment
+> steps referenced throughout this guide.
+
 ## Prerequisites
 
-* A validated station kit (see the inventory checklist below).
+* A validated station kit (see the inventory checklist below). Raspberry Pi 5
+  deployments should align with the low-power checklist in
+  [`docs/deployment/raspberry-pi.md`](deployment/raspberry-pi.md) before first
+  boot.
 * Access to the station's ChatKit organization, AgentKit workspace, and the shared vTOC repository.
 * Credentials required by the bootstrap wizard (ChatKit API key, AgentKit OAuth client, Supabase service key). Manage
   these secrets according to [`docs/secret-management.md`](secret-management.md).

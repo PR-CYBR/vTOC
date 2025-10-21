@@ -25,6 +25,19 @@ services:
       DATABASE_URL_TOC_S2: postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s2
       DATABASE_URL_TOC_S3: postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s3
       DATABASE_URL_TOC_S4: postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s4
+      AGENTKIT_API_BASE_URL: ${AGENTKIT_API_BASE_URL:-https://agentkit.example.com/api}
+      AGENTKIT_API_KEY: ${AGENTKIT_API_KEY:-}
+      AGENTKIT_ORG_ID: ${AGENTKIT_ORG_ID:-}
+      AGENTKIT_TIMEOUT_SECONDS: ${AGENTKIT_TIMEOUT_SECONDS:-30}
+      CHATKIT_WEBHOOK_SECRET: ${CHATKIT_WEBHOOK_SECRET:-}
+      CHATKIT_ALLOWED_TOOLS: ${CHATKIT_ALLOWED_TOOLS:-}
+      CHATKIT_API_KEY: ${CHATKIT_API_KEY:-}
+      CHATKIT_ORG_ID: ${CHATKIT_ORG_ID:-}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_PROJECT_REF: ${SUPABASE_PROJECT_REF:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
     ports:
       - "8080:8080"
     depends_on:
@@ -34,6 +47,23 @@ services:
   frontend:
     image: ${VTOC_IMAGE_REPO:-ghcr.io/pr-cybr/vtoc}/frontend:${VTOC_IMAGE_TAG:-main}
     pull_policy: always
+    environment:
+      VITE_PORT: ${VITE_PORT:-5173}
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+      VITE_MAP_TILES_URL: "${VITE_MAP_TILES_URL:-https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png}"
+      VITE_MAP_ATTRIBUTION: "${VITE_MAP_ATTRIBUTION:-© OpenStreetMap contributors}"
+      VITE_DEFAULT_DIV: ${VITE_DEFAULT_DIV:-PR-SJU}
+      VITE_RSS_ENABLED: ${VITE_RSS_ENABLED:-true}
+      VITE_CHAT_ENABLED: ${VITE_CHAT_ENABLED:-true}
+      VITE_CHATKIT_WIDGET_URL: ${VITE_CHATKIT_WIDGET_URL:-https://cdn.chatkit.example.com/widget.js}
+      VITE_CHATKIT_API_KEY: ${VITE_CHATKIT_API_KEY:-}
+      VITE_CHATKIT_TELEMETRY_CHANNEL: ${VITE_CHATKIT_TELEMETRY_CHANNEL:-vtoc-intel}
+      VITE_AGENTKIT_ORG_ID: ${VITE_AGENTKIT_ORG_ID:-}
+      VITE_AGENTKIT_DEFAULT_STATION_CONTEXT: ${VITE_AGENTKIT_DEFAULT_STATION_CONTEXT:-PR-SJU}
+      VITE_AGENTKIT_API_BASE_PATH: ${VITE_AGENTKIT_API_BASE_PATH:-/api/v1/agent-actions}
+      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+      VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
+      VITE_SUPABASE_TELEMETRY_TABLE: ${VITE_SUPABASE_TELEMETRY_TABLE:-telemetry_events}
     ports:
       - "8081:8081"
     depends_on:

@@ -1,12 +1,11 @@
-import { useStationAgentActions, useStationDashboard, useTelemetryEvents } from '../../services/api';
+import { useStationAgentActions, useStationDashboard } from '../../services/api';
+import StationTimelinePanel from '../../components/telemetry/StationTimelinePanel';
 
 const STATION_SLUG = 'toc-s3';
 
 const TOCS3Dashboard = () => {
   const { data: dashboard } = useStationDashboard(STATION_SLUG);
   const { data: agentCatalog } = useStationAgentActions(STATION_SLUG);
-  const { data: events = [] } = useTelemetryEvents(STATION_SLUG);
-
   return (
     <div className="station-dashboard station-dashboard--agentkit">
       <section className="station-summary">
@@ -39,19 +38,7 @@ const TOCS3Dashboard = () => {
         </ul>
       </section>
 
-      <section className="event-feed">
-        <header>
-          <h3>Recent Events</h3>
-        </header>
-        <ul>
-          {events.slice(0, 5).map((event) => (
-            <li key={event.id}>
-              <span>{event.source.name}</span>
-              <time>{new Date(event.received_at).toLocaleTimeString()}</time>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <StationTimelinePanel stationSlug={STATION_SLUG} className="station-timeline-panel--card" />
     </div>
   );
 };

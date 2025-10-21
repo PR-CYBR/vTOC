@@ -25,8 +25,6 @@ class Settings(BaseModel):
     agentkit_timeout_seconds: float = Field(default=30.0)
     chatkit_webhook_secret: str = Field(default="", repr=False)
     chatkit_allowed_tools: List[str] = Field(default_factory=list)
-    supabase_url: str = Field(default="")
-    supabase_key: str = Field(default="", repr=False)
     supabase_schema: str = Field(default="public")
     supabase_timeout_seconds: float = Field(default=30.0)
 
@@ -35,6 +33,7 @@ class Settings(BaseModel):
     )
     supabase_db_url: str | None = Field(default=None)
     supabase_url: str | None = Field(default=None)
+    supabase_anon_key: str | None = Field(default=None, repr=False)
     supabase_service_role_key: str | None = Field(default=None, repr=False)
     supabase_pool_min_connections: int = Field(default=1)
     supabase_pool_max_connections: int = Field(default=10)
@@ -47,6 +46,18 @@ class Settings(BaseModel):
         return bool(self.agentkit_api_key and self.agentkit_org_id)
 
     @property
+    def supabase_key(self) -> str:
+        if self.supabase_service_role_key:
+            return self.supabase_service_role_key
+        if self.supabase_anon_key:
+            return self.supabase_anon_key
+        return ""
+
+    @property
+    def is_supabase_configured(self) -> bool:
+        return bool(self.supabase_url and self.supabase_key)
+
+    @property
     def default_database_url(self) -> str:
         return self.supabase_db_url or self.database_url
 
@@ -56,7 +67,7 @@ class Settings(BaseModel):
 
     @property
     def supabase_enabled(self) -> bool:
-        return bool(self.supabase_url and self.supabase_service_role_key)
+        return self.is_supabase_configured
 
     @property
     def station_database_overrides(self) -> Dict[str, str]:
@@ -94,6 +105,7 @@ def get_settings() -> Settings:
         ),
         supabase_db_url=os.getenv("SUPABASE_DB_URL"),
         supabase_url=os.getenv("SUPABASE_URL"),
+        supabase_anon_key=os.getenv("SUPABASE_ANON_KEY"),
         supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
         supabase_pool_min_connections=pool_min,
         supabase_pool_max_connections=pool_max,

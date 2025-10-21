@@ -35,11 +35,8 @@
       "SUPABASE_JWT_SECRET": ""
     },
     "env_public": {
-      "DATABASE_URL": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc",
-      "DATABASE_URL_TOC_S1": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s1",
-      "DATABASE_URL_TOC_S2": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s2",
-      "DATABASE_URL_TOC_S3": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s3",
-      "DATABASE_URL_TOC_S4": "postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc?options=-csearch_path%3Dtoc_s4",
+      "DATABASE_URL": "sqlite:///var/lib/vtoc/vtoc.db",
+      "SUPABASE_DB_URL": "",
       "AGENTKIT_API_BASE_URL": "https://agentkit.example.com/api",
       "AGENTKIT_API_KEY": "",
       "AGENTKIT_ORG_ID": "",
@@ -51,7 +48,8 @@
       "SUPABASE_URL": "",
       "SUPABASE_PROJECT_REF": "",
       "SUPABASE_SERVICE_ROLE_KEY": "",
-      "SUPABASE_JWT_SECRET": ""
+      "SUPABASE_JWT_SECRET": "",
+      "SUPABASE_ANON_KEY": ""
     }
   },
   "scraper": {
