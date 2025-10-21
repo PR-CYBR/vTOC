@@ -2,20 +2,14 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Dict, Generator, Iterable, List, Optional
 
 import httpx
 from fastapi import Depends, HTTPException, Request, status
 
 from .. import schemas
 from ..config import Settings, get_settings
-
-STATION_HEADER_CANDIDATES = (
-    "x-station-id",
-    "x-station-slug",
-    "x-chatkit-station",
-    "x-toc-station",
-)
+from ..utils.stations import resolve_station_slug as _resolve_station_slug_from_headers
 
 TELEMETRY_SCHEMA = "telemetry"
 
@@ -37,15 +31,16 @@ class SupabaseRepository:
             raise SupabaseApiError(
                 status.HTTP_503_SERVICE_UNAVAILABLE, "Supabase is not configured"
             )
-        base_url = settings.supabase_url.rstrip("/")
+        base_url = (settings.supabase_url or "").rstrip("/")
+        key = settings.supabase_key
         self._client = client or httpx.Client(
             base_url=f"{base_url}/rest/v1",
             timeout=settings.supabase_timeout_seconds,
         )
         self._schema = settings.supabase_schema
         self._headers: Dict[str, str] = {
-            "apikey": settings.supabase_key,
-            "Authorization": f"Bearer {settings.supabase_key}",
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
             "Content-Type": "application/json",
             "Accept": "application/json",
         }
@@ -230,6 +225,167 @@ class SupabaseRepository:
             )
             tasks.append(task)
         return schemas.StationTaskQueue(station=station, tasks=tasks)
+
+    # ------------------------------------------------------------------
+    # Station timeline
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _parse_timestamp(value: Any) -> Optional[datetime]:
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        if isinstance(value, str):
+            try:
+                return datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                return None
+        return None
+
+    def _fetch_station_timeline_telemetry_records(
+        self, station_id: int, limit: int
+    ) -> List[Dict[str, Any]]:
+        if limit <= 0:
+            return []
+        response = self._request(
+            "GET",
+            "telemetry_events",
+            params={
+                "select": "id,event_time,received_at,created_at,status,payload,"
+                "source:telemetry_sources(slug,name)",
+                "station_id": f"eq.{station_id}",
+                "order": "event_time.desc.nullslast,received_at.desc.nullslast,"
+                "created_at.desc",
+            },
+            headers={"Range": f"0-{max(limit - 1, 0)}"},
+        )
+        return self._json(response) or []
+
+    def _fetch_station_timeline_agent_audit_records(
+        self, station_id: int, limit: int
+    ) -> List[Dict[str, Any]]:
+        if limit <= 0:
+            return []
+        response = self._request(
+            "GET",
+            "agent_action_audits",
+            params={
+                "select": "id,action_id,tool_name,status,response_payload,error_message,"
+                "completed_at,updated_at,created_at",
+                "station_id": f"eq.{station_id}",
+                "order": "completed_at.desc.nullslast,updated_at.desc.nullslast,"
+                "created_at.desc",
+            },
+            headers={"Range": f"0-{max(limit - 1, 0)}"},
+        )
+        return self._json(response) or []
+
+    @staticmethod
+    def _normalize_timeline_telemetry(
+        records: Iterable[Dict[str, Any]]
+    ) -> List[schemas.StationTimelineTelemetryEntry]:
+        entries: List[schemas.StationTimelineTelemetryEntry] = []
+        for record in records:
+            occurred_at = SupabaseRepository._parse_timestamp(
+                record.get("event_time")
+                or record.get("received_at")
+                or record.get("created_at")
+            )
+            if occurred_at is None:
+                continue
+            source = record.get("source") or {}
+            try:
+                event_id = int(record["id"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            entry = schemas.StationTimelineTelemetryEntry(
+                occurred_at=occurred_at,
+                event_id=event_id,
+                status=record.get("status"),
+                source_slug=source.get("slug"),
+                source_name=source.get("name"),
+                payload=record.get("payload"),
+            )
+            entries.append(entry)
+        return entries
+
+    @staticmethod
+    def _normalize_timeline_agent_audits(
+        records: Iterable[Dict[str, Any]]
+    ) -> List[schemas.StationTimelineAgentActionEntry]:
+        entries: List[schemas.StationTimelineAgentActionEntry] = []
+        for record in records:
+            occurred_at = SupabaseRepository._parse_timestamp(
+                record.get("completed_at")
+                or record.get("updated_at")
+                or record.get("created_at")
+            )
+            if occurred_at is None:
+                continue
+            try:
+                audit_id = int(record["id"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            action_id = record.get("action_id")
+            tool_name = record.get("tool_name")
+            status = record.get("status")
+            if not action_id or not tool_name or not status:
+                continue
+            entry = schemas.StationTimelineAgentActionEntry(
+                occurred_at=occurred_at,
+                audit_id=audit_id,
+                action_id=str(action_id),
+                tool_name=str(tool_name),
+                status=str(status),
+                response_payload=record.get("response_payload"),
+                error_message=record.get("error_message"),
+            )
+            entries.append(entry)
+        return entries
+
+    def list_station_timeline_entries(
+        self, station_slug: str, *, limit: int = 50, offset: int = 0
+    ) -> schemas.StationTimelinePage:
+        limit = max(limit, 0)
+        offset = max(offset, 0)
+        station = self.get_station(station_slug)
+        fetch_window = max(limit + offset, 1)
+
+        telemetry_records = self._fetch_station_timeline_telemetry_records(
+            station.id, fetch_window * 2
+        )
+        audit_records = self._fetch_station_timeline_agent_audit_records(
+            station.id, fetch_window * 2
+        )
+
+        telemetry_entries = self._normalize_timeline_telemetry(telemetry_records)
+        audit_entries = self._normalize_timeline_agent_audits(audit_records)
+
+        combined: List[schemas.StationTimelineEntry] = [
+            *telemetry_entries,
+            *audit_entries,
+        ]
+        combined.sort(key=lambda entry: entry.occurred_at, reverse=True)
+
+        total_events = self._count(
+            "telemetry_events", {"station_id": f"eq.{station.id}"}
+        )
+        total_audits = self._count(
+            "agent_action_audits", {"station_id": f"eq.{station.id}"}
+        )
+        total = total_events + total_audits
+
+        if limit == 0:
+            items: List[schemas.StationTimelineEntry] = []
+        else:
+            items = combined[offset : offset + limit]
+
+        return schemas.StationTimelinePage(
+            items=items,
+            limit=limit,
+            offset=offset,
+            total=total,
+        )
 
     # ------------------------------------------------------------------
     # Base stations
@@ -840,14 +996,7 @@ class SupabaseRepository:
 
 def resolve_station_slug(request: Request) -> Optional[str]:
     """Infer the station slug from common headers."""
-    for header in STATION_HEADER_CANDIDATES:
-        value = request.headers.get(header)
-        if not value:
-            continue
-        slug = value.replace("_", "-").lower()
-        if slug:
-            return slug
-    return None
+    return _resolve_station_slug_from_headers(request.headers, None)
 
 
 def get_station_context(request: Request) -> Optional[str]:

@@ -13,9 +13,18 @@
         "traefik": { "type": "boolean", "default": false },
         "postgres": { "type": "boolean", "default": true },
         "n8n": { "type": "boolean", "default": false },
-        "wazuh": { "type": "boolean", "default": false }
+        "wazuh": { "type": "boolean", "default": false },
+        "adsb": { "type": "boolean", "default": true },
+        "gps": { "type": "boolean", "default": true },
+        "h4m": { "type": "boolean", "default": true }
       },
       "additionalProperties": false
+    },
+    "hardwareProfile": {
+      "type": "string",
+      "enum": ["full", "pi"],
+      "default": "full",
+      "description": "Hardware profile toggling optional ingest services."
     },
     "cloud": {
       "type": "object",

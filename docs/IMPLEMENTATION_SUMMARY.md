@@ -9,7 +9,7 @@ This summary captures the major components that make up the ChatKit-augmented vT
 - Exposes REST routers for telemetry, stations, and mission management (`/api/v1/*`).
 - Hosts `/api/v1/chatkit/webhook` for ChatKit event ingestion and `/api/v1/agentkit/runs` for internal job tracking.
 - Uses SQLAlchemy models synced via Alembic migrations (`alembic/`).
-- Integrates with ChatKit and AgentKit using environment variables documented in [`README.md`](../README.md).
+- Integrates with ChatKit and AgentKit using environment variables documented in [`README.md`](https://github.com/vasa-dev/vTOC/blob/main/README.md).
 - Provides role-aware dependency overrides so that each station resolves its own Postgres database.
 
 ## Frontend application (Vite + React + TypeScript)
@@ -34,6 +34,9 @@ This summary captures the major components that make up the ChatKit-augmented vT
 - ChatKit organizes channels per station and threads per mission.
 - Backend webhook normalizes messages, applies station role policies, and schedules AgentKit runs.
 - AgentKit executes playbooks declared in `agents/config/agentkit.yml`, publishing summaries back to ChatKit and the mission log.
+- Station AgentKit catalog exposes tools such as `mission_timeline`, which proxies
+  `/api/v1/stations/{slug}/mission-timeline` so automations can retrieve recent mission
+  events and log entries for context-aware prompts.
 - `scripts/setup.sh` provisions sandbox channels and stores their IDs inside `.env.station`.
 
 ## Infrastructure & automation
@@ -46,4 +49,4 @@ This summary captures the major components that make up the ChatKit-augmented vT
 
 - Quick start, deployment, and architecture docs are synchronized with ChatKit/AgentKit requirements.
 - [`docs/CHANGELOG.md`](CHANGELOG.md) describes the migration path from the pre-ChatKit release.
-- [`CONTRIBUTING.md`](../CONTRIBUTING.md) outlines development standards and testing expectations.
+- [`CONTRIBUTING.md`](https://github.com/vasa-dev/vTOC/blob/main/CONTRIBUTING.md) outlines development standards and testing expectations.

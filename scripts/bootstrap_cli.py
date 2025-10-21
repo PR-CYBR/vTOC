@@ -3,6 +3,21 @@
 The CLI mirrors the developer Makefile so Windows or non-POSIX users can
 invoke the same automation tasks without `make`. Each subcommand delegates
 to the existing shell scripts or runs the equivalent commands directly.
+
+The :mod:`spec` command group proxies GitHub's Spec Kit (`specify`) CLI so
+developers can run planning workflows without installing additional tools.
+Spec Kit relies on several environment variables that the wrapper documents
+and forwards to subprocesses:
+
+``SPECIFY_FEATURE``
+    Feature flag sent to Spec Kit. Defaults to ``"bootstrap"`` when unset.
+
+``CODEX_API_KEY`` / ``CODEX_BASE_URL``
+    Credentials and endpoint used by Spec Kit when contacting Codex. These
+    must be present in the environment before invoking the wrapper.
+
+The wrapper automatically executes from the repository root and uses ``uvx``
+to fetch Spec Kit unless a ``SPECIFY_BIN`` override is provided.
 """
 from __future__ import annotations
 
@@ -16,6 +31,7 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 from scripts.bootstrap.local import DEFAULT_CONFIG_JSON
+from scripts.automation.spec_tasks import SpecTaskError, sync_spec_tasks, validate_spec_tasks
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
@@ -25,6 +41,9 @@ SCRAPER_DIR = REPO_ROOT / "agents" / "scraper"
 STATIONS_DIR = REPO_ROOT / "stations"
 DEFAULT_STATIONS = ("TOC-S1", "TOC-S2", "TOC-S3", "TOC-S4")
 PYTHON = sys.executable or "python"
+SPEC_KIT_PACKAGE = "git+https://github.com/github/spec-kit.git"
+SPECIFY_EXECUTABLE_ENV = "SPECIFY_BIN"
+SPECIFY_DEFAULT_FEATURE = "bootstrap"
 
 
 def _echo_command(command: Sequence[str]) -> None:
@@ -125,6 +144,11 @@ FOLLOW_UP_STEPS: dict[str, list[str]] = {
     "cloud": [
         "Inspect infrastructure/terraform and run `terraform apply` once secrets are configured.",
     ],
+    "pi": [
+        "Copy docker-compose.pi.yml to the Raspberry Pi host before running it.",
+        "Provision remote Supabase credentials or a SQLite DATABASE_URL on the Pi before first boot.",
+        "Start the Pi stack: `docker compose -f docker-compose.pi.yml up -d`.",
+    ],
 }
 
 
@@ -170,6 +194,31 @@ def run_local_bootstrap(args: argparse.Namespace) -> None:
         str(REPO_ROOT / "infrastructure" / "terraform"),
     ]
     run_command(command, env=env)
+
+
+def _resolve_specify_command(subcommand: str, extra_args: Sequence[str]) -> list[str]:
+    override = os.environ.get(SPECIFY_EXECUTABLE_ENV)
+    if override:
+        command = [override, subcommand]
+    else:
+        command = [
+            "uvx",
+            "--from",
+            SPEC_KIT_PACKAGE,
+            "specify",
+            subcommand,
+        ]
+    passthrough = list(extra_args)
+    if passthrough and passthrough[0] == "--":
+        passthrough = passthrough[1:]
+    return command + passthrough
+
+
+def run_spec_command(subcommand: str, extra_args: Sequence[str]) -> None:
+    command = _resolve_specify_command(subcommand, extra_args)
+    feature = os.environ.get("SPECIFY_FEATURE") or SPECIFY_DEFAULT_FEATURE
+    env = {"SPECIFY_FEATURE": feature}
+    run_command(command, cwd=REPO_ROOT, env=env)
 
 
 def add_setup_options(parser: argparse.ArgumentParser) -> None:
@@ -237,6 +286,29 @@ def scraper_run(_: argparse.Namespace) -> None:
     run_command([PYTHON, "main.py"], cwd=SCRAPER_DIR)
 
 
+def spec_sync(args: argparse.Namespace) -> None:
+    feature = args.feature or os.environ.get("SPECIFY_FEATURE", "")
+    tasks_path = args.tasks_path
+    if tasks_path is not None:
+        tasks_path = Path(tasks_path)
+    try:
+        sync_spec_tasks(
+            feature=feature,
+            plan_result=Path(args.plan_result),
+            tasks_path=tasks_path,
+        )
+    except SpecTaskError as exc:
+        raise SystemExit(str(exc)) from exc
+
+
+def spec_check(args: argparse.Namespace) -> None:
+    base = Path(args.base) if args.base else REPO_ROOT / "specs"
+    try:
+        validate_spec_tasks(base)
+    except SpecTaskError as exc:
+        raise SystemExit(str(exc)) from exc
+
+
 def station_migrate(args: argparse.Namespace) -> None:
     stations = args.station or DEFAULT_STATIONS
     for station in stations:
@@ -291,6 +363,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add_setup_options(setup_container)
     setup_container.set_defaults(func=setup_command_factory("container"))
+
+    setup_pi = setup_subparsers.add_parser(
+        "pi",
+        help="Generate Raspberry Pi optimized container configuration",
+    )
+    add_setup_options(setup_pi)
+    setup_pi.set_defaults(func=setup_command_factory("pi"))
 
     setup_cloud = setup_subparsers.add_parser(
         "cloud",
@@ -368,6 +447,73 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add_station_arguments(station_seed_parser)
     station_seed_parser.set_defaults(func=station_seed)
+
+    # spec group
+    spec_parser = subparsers.add_parser(
+        "spec",
+        help="Spec Kit ideation helpers",
+        description=(
+            "Run Spec Kit planning commands against the repository.\n\n"
+            "Environment:\n"
+            f"  SPECIFY_FEATURE   Feature flag forwarded to Spec Kit (default: {SPECIFY_DEFAULT_FEATURE})\n"
+            "  CODEX_API_KEY     Codex API token required for authenticated requests\n"
+            "  CODEX_BASE_URL    Optional Codex endpoint override\n"
+            "Set SPECIFY_BIN to reuse a vendored Spec Kit executable instead of uvx.\n\n"
+            "Append `--` before extra arguments to forward them directly to Spec Kit."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    spec_subparsers = spec_parser.add_subparsers(dest="spec_command")
+    spec_subparsers.required = True
+
+    spec_sync_parser = spec_subparsers.add_parser("sync", help="Update Spec Kit tasks from a Codex plan result")
+    spec_sync_parser.add_argument("--plan-result", required=True, type=Path, help="Path to backlog/plan-result.json")
+    spec_sync_parser.add_argument("--feature", help="Feature slug (defaults to SPECIFY_FEATURE or plan metadata)")
+    spec_sync_parser.add_argument("--tasks-path", type=Path, help="Override the generated tasks.md path")
+    spec_sync_parser.set_defaults(func=spec_sync)
+
+    spec_check_parser = spec_subparsers.add_parser("check", help="Validate generated Spec Kit task files")
+    spec_check_parser.add_argument(
+        "--base",
+        type=Path,
+        default=REPO_ROOT / "specs",
+        help="Base directory of Spec Kit features",
+    )
+    spec_check_parser.set_defaults(func=spec_check)
+
+    def register_spec_subcommand(name: str, help_text: str) -> None:
+        sub = spec_subparsers.add_parser(
+            name,
+            help=help_text,
+            description=help_text,
+        )
+        sub.add_argument(
+            "args",
+            nargs=argparse.REMAINDER,
+            help="Arguments forwarded directly to Spec Kit",
+        )
+        sub.set_defaults(func=lambda args, n=name: run_spec_command(n, args.args))
+
+    register_spec_subcommand(
+        "constitution",
+        "Generate or review the project's Spec Kit constitution",
+    )
+    register_spec_subcommand(
+        "specify",
+        "Run arbitrary Spec Kit commands via the `specify` entry point",
+    )
+    register_spec_subcommand(
+        "plan",
+        "Draft implementation plans using Spec Kit",
+    )
+    register_spec_subcommand(
+        "tasks",
+        "Break down work into trackable tasks using Spec Kit",
+    )
+    register_spec_subcommand(
+        "implement",
+        "Follow Spec Kit's implementation guidance",
+    )
 
     return parser
 

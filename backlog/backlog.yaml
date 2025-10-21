@@ -4,58 +4,83 @@ items:
     status: planned
     owners: []
     links:
-      - docs/tasks/bot-integrations.md#1-cross-cutting-discovery-and-infrastructure
+      - specs/001-bot-integrations-shared/spec.md
+      - specs/001-bot-integrations-shared/plan.md
     notes: "Lay the groundwork for Telegram, Slack, and Discord services by defining shared clients, config, and deployment patterns."
     codex_plan_url: null
     codex_plan_tasks: []
     codex_plan_generated_at: null
     codex_run_ids: []
-    plan_history: []
+    plan_history:
+      - generated_at: 2024-05-27T00:00:00Z
+        summary: "Initial Spec Kit scaffolding for shared bot runtime."
+        links:
+          - specs/001-bot-integrations-shared/plan.md
   - id: bot-telegram
     title: "Bots: implement Telegram management bot"
     status: planned
     owners: []
     links:
-      - docs/tasks/bot-integrations.md#2-telegram-management-bot
+      - specs/002-bot-telegram/spec.md
+      - specs/002-bot-telegram/plan.md
     notes: "Deliver Telegram command handlers, transports, and deployment assets for vTOC operators."
     codex_plan_url: null
     codex_plan_tasks: []
     codex_plan_generated_at: null
     codex_run_ids: []
-    plan_history: []
+    plan_history:
+      - generated_at: 2024-05-27T00:00:00Z
+        summary: "Spec Kit plan covering Telegram transport, handlers, and rollout."
+        links:
+          - specs/002-bot-telegram/plan.md
   - id: bot-slack
     title: "Bots: implement Slack monitoring bot"
     status: planned
     owners: []
     links:
-      - docs/tasks/bot-integrations.md#3-slack-monitoring-bot
+      - specs/003-bot-slack/spec.md
+      - specs/003-bot-slack/plan.md
     notes: "Capture Slack channel activity and surface it through shared telemetry pipelines."
     codex_plan_url: null
     codex_plan_tasks: []
     codex_plan_generated_at: null
     codex_run_ids: []
-    plan_history: []
+    plan_history:
+      - generated_at: 2024-05-27T00:00:00Z
+        summary: "Spec Kit plan outlining Slack Events ingestion and telemetry."
+        links:
+          - specs/003-bot-slack/plan.md
   - id: bot-discord
     title: "Bots: implement Discord operations bot"
     status: planned
     owners: []
     links:
-      - docs/tasks/bot-integrations.md#4-discord-operations-bot
+      - specs/004-bot-discord/spec.md
+      - specs/004-bot-discord/plan.md
     notes: "Expose mission management and real-time data to Discord users."
     codex_plan_url: null
     codex_plan_tasks: []
     codex_plan_generated_at: null
     codex_run_ids: []
-    plan_history: []
+    plan_history:
+      - generated_at: 2024-05-27T00:00:00Z
+        summary: "Spec Kit plan describing Discord gateway, commands, and rollout."
+        links:
+          - specs/004-bot-discord/plan.md
   - id: bot-docs-qa-rollout
     title: "Bots: documentation, QA, and rollout"
     status: planned
     owners: []
     links:
-      - docs/tasks/bot-integrations.md#5-documentation-qa-and-rollout
+      - specs/005-bot-docs-qa-rollout/spec.md
+      - specs/005-bot-docs-qa-rollout/plan.md
     notes: "Update diagrams, automation, and rollout guides for the multi-bot initiative."
     codex_plan_url: null
     codex_plan_tasks: []
     codex_plan_generated_at: null
     codex_run_ids: []
-    plan_history: []
+    plan_history:
+      - generated_at: 2024-05-27T00:00:00Z
+        summary: "Spec Kit plan consolidating documentation, QA, and rollout guidance."
+        links:
+          - specs/005-bot-docs-qa-rollout/plan.md

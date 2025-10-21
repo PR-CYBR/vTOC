@@ -54,18 +54,40 @@ items:
 
 Backlog items move through the following states:
 
-| Status | Meaning | Allowed transitions |
-| --- | --- | --- |
-| `proposed` | Idea captured but not yet accepted or staffed. | `triaged`, `discarded` |
-| `triaged` | Accepted into the backlog with clear scope and priority. | `in_progress`, `blocked`, `discarded` |
-| `in_progress` | Actively being implemented. | `blocked`, `review`, `done`, `discarded` |
-| `blocked` | Implementation paused due to an external dependency. | `in_progress`, `discarded` |
-| `review` | Work is complete pending validation, testing, or leadership sign-off. | `in_progress`, `done`, `discarded` |
-| `done` | Delivered, validated, and ready for release notes. | (terminal) |
-| `discarded` | Item is no longer pursued. Document the rationale in `summary`. | (terminal) |
+| Status | Meaning | Allowed transitions | Spec Kit hook |
+| --- | --- | --- | --- |
+| `proposed` | Idea captured but not yet accepted or staffed. | `triaged`, `discarded` | Capture a lightweight note in `specs/<feature>/README.md` when `/speckit.init` seeds the folder. |
+| `triaged` | Accepted into the backlog with clear scope and priority. | `in_progress`, `blocked`, `discarded` | `/speckit.spec` publishes `spec.md` and pushes the backlog item id into `context.yaml`. |
+| `in_progress` | Actively being implemented. | `blocked`, `review`, `done`, `discarded` | `/speckit.plan` and `/speckit.tasks` split deliverables into backend/frontend cards and create `tasks/` stubs. |
+| `blocked` | Implementation paused due to an external dependency. | `in_progress`, `discarded` | `/speckit.sync` annotates the feature folder with `blocked.md` and updates the backlog summary. |
+| `review` | Work is complete pending validation, testing, or leadership sign-off. | `in_progress`, `done`, `discarded` | CI checks the generated `qa-checklist.md` to verify sign-off owners before merging. |
+| `done` | Delivered, validated, and ready for release notes. | (terminal) | `/speckit.sync` archives the folder (see below) and updates the deployment notes. |
+| `discarded` | Item is no longer pursued. Document the rationale in `summary`. | (terminal) | Delete or archive the feature folder after pushing a Codex note explaining the cancellation. |
 
 All transitions should be recorded via pull request or automation run so the
 history remains auditable.
+
+## Spec artifact lifecycle
+
+Artifacts generated in `specs/<feature>/` move through a predictable lifecycle that mirrors the backlog states above:
+
+1. **Initialization (`/speckit.init`)** — Creates `README.md`, `context.yaml`, and a placeholder `spec.md`. The command records the
+   backlog item identifier so downstream automations link commits back to the roadmap.
+2. **Specification (`/speckit.spec`)** — Expands `spec.md` with user journeys, analytics notes, and integration assumptions. When
+   the spec is marked ready, Codex locks the file and posts a summary to the backlog item thread.
+3. **Planning (`/speckit.plan`)** — Writes `plan.md` and `qa-checklist.md` with backend/frontend milestones. Database migrations,
+   API surface changes, and UI states all live side-by-side so reviewers can validate cross-functional dependencies.
+4. **Task generation (`/speckit.tasks`)** — Produces Markdown cards under `specs/<feature>/tasks/`. Each file includes a `Backlog-ID`
+   header so automation can open GitHub issues or populate project items without manual copying.
+5. **Syncing (`/speckit.sync`)** — Mirrors key fields (status, owners, due dates) into `backlog/backlog.yaml`, refreshes GitHub
+   Projects entries, and updates Codex prompt caches. If the backlog item is `blocked`, the sync command annotates
+   `blocked.md` with the dependency rationale.
+6. **Archival** — When `status` transitions to `done`, rename the folder to `specs/<feature>-archive/<yyyy-mm-dd>` or move it under
+   `specs/archive/` so the active tree remains small. Automation compresses archived folders weekly and stores them in
+   `backlog/.artifacts/`.
+
+Automation jobs fail fast if required spec files go missing. Do not delete generated Markdown without updating the backlog or
+running `/speckit.sync --force` so Codex can retire related prompts.
 
 ## Editing process
 
@@ -129,3 +151,22 @@ A lightweight CI job runs `yamllint` and a schema check against
 `backlog/backlog.schema.json` (to be added in a future iteration) to ensure
 formatting and field types remain consistent. If the job fails, update the local
 file and re-run the checks before opening a pull request.
+
+## Spec Kit migration notes
+
+Bot integration backlog items now map to dedicated Spec Kit directories under
+`specs/`. Replace references to `docs/tasks/bot-integrations.md` with the
+corresponding feature directory when updating backlog entries, PRs, or project
+notes:
+
+- `specs/001-bot-integrations-shared/` – shared runtime, clients, deployment, and observability foundations.
+- `specs/002-bot-telegram/` – Telegram management bot transport, handlers, and rollout.
+- `specs/003-bot-slack/` – Slack monitoring bot events pipeline and command surface.
+- `specs/004-bot-discord/` – Discord operations bot gateway, commands, and resilience.
+- `specs/005-bot-docs-qa-rollout/` – documentation, QA automation, and rollout orchestration.
+
+Each directory includes `spec.md`, `plan.md`, `research.md`, `quickstart.md`,
+`tasks.md`, and `contracts/` assets generated with the `/speckit.specify`,
+`/speckit.plan`, and `/speckit.tasks` commands. When backlog scope changes,
+update the relevant Spec Kit documents first, then link to them from
+`backlog/backlog.yaml` via the `links` and `plan_history` fields.

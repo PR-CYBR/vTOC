@@ -9,6 +9,9 @@ postgres_host           = "db.vtoc.supabase.co"
 postgres_internal_host  = "database"
 backend_public_base_url = "https://api.vtoc.pr-cybr.live"
 
+# Backend behavior
+timeline_event_limit = 100
+
 # Frontend defaults
 frontend_port            = 5173
 frontend_map_tiles_url   = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

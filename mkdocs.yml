@@ -1,0 +1,54 @@
+site_name: vTOC Documentation
+site_description: Technical and operational guides for the vTOC platform.
+repo_url: https://github.com/vasa-dev/vTOC
+repo_name: vTOC
+
+docs_dir: docs
+site_dir: site
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quickstart: QUICKSTART.md
+      - Setup Guide: SETUP.md
+      - Deployment: DEPLOYMENT.md
+      - Secret Management: secret-management.md
+  - Architecture:
+      - Architecture Overview: ARCHITECTURE.md
+      - Implementation Summary: IMPLEMENTATION_SUMMARY.md
+      - Diagrams: DIAGRAMS.md
+  - Interfaces & Integrations:
+      - API Reference: API.md
+      - ADS-B Integration: ADSB.md
+      - GPS Integration: GPS.md
+      - Telemetry Connectors: TELEMETRY_CONNECTORS.md
+      - Communications Workflow: communications/live-branch.md
+  - Hardware:
+      - Hardware Overview: HARDWARE.md
+      - H4M Hardware: H4M.md
+      - Hardware Onboarding RFC: rfc/RFC-000X-hw-onboarding.md
+  - Operations & Workflows:
+      - Build Image (Live): workflows/build-image-live.md
+      - Main Discussion Summary: workflows/main-discussion-summary.md
+      - Project Backlog Plan: workflows/project-backlog-plan.md
+      - Project Ready Execute: workflows/project-ready-execute.md
+      - Project Done Discussion: workflows/project-done-discussion.md
+      - Publish Containers: workflows/publish-containers.md
+  - Tasks & Integrations:
+      - Bot Integrations: tasks/bot-integrations.md
+      - MCP Integration: tasks/mcp-integration.md
+  - Project Updates:
+      - Backlog: backlog.md
+      - Change Log: CHANGELOG.md
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true

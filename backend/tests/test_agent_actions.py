@@ -59,6 +59,8 @@ class FakeSupabaseRepository:
             created_at=now,
             updated_at=now,
             completed_at=payload.completed_at,
+            channel_slug=payload.channel_slug,
+            initiator_id=payload.initiator_id,
         )
         self._audits_by_id[self._id_seq] = audit
         self._ids_by_action[audit.action_id] = self._id_seq
@@ -125,11 +127,18 @@ def fake_supabase_repo() -> FakeSupabaseRepository:
 
 
 @pytest.fixture()
-def client(fake_supabase_repo: FakeSupabaseRepository) -> TestClient:
+def dummy_agentkit() -> DummyAgentKit:
+    return DummyAgentKit()
+
+
+@pytest.fixture()
+def client(
+    fake_supabase_repo: FakeSupabaseRepository, dummy_agentkit: DummyAgentKit
+) -> TestClient:
     test_client = TestClient(app)
 
     async def _override_client() -> DummyAgentKit:
-        return DummyAgentKit()
+        return dummy_agentkit
 
     app.dependency_overrides[get_agentkit_client] = _override_client
     app.dependency_overrides[get_supabase_repository] = lambda: fake_supabase_repo
@@ -163,6 +172,46 @@ def test_execute_action_creates_audit_record(
     assert audit.tool_name == "ping"
     assert audit.status == "queued"
     assert audit.request_payload == {"host": "1.1.1.1"}
+    assert audit.channel_slug is None
+    assert audit.initiator_id is None
+
+
+def test_execute_action_propagates_context(
+    client: TestClient,
+    fake_supabase_repo: FakeSupabaseRepository,
+    dummy_agentkit: DummyAgentKit,
+):
+    response = client.post(
+        "/api/v1/agent-actions/execute",
+        json={
+            "tool_name": "ping",
+            "action_input": {"host": "8.8.8.8"},
+            "metadata": {
+                "channel_slug": "ops-alpha",
+                "initiator_id": "user-123",
+            },
+        },
+        headers={
+            "x-chatkit-channel": "ops-overridden",
+            "x-chatkit-user": "user-ignored",
+        },
+    )
+
+    assert response.status_code == 202
+
+    audit = fake_supabase_repo.get_agent_action_audit_by_action_id(
+        "agentkit-action-123"
+    )
+    assert audit is not None
+    assert audit.channel_slug == "ops-alpha"
+    assert audit.initiator_id == "user-123"
+
+    assert dummy_agentkit.executions
+    execution = dummy_agentkit.executions[-1]
+    assert execution["metadata"] == {
+        "channel_slug": "ops-alpha",
+        "initiator_id": "user-123",
+    }
 
 
 def test_webhook_updates_audit(
@@ -180,6 +229,8 @@ def test_webhook_updates_audit(
         "action_id": "agentkit-action-123",
         "status": "succeeded",
         "result": {"accepted": True},
+        "channel_slug": "ops-alpha",
+        "initiator_id": "user-456",
     }
     raw = json.dumps(body).encode("utf-8")
     signature = hmac.new(
@@ -204,6 +255,8 @@ def test_webhook_updates_audit(
     assert audit.status == "succeeded"
     assert audit.response_payload == {"accepted": True}
     assert audit.completed_at is not None
+    assert audit.channel_slug == "ops-alpha"
+    assert audit.initiator_id == "user-456"
 
 
 def test_webhook_rejects_bad_signature(client: TestClient):

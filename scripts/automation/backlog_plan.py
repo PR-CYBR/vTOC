@@ -37,6 +37,8 @@ class PlanResult:
     entry_id: str | None = None
     plan_url: str | None = None
     tasks: List[Dict[str, Any]] | None = None
+    spec_feature: str | None = None
+    spec_tasks_path: str | None = None
 
     def to_dict(self) -> Dict[str, Any]:
         data: Dict[str, Any] = {
@@ -49,6 +51,10 @@ class PlanResult:
             data["plan_url"] = self.plan_url
         if self.tasks is not None:
             data["tasks"] = self.tasks
+        if self.spec_feature is not None:
+            data["spec_feature"] = self.spec_feature
+        if self.spec_tasks_path is not None:
+            data["spec_tasks_path"] = self.spec_tasks_path
         return data
 
 
@@ -191,16 +197,24 @@ def _normalise_tasks(raw_tasks: Any) -> List[Dict[str, Any]]:
 
 
 def _detect_plan_fields(plan_data: Dict[str, Any]) -> Dict[str, Any]:
+    plan_section = plan_data.get("plan") or {}
+    spec_section = plan_data.get("spec") or plan_data.get("specKit") or plan_data.get("speckit") or {}
+
     plan_url = (
-        plan_data.get("plan_url")
+        spec_section.get("plan_url")
+        or spec_section.get("planUrl")
+        or plan_data.get("plan_url")
         or plan_data.get("planUrl")
         or plan_data.get("url")
-        or plan_data.get("plan", {}).get("url")
+        or plan_section.get("url")
     )
 
     tasks = (
-        plan_data.get("tasks")
-        or plan_data.get("plan", {}).get("tasks")
+        spec_section.get("tasks")
+        or spec_section.get("task_list")
+        or spec_section.get("items")
+        or plan_data.get("tasks")
+        or plan_section.get("tasks")
         or plan_data.get("task_ids")
         or plan_data.get("taskIds")
     )
@@ -209,7 +223,17 @@ def _detect_plan_fields(plan_data: Dict[str, Any]) -> Dict[str, Any]:
         raise BacklogPlanError("Codex planning command did not return a plan URL.")
 
     normalised_tasks = _normalise_tasks(tasks)
-    return {"plan_url": str(plan_url), "tasks": normalised_tasks}
+    result = {"plan_url": str(plan_url), "tasks": normalised_tasks}
+
+    spec_feature = spec_section.get("feature") or spec_section.get("slug") or spec_section.get("id")
+    if spec_feature:
+        result["spec_feature"] = str(spec_feature)
+
+    spec_tasks_path = spec_section.get("tasks_path") or spec_section.get("tasksPath")
+    if spec_tasks_path:
+        result["spec_tasks_path"] = str(spec_tasks_path)
+
+    return result
 
 
 def _run_planning_command(command: str, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -261,6 +285,11 @@ def _update_entry(entry: Dict[str, Any], context: Dict[str, Any], plan: Dict[str
         metadata["project"] = project
 
     metadata["field_values"] = context.get("field_values")
+
+    if plan.get("spec_feature"):
+        metadata["spec_feature"] = plan["spec_feature"]
+    if plan.get("spec_tasks_path"):
+        metadata["spec_tasks_path"] = plan["spec_tasks_path"]
 
     content = context.get("content") or {}
     if isinstance(content, dict):
@@ -352,12 +381,15 @@ def main(argv: List[str] | None = None) -> int:
     entry = _ensure_entry(items, project_item_id, context)
 
     if args.skip_if_exists and entry.get("codex_plan_url"):
+        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
         result = PlanResult(
             project_item_id=project_item_id,
             skipped=True,
             entry_id=entry.get("id"),
             plan_url=entry.get("codex_plan_url"),
             tasks=entry.get("codex_plan_tasks"),
+            spec_feature=metadata.get("spec_feature"),
+            spec_tasks_path=metadata.get("spec_tasks_path"),
         )
     else:
         command = (
@@ -375,6 +407,8 @@ def main(argv: List[str] | None = None) -> int:
             entry_id=entry.get("id"),
             plan_url=plan["plan_url"],
             tasks=plan["tasks"],
+            spec_feature=plan.get("spec_feature"),
+            spec_tasks_path=plan.get("spec_tasks_path"),
         )
 
     if args.result:

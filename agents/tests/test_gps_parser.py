@@ -40,7 +40,7 @@ def test_parse_gga_sentence_includes_altitude() -> None:
 
 
 def test_parse_nmea_log_filters_invalid_lines() -> None:
-    sample_path = Path(__file__).with_name("data").joinpath("sample_nmea.log")
+    sample_path = Path(__file__).with_name("data").joinpath("sample_nmea.txt")
     fixes = load_nmea_file(sample_path)
 
     assert len(fixes) == 5

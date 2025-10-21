@@ -4,6 +4,23 @@ This guide covers local workflows, containerized deployments, multi-station Post
 Fly.io delivery from the `live` branch. The ChatKit/AgentKit rollout introduces additional environment variables and setup steps
 described below.
 
+## Raspberry Pi (low-power)
+
+Operators provisioning Raspberry Pi 5 stations should follow the dedicated
+[`docs/deployment/raspberry-pi.md`](deployment/raspberry-pi.md) checklist. It
+documents hardware expectations (8 GB RAM, NVMe storage, active cooling),
+headless Raspberry Pi OS tuning (GPU split, cgroups, ZRAM, minimal swap),
+service enablement/disablement guidance, and a resource-conscious bootstrap
+command:
+
+```bash
+python3 -m scripts.bootstrap_cli setup local --headless --prefer-remote-supabase
+```
+
+The companion compose profile keeps Postgres remote (Supabase) and disables
+optional scrapers so the Pi remains within the 2–3 GB RAM envelope during
+missions.
+
 ## Supabase integration overview
 
 Supabase now hosts the managed Postgres cluster backing vTOC along with row-level security (RLS) policies and authentication
@@ -23,7 +40,7 @@ managed backups, PITR, and Auth integration.
 1. Copy environment examples if desired: `cp .env.example .env`.
 2. Run `python -m scripts.bootstrap_cli setup local` (or the `make setup-local` alias) to install dependencies, generate `.env.local`/`.env.station`, and provision ChatKit sandbox channels.
    Provide secrets interactively when prompted or forward a prepared payload via `--config-json` / `--config-json @path/to/config.json`.
-   The JSON accepts `chatkit`, `agentkit`, `supabase`, and `station` sections matching [`scripts/inputs.schema.json`](../scripts/inputs.schema.json);
+   The JSON accepts `chatkit`, `agentkit`, `supabase`, and `station` sections matching [`scripts/inputs.schema.json`](https://github.com/vasa-dev/vTOC/blob/main/scripts/inputs.schema.json);
    the CLI compacts the payload, writes `.env.local`, `.env.station`, and `frontend/.env.local`, then prints structured next-step guidance.
 3. Launch the dev servers:
    ```bash
@@ -39,6 +56,11 @@ When `.env.local` references a Supabase project the backend connects remotely wh
 For air-gapped development, set `USE_LOCAL_POSTGRES=1` before running the setup CLI to keep using the bundled Postgres container.
 
 ## Docker Compose (development + testing)
+
+CI runs on the `CI` workflow now upload the generated manifest as an artifact named
+`docker-compose-generated`. Download it from the workflow run to reuse the
+compose bundle emitted by `scripts/setup_container.sh --build-local` without
+rerunning the generator locally.
 
 1. Generate the compose file and role secrets:
    ```bash
@@ -138,7 +160,7 @@ Running `python -m scripts.bootstrap_cli setup cloud` now delegates to a Python 
 
 - A `configBundle` override supplied via `--config`/`--config-json` is preferred. When no override is present the generator
   attempts to read the `config_bundle` Terraform output from `infrastructure/terraform` and gracefully falls back to
-  [`scripts/defaults/config_bundle.local.json`](../scripts/defaults/config_bundle.local.json) when state or the Terraform binary
+  [`scripts/defaults/config_bundle.local.json`](https://github.com/vasa-dev/vTOC/blob/main/scripts/defaults/config_bundle.local.json) when state or the Terraform binary
   is unavailable.
 - Terraform and Ansible assets are written under `infra/terraform` and `infra/ansible` along with
   `infra/cloud-manifest.json`. The manifest captures Fly.io image references, required secrets, next commands, and the dynamic
@@ -160,14 +182,39 @@ directories and refreshes the manifest so the inventory reflects the assigned ad
   expose the service-role key to the frontend.
 - Enable email confirmations or password resets per your security posture; vTOC reads Supabase user metadata to personalize the
   mission console.
+- Raspberry Pi deployments benefit from the slimmer backend container. Summing the arm64 base image layers (~46.8 MiB), the
+  packaged runtime dependencies (~38.5 MiB), and the runtime shared libraries (~0.14 MiB) yields an ~85.4 MiB image. The
+  previous single-stage build kept build toolchains (~8.7 MiB compressed) and larger wheels (~40.9 MiB), pushing the image to
+  roughly 96.4 MiB. The multi-stage builder therefore trims about 11 MiB (≈11%) from the Raspberry Pi footprint while still
+  delivering the same FastAPI application bundles.【b86e62†L1-L8】【39f59f†L1-L2】【1d2815†L1-L2】【51d630†L1-L8】【e4814d†L1-L2】
 
 ## Fly.io (live branch)
 
 The Fly deployment ships the backend container using the `live` branch as the source of truth.
 
-1. Ensure `fly.toml` has `primary_region`, `app`, and `[env]` entries for ChatKit/AgentKit secrets or references to Fly secrets.
-   Store `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` with `flyctl secrets set` so the backend can authenticate against
-   Supabase.
+1. Ensure `fly.toml` has `primary_region`, `app`, and `[env]` entries for the backend secrets managed by Terraform. The
+   manifest ships blank values for `AGENTKIT_*`, `CHATKIT_*`, and `SUPABASE_*` variables so Fly secrets replace them at
+   deploy time. Populate the values with `flyctl secrets set` before deploying:
+
+   ```bash
+   flyctl secrets set \
+     AGENTKIT_API_BASE_URL=<agentkit-api-base-url> \
+     AGENTKIT_API_KEY=<agentkit-api-key> \
+     AGENTKIT_ORG_ID=<agentkit-org-id> \
+     AGENTKIT_TIMEOUT_SECONDS=<agentkit-timeout-seconds> \
+     CHATKIT_ALLOWED_TOOLS=<chatkit-allowed-tools> \
+     CHATKIT_API_KEY=<chatkit-api-key> \
+     CHATKIT_ORG_ID=<chatkit-org-id> \
+     CHATKIT_WEBHOOK_SECRET=<chatkit-webhook-secret> \
+     SUPABASE_ANON_KEY=<supabase-anon-key> \
+     SUPABASE_JWT_SECRET=<supabase-jwt-secret> \
+     SUPABASE_PROJECT_REF=<supabase-project-ref> \
+     SUPABASE_SERVICE_ROLE_KEY=<supabase-service-role-key> \
+     SUPABASE_URL=<supabase-url>
+   ```
+
+   The values typically come from Terraform outputs (or `terraform output fly_secrets_env`) and should match the secrets used
+   by your other deployment targets.
 2. Authenticate: `flyctl auth login` (or set `FLY_API_TOKEN`).
 3. Generate a **read-only** GitHub Container Registry token:
    - Navigate to <https://github.com/settings/tokens?type=beta>.

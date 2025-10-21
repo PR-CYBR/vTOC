@@ -55,7 +55,7 @@ All Make targets remain as wrappers around this entry point, so existing automat
 
 Interactive runs prompt for the required secrets. To automate the process (for example when driving the setup through an AI
 assistant) supply the payload non-interactively via `--config-json` or `--config-json @path/to/config.json`. The JSON must match
-[`scripts/inputs.schema.json`](../scripts/inputs.schema.json):
+[`scripts/inputs.schema.json`](https://github.com/vasa-dev/vTOC/blob/main/scripts/inputs.schema.json):
 
 ```bash
 python -m scripts.bootstrap_cli setup local --config-json @- <<'JSON'
@@ -142,7 +142,7 @@ If you need to build services locally, regenerate the compose file with `./scrip
 `build:` blocks are reinstated.
 
 The container helper now supports a Terraform-free flow: it first checks the forwarded config (`--config` or
-`VTOC_CONFIG_JSON`) for a `configBundle` override, then falls back to [`scripts/defaults/config_bundle.local.json`](../scripts/defaults/config_bundle.local.json)
+`VTOC_CONFIG_JSON`) for a `configBundle` override, then falls back to [`scripts/defaults/config_bundle.local.json`](https://github.com/vasa-dev/vTOC/blob/main/scripts/defaults/config_bundle.local.json)
 when Terraform outputs are unavailable. Copy that file, replace the placeholder secrets, and pass it through the setup CLI to
 boot the stack without Terraform — the override takes precedence even when you opt into `--build-local` builds.
 
@@ -160,6 +160,29 @@ curl -X POST http://localhost:8080/api/v1/chatkit/webhook -H 'Content-Type: appl
   -d '{"channel":"'"${STATION_CALLSIGN}"'","text":"ping"}'
 ```
 
+### 5. Draft specs and plans with Spec Kit
+
+Once your environment is online, use the Spec Kit slash commands (available in ChatKit and Codex) to convert ideas into
+actionable work:
+
+1. **Seed the feature folder** — Run `/speckit.init flight-tracking-overlays` to create `specs/flight-tracking-overlays/` with a
+   README and `context.yaml`. Confirm that the backlog id is recorded before you continue.
+2. **Author the spec** — Use `/speckit.spec flight-tracking-overlays` to generate `spec.md`. Fill in user stories, data sources,
+   and UX notes; then rerun the command to lock the file and post the summary back to the backlog item.
+3. **Build the implementation plan** — Call `/speckit.plan flight-tracking-overlays` to scaffold `plan.md` and
+   `qa-checklist.md`. Document backend API changes (FastAPI routers, database migrations) alongside frontend updates
+   (React feature modules, telemetry hooks).
+4. **Create execution tasks** — Execute `/speckit.tasks flight-tracking-overlays` to produce Markdown cards under
+   `specs/flight-tracking-overlays/tasks/`. The CLI injects labels like `Workstream: backend` or `Workstream: frontend` to help
+   GitHub Projects swimlanes and Codex follow-ups stay organized.
+5. **Sync with automation** — Finish with `/speckit.sync flight-tracking-overlays` so Codex, GitHub Projects, and deployment
+   pipelines subscribe to the latest plan. The sync updates `backlog/backlog.yaml`, refreshes CI gating metadata, and posts a
+   digest to `docs/workflows/spec-kit-integration.md` for historical reference.
+
+If you are iterating offline, you can run `pnpm --dir codex speckit --help` (see [`codex/README.md`](../codex/README.md) if
+available) to execute the same commands from the terminal. Commit the generated files with your feature branch so reviewers have
+full context.
+
 ### 5. Access applications
 
 - **Frontend**: http://localhost:5173 (dev) or http://localhost:8081 (compose)
@@ -174,7 +197,25 @@ curl -X POST http://localhost:8080/api/v1/chatkit/webhook -H 'Content-Type: appl
 2. **Create a mission** from the Operations pane. The mission timeline now includes ChatKit transcript references.
 3. **Subscribe telemetry connectors** using the Telemetry admin page, or push sample data with `python -m scripts.bootstrap_cli scraper run` (or the `make scraper-run` alias).
 4. **Trigger an AgentKit playbook** by posting `@agent run recon sweep` in the ChatKit channel. The backend webhook will launch
-   the matching playbook and post a summary back to ChatKit.
+  the matching playbook and post a summary back to ChatKit.
+
+## Station timeline UI
+
+Every TOC station page now ships with a unified timeline that merges telemetry pings, task updates, agent automations, and incident alerts. The panel lives alongside the existing KPI cards and map widgets so operators can correlate spatial data with recent actions at a glance.
+
+- **Where to find it:** The `StationTimelinePanel` component renders inside each `frontend/src/pages/stations/TOCS*.tsx` view. It automatically groups entries by day and surfaces payload excerpts for quick triage.
+- **Data source:** A dedicated React Query hook (`useStationTimeline`) fetches `/api/v1/stations/<slug>/timeline`, normalizes mixed event types, and ensures icons/labels stay consistent.
+- **Re-use it elsewhere:**
+
+  ```tsx
+  import StationTimelinePanel from '../components/telemetry/StationTimelinePanel';
+
+  const CustomStationView = ({ slug }: { slug: string }) => (
+    <StationTimelinePanel stationSlug={slug} className="station-timeline-panel--card" />
+  );
+  ```
+
+The panel ships with loading, empty, and error states out of the box. Drop it into any dashboard grid to give operators the same merged timeline context as the main TOC pages.
 
 ## Common commands
 
