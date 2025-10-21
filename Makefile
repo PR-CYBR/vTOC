@@ -1,3 +1,6 @@
+.PHONY: help setup-local setup-container setup-cloud compose-up compose-down \
+    backend-test frontend-test scraper-run backend-lint station-migrate station-seed \
+    dev-shell
 .PHONY: help setup-local setup-container setup-cloud setup-pi compose-up compose-down \
     backend-test frontend-test scraper-run backend-lint station-migrate station-seed \
     spec-constitution spec-plan spec-tasks spec-implement spec-specify
@@ -46,6 +49,8 @@ station-migrate: ## Run Alembic migrations for all station schemas
 station-seed: ## Seed baseline telemetry for each station
         python -m scripts.bootstrap_cli station seed
 
+dev-shell: ## Launch the Docker-based developer shell (pass ARGS="--setup" to bootstrap)
+	./scripts/dev_shell.sh $(ARGS)
 spec-constitution: ## Run Spec Kit constitution workflow
         python -m scripts.bootstrap_cli spec constitution
 
