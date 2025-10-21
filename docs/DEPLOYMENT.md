@@ -57,6 +57,11 @@ For air-gapped development, set `USE_LOCAL_POSTGRES=1` before running the setup 
 
 ## Docker Compose (development + testing)
 
+CI runs on the `CI` workflow now upload the generated manifest as an artifact named
+`docker-compose-generated`. Download it from the workflow run to reuse the
+compose bundle emitted by `scripts/setup_container.sh --build-local` without
+rerunning the generator locally.
+
 1. Generate the compose file and role secrets:
    ```bash
    python -m scripts.bootstrap_cli setup container --apply

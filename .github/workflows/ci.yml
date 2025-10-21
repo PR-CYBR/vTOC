@@ -156,11 +156,17 @@ PY
             CLEAN_PATH="$CLEAN_PATH:$PY_DIR"
           fi
           export PATH="$CLEAN_PATH"
+          export VTOC_COMPOSE_FILENAME="$GITHUB_WORKSPACE/docker-compose.generated.yml"
           if command -v terraform >/dev/null 2>&1; then
             echo "Terraform still available on PATH" >&2
             exit 1
           fi
           ./scripts/setup_container.sh --build-local
+      - name: Upload generated compose artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-compose-generated
+          path: '${{ github.workspace }}/docker-compose.generated.yml'
       - name: Install Python dependencies
         run: python -m pip install -r backend/requirements.runtime.txt -r backend/requirements.dev.txt
       - name: Python lint
