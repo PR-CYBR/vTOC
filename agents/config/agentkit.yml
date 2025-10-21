@@ -1,0 +1,12 @@
+# AgentKit playbook catalogue for vTOC stations.
+#
+# Each entry exposes a dotted-path to the Python callable executed by AgentKit.
+# The runner is expected to hydrate environment variables documented in README.md
+# (BACKEND_BASE_URL, STATION_API_TOKEN, POSTGRES_STATION_ROLE) before invoking.
+playbooks:
+  timeline_summary:
+    name: timeline_summary
+    description: Fetch the latest mission timeline events and format a ChatKit summary.
+    entrypoint: agents.playbooks.timeline_summary:TimelineSummaryPlaybook
+    options:
+      limit: 5

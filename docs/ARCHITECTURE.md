@@ -62,6 +62,17 @@ Stations isolate operator concerns:
 
 Playbook identifiers are defined under `agents/config/agentkit.yml`. The backend exposes them via `/api/v1/stations/<id>/playbooks`.
 
+### Timeline summary playbook
+
+- **Identifier:** `timeline_summary`
+- **Entrypoint:** `agents.playbooks.timeline_summary:TimelineSummaryPlaybook`
+- **Purpose:** Fetch the latest `/api/v1/stations/<slug>/timeline` payload with station-scoped credentials and render a Markdown
+  digest suitable for posting back into ChatKit threads.
+- **Environment:** The AgentKit runner must provide `BACKEND_BASE_URL`, `STATION_API_TOKEN`, and `POSTGRES_STATION_ROLE`
+  (or `STATION_SLUG`) so the playbook can authenticate and select the correct station context.
+- **Invocation:** `agentkit run timeline_summary --limit 5` will return a compact summary and attach the raw timeline payload in
+  the execution metadata. This command can be wired to ChatKit slash commands or scheduled automations.
+
 ## Data flows
 
 ### Operator coordination
