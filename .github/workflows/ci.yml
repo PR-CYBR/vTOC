@@ -5,6 +5,16 @@ permissions:
   packages: read
 
 on:
+  push:
+    branches:
+      - main
+      - prod
+      - stage
+  pull_request:
+    branches:
+      - main
+      - prod
+      - stage
   workflow_dispatch:
 
 jobs:
