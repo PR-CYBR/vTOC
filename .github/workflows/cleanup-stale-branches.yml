@@ -40,7 +40,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const core = require('@actions/core');
             const retentionDays = parseInt(process.env.RETENTION_DAYS, 10);
             if (Number.isNaN(retentionDays) || retentionDays < 0) {
               core.setFailed(`Invalid retention period: ${process.env.RETENTION_DAYS}`);
