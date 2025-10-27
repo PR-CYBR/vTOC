@@ -142,21 +142,21 @@ jobs:
           if command -v terraform >/dev/null 2>&1; then
             TF_DIR="$(dirname "$(command -v terraform)")"
             CLEAN_PATH="$(TF_DIR="$TF_DIR" python - <<'PY'
-import os
-import sys
-
-path = os.environ.get('PATH', '')
-tf_dir = os.environ.get('TF_DIR')
-parts = []
-for entry in path.split(':'):
-    if not entry:
-        continue
-    if tf_dir and os.path.abspath(entry) == os.path.abspath(tf_dir):
-        continue
-    parts.append(entry)
-sys.stdout.write(':'.join(parts))
-PY
-)"
+          import os
+          import sys
+          
+          path = os.environ.get('PATH', '')
+          tf_dir = os.environ.get('TF_DIR')
+          parts = []
+          for entry in path.split(':'):
+              if not entry:
+                  continue
+              if tf_dir and os.path.abspath(entry) == os.path.abspath(tf_dir):
+                  continue
+              parts.append(entry)
+          sys.stdout.write(':'.join(parts))
+          PY
+          )"
           fi
           if [[ -n "$PY_DIR" && ":$CLEAN_PATH:" != *":$PY_DIR:"* ]]; then
             CLEAN_PATH="$CLEAN_PATH:$PY_DIR"
