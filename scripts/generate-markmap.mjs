@@ -18,10 +18,10 @@ const DEFAULT_IGNORES = new Set([
 ]);
 
 const SKIP_EXTS = new Set([
-  ".png",".jpg",".jpeg",".gif",".webp",".svg",".ico",
-  ".mp4",".mov",".avi",".mkv",".mp3",".wav",".flac",
-  ".zip",".gz",".bz2",".7z",".tar",".tgz",".xz",
-  ".pdf",".jar",".exe",".dll",".dylib"
+  ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico",
+  ".mp4", ".mov", ".avi", ".mkv", ".mp3", ".wav", ".flac",
+  ".zip", ".gz", ".bz2", ".7z", ".tar", ".tgz", ".xz",
+  ".pdf", ".jar", ".exe", ".dll", ".dylib"
 ]);
 
 const MAX_FILE_SIZE = 1024 * 1024;     // 1 MB
@@ -37,7 +37,7 @@ const LANGUAGE_EXT_MAP = {
   ".cs": "C#", ".rb": "Ruby", ".php": "PHP",
   ".sh": "Shell", ".ps1": "PowerShell",
   ".scala": "Scala", ".swift": "Swift",
-  ".m": "Objective‑C", ".mm": "Objective‑C++",
+  ".m": "Objective-C", ".mm": "Objective-C++",
   ".r": "R", ".lua": "Lua"
 };
 
@@ -67,14 +67,13 @@ async function walk(dir, depth = 0) {
   } catch {
     return "";
   }
-  entries.sort((a,b) => a.name.localeCompare(b.name));
+  entries.sort((a, b) => a.name.localeCompare(b.name));
   let md = "";
   for (const e of entries) {
-    if (totalEntries++ > MAX_ENTRIES) break;
+    if (++totalEntries > MAX_ENTRIES) break;
     if (e.name === ".DS_Store" || IGNORES.has(e.name)) continue;
 
     const full = path.join(dir, e.name);
-    const rel = path.relative(root, full);
 
     if (e.isDirectory()) {
       md += `${"  ".repeat(depth)}- **${e.name}/**\n`;
@@ -95,7 +94,7 @@ const repo =
   process.env.GITHUB_REPOSITORY?.split("/")?.pop() || path.basename(root);
 
 const tree = await walk(root, 0);
-const total = Array.from(extCounts.values()).reduce((a,b) => a + b, 0);
+const total = Array.from(extCounts.values()).reduce((a, b) => a + b, 0);
 const topLangs = Array.from(extCounts.entries())
   .sort((a, b) => b[1] - a[1])
   .slice(0, 12)
@@ -105,7 +104,7 @@ const topLangs = Array.from(extCounts.entries())
   })
   .join("\n");
 
-const frontmatter = `--- 
+const frontmatter = `---
 markmap:
   initialExpandLevel: 2
   maxWidth: 320
