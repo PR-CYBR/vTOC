@@ -16,11 +16,19 @@
 const https = require('https');
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const REPO_OWNER = 'PR-CYBR';
-const REPO_NAME = 'vTOC';
+
+// Parse repository from GITHUB_REPOSITORY env var (format: owner/name)
+// or fall back to hardcoded defaults
+const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY || 'PR-CYBR/vTOC';
+const [REPO_OWNER, REPO_NAME] = GITHUB_REPOSITORY.split('/');
 
 if (!GITHUB_TOKEN) {
   console.error('Error: GITHUB_TOKEN environment variable is required');
+  process.exit(1);
+}
+
+if (!REPO_OWNER || !REPO_NAME) {
+  console.error('Error: Invalid GITHUB_REPOSITORY format. Expected "owner/name"');
   process.exit(1);
 }
 
@@ -46,7 +54,8 @@ async function getCurrentSHA() {
           const response = JSON.parse(data);
           resolve(response.object.sha);
         } else {
-          reject(new Error(`Failed to get main branch SHA: ${res.statusCode} ${data}`));
+          // Sanitize error message to avoid exposing sensitive data
+          reject(new Error(`Failed to get main branch SHA: HTTP ${res.statusCode}`));
         }
       });
     });
@@ -111,7 +120,8 @@ async function createBranch(sha) {
         if (res.statusCode === 201) {
           resolve(JSON.parse(data));
         } else {
-          reject(new Error(`Failed to create branch: ${res.statusCode} ${data}`));
+          // Sanitize error message to avoid exposing sensitive data
+          reject(new Error(`Failed to create branch: HTTP ${res.statusCode}`));
         }
       });
     });

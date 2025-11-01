@@ -26,7 +26,11 @@ The `stage` branch needs to be created in the repository. This can be done in tw
 If you have a GitHub token with appropriate permissions:
 
 ```bash
+# Using default repository (PR-CYBR/vTOC)
 GITHUB_TOKEN=<your-token> node scripts/create-stage-branch.js
+
+# Or specify a different repository
+GITHUB_REPOSITORY=owner/repo GITHUB_TOKEN=<your-token> node scripts/create-stage-branch.js
 ```
 
 ### Option 3: Manual Git Commands (For Repository Maintainers)

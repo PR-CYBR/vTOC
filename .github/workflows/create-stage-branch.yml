@@ -22,4 +22,5 @@ jobs:
       - name: Create stage branch via GitHub API
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: node scripts/create-stage-branch.js
