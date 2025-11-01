@@ -15,6 +15,7 @@ jobs:
   prepare:
     name: Prepare project item context
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       PROJECTS_TOKEN: ${{ secrets.PROJECTS_WORKFLOW_TOKEN != '' && secrets.PROJECTS_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
     outputs:
@@ -214,6 +215,7 @@ jobs:
     needs: prepare
     if: needs.prepare.outputs.should_run == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
       PROJECTS_TOKEN: ${{ secrets.PROJECTS_WORKFLOW_TOKEN != '' && secrets.PROJECTS_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
       PLAN_B64: ${{ needs.prepare.outputs.plan_b64 }}

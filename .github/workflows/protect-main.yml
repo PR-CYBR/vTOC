@@ -10,6 +10,7 @@ on:
 jobs:
   protect:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - name: Apply branch protection rules

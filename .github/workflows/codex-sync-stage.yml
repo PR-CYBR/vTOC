@@ -20,6 +20,7 @@ jobs:
     needs: tests
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       status: ${{ steps.capture.outputs.status }}
     steps:
@@ -46,6 +47,7 @@ jobs:
       - publish-status
     if: needs.tests.result == 'success' && needs.tests.outputs.status == 'passed'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       STAGE_MAINTAINERS: ${{ vars.CODEX_STAGE_MAINTAINERS }}
       AUTO_MERGE_LABEL: ${{ vars.CODEX_AUTO_MERGE_LABEL }}

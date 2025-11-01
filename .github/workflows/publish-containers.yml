@@ -37,6 +37,7 @@ jobs:
     needs: publish
     if: ${{ needs.publish.result == 'success' && github.ref == 'refs/heads/prod' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       DOCKERHUB_REGISTRY: docker.io
       RELEASE_TAG: prod
@@ -166,6 +167,7 @@ jobs:
       - verify-dockerhub
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Publish summary
         env:

@@ -31,6 +31,7 @@ jobs:
       - publish
     if: (github.head_ref == 'stage' || github.head_ref == 'prod') && always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Publish summary
         env:

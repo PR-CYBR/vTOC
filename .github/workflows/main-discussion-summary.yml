@@ -13,6 +13,7 @@ permissions:
 jobs:
   summarize:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     container:
       image: python:3.11-slim
     env:

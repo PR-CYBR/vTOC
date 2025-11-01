@@ -29,6 +29,7 @@ permissions:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       RETENTION_DAYS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.retention_days || '30' }}
       PROTECTED_BRANCHES: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.protected_branches || 'main,live' }}
