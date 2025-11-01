@@ -1,0 +1,21 @@
+sequenceDiagram
+actor Dev
+participant GitHub
+participant Runner
+Dev->>GitHub: triggers "Backlog intake"
+GitHub->>Runner: dispatch
+loop Backlog intake
+end
+Dev->>GitHub: triggers "Backlog Project Sync"
+GitHub->>Runner: dispatch
+loop Backlog Project Sync
+end
+Dev->>GitHub: triggers "Build Live Images"
+GitHub->>Runner: dispatch
+loop Build Live Images
+end
+Dev->>GitHub: triggers "CI"
+GitHub->>Runner: dispatch
+loop CI
+Runner->>Runner: job workflow_dispatch
+end

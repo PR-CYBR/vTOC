@@ -1,0 +1,891 @@
+flowchart TB
+classDef dir fill:#eef,stroke:#99c,stroke-width:1px;
+d__["vTOC/"]:::dir
+d__codex[".codex/"]:::dir
+d__codex_commands["commands/"]:::dir
+f__codex_commands_analyze_md["analyze.md"]
+f__codex_commands_checklist_md["checklist.md"]
+f__codex_commands_clarify_md["clarify.md"]
+f__codex_commands_constitution_md["constitution.md"]
+f__codex_commands_implement_md["implement.md"]
+f__codex_commands_plan_md["plan.md"]
+f__codex_commands_specify_md["specify.md"]
+f__codex_commands_tasks_md["tasks.md"]
+d__devcontainer[".devcontainer/"]:::dir
+f__devcontainer_devcontainer_json["devcontainer.json"]
+f__devcontainer_docker_compose_devcontainer_yml["docker-compose.devcontainer.yml"]
+f__devcontainer_Dockerfile["Dockerfile"]
+f__env_example[".env.example"]
+f__gitignore[".gitignore"]
+f__markmapignore[".markmapignore"]
+f__mermaidignore[".mermaidignore"]
+d__specify[".specify/"]:::dir
+d__specify_templates["templates/"]:::dir
+f__specify_templates_agent_file_template_md["agent-file-template.md"]
+f__specify_templates_checklist_template_md["checklist-template.md"]
+d__specify_templates_commands["commands/"]:::dir
+f__specify_templates_commands_analyze_md["analyze.md"]
+f__specify_templates_commands_checklist_md["checklist.md"]
+f__specify_templates_commands_clarify_md["clarify.md"]
+f__specify_templates_commands_constitution_md["constitution.md"]
+f__specify_templates_commands_implement_md["implement.md"]
+f__specify_templates_commands_plan_md["plan.md"]
+f__specify_templates_commands_specify_md["specify.md"]
+f__specify_templates_commands_tasks_md["tasks.md"]
+f__specify_templates_plan_template_md["plan-template.md"]
+f__specify_templates_spec_template_md["spec-template.md"]
+f__specify_templates_tasks_template_md["tasks-template.md"]
+d_agents["agents/"]:::dir
+f_agents___init___py["__init__.py"]
+d_agents_config["config/"]:::dir
+f_agents_config_agentkit_yml["agentkit.yml"]
+d_agents_playbooks["playbooks/"]:::dir
+f_agents_playbooks___init___py["__init__.py"]
+f_agents_playbooks_timeline_summary_py["timeline_summary.py"]
+d_agents_scraper["scraper/"]:::dir
+f_agents_scraper___init___py["__init__.py"]
+f_agents_scraper_adsb_proxy_py["adsb_proxy.py"]
+f_agents_scraper_config_yaml["config.yaml"]
+f_agents_scraper_Dockerfile["Dockerfile"]
+f_agents_scraper_gps_parser_py["gps_parser.py"]
+f_agents_scraper_main_py["main.py"]
+f_agents_scraper_requirements_txt["requirements.txt"]
+d_agents_tests["tests/"]:::dir
+d_agents_tests_data["data/"]:::dir
+f_agents_tests_data_sample_nmea_txt["sample_nmea.txt"]
+f_agents_tests_test_adsb_proxy_py["test_adsb_proxy.py"]
+f_agents_tests_test_gps_parser_py["test_gps_parser.py"]
+f_agents_tests_test_timeline_summary_playbook_py["test_timeline_summary_playbook.py"]
+d_alembic["alembic/"]:::dir
+f_alembic_env_py["env.py"]
+f_alembic_script_py_mako["script.py.mako"]
+d_alembic_supabase["supabase/"]:::dir
+f_alembic_supabase_0001_create_telemetry_tables_sql["0001_create_telemetry_tables.sql"]
+d_alembic_versions["versions/"]:::dir
+f_alembic_versions_20240120_0001_initial_py["20240120_0001_initial.py"]
+f_alembic_versions_20240210_0002_agent_actions_py["20240210_0002_agent_actions.py"]
+f_alembic_versions_20240210_0002_station_models_py["20240210_0002_station_models.py"]
+f_alembic_versions_20240418_0001_agent_action_context_py["20240418_0001_agent_action_context.py"]
+f_alembic_ini["alembic.ini"]
+d_backend["backend/"]:::dir
+d_backend_app["app/"]:::dir
+f_backend_app___init___py["__init__.py"]
+f_backend_app_config_py["config.py"]
+f_backend_app_db_py["db.py"]
+f_backend_app_main_py["main.py"]
+f_backend_app_models_py["models.py"]
+d_backend_app_routers["routers/"]:::dir
+f_backend_app_routers___init___py["__init__.py"]
+f_backend_app_routers_agent_actions_py["agent_actions.py"]
+f_backend_app_routers_hardware_py["hardware.py"]
+d_backend_app_routers_stations["stations/"]:::dir
+f_backend_app_routers_stations___init___py["__init__.py"]
+f_backend_app_routers_stations_agentkit_py["agentkit.py"]
+f_backend_app_routers_stations_dashboard_py["dashboard.py"]
+f_backend_app_routers_stations_tasks_py["tasks.py"]
+f_backend_app_routers_stations_timeline_py["timeline.py"]
+f_backend_app_routers_telemetry_py["telemetry.py"]
+f_backend_app_schema_mixins_py["schema_mixins.py"]
+f_backend_app_schemas_py["schemas.py"]
+d_backend_app_services["services/"]:::dir
+f_backend_app_services___init___py["__init__.py"]
+f_backend_app_services_agentkit_py["agentkit.py"]
+d_backend_app_services_hardware["hardware/"]:::dir
+f_backend_app_services_hardware___init___py["__init__.py"]
+f_backend_app_services_hardware_manager_py["manager.py"]
+f_backend_app_services_supabase_py["supabase.py"]
+d_backend_app_utils["utils/"]:::dir
+f_backend_app_utils___init___py["__init__.py"]
+f_backend_app_utils_stations_py["stations.py"]
+d_backend_chatkit["chatkit/"]:::dir
+f_backend_chatkit___init___py["__init__.py"]
+d_backend_chatkit_actions["actions/"]:::dir
+f_backend_chatkit_actions___init___py["__init__.py"]
+f_backend_chatkit_actions_hardware_py["hardware.py"]
+f_backend_Dockerfile["Dockerfile"]
+f_backend_README_md["README.md"]
+f_backend_requirements_dev_txt["requirements.dev.txt"]
+f_backend_requirements_runtime_txt["requirements.runtime.txt"]
+f_backend_requirements_txt["requirements.txt"]
+d_backend_tests["tests/"]:::dir
+d_backend_tests_stations["stations/"]:::dir
+f_backend_tests_stations_test_timeline_py["test_timeline.py"]
+f_backend_tests_test_agent_actions_py["test_agent_actions.py"]
+f_backend_tests_test_chatkit_hardware_actions_py["test_chatkit_hardware_actions.py"]
+f_backend_tests_test_hardware_manager_py["test_hardware_manager.py"]
+f_backend_tests_test_hardware_routes_py["test_hardware_routes.py"]
+f_backend_tests_test_schemas_py["test_schemas.py"]
+f_backend_tests_test_station_agentkit_py["test_station_agentkit.py"]
+f_backend_tests_test_station_utils_py["test_station_utils.py"]
+f_backend_tests_test_supabase_repository_py["test_supabase_repository.py"]
+d_backlog["backlog/"]:::dir
+f_backlog_backlog_yaml["backlog.yaml"]
+d_codex["codex/"]:::dir
+f_codex_backlog_json["backlog.json"]
+f_codex_README_md["README.md"]
+f_CONTRIBUTING_md["CONTRIBUTING.md"]
+d_database["database/"]:::dir
+f_database__env_example[".env.example"]
+d_database_init["init/"]:::dir
+f_database_init_01_init_sh["01-init.sh"]
+d_database_migrations["migrations/"]:::dir
+f_database_migrations_20240310_0003_extended_telemetry_py["20240310_0003_extended_telemetry.py"]
+d_deploy["deploy/"]:::dir
+d_deploy_udev["udev/"]:::dir
+f_deploy_udev_99_vtoc_rules["99-vtoc.rules"]
+f_docker_compose_yml["docker-compose.yml"]
+f_docker_stack_yml["docker-stack.yml"]
+d_docs["docs/"]:::dir
+f_docs_ADSB_md["ADSB.md"]
+f_docs_API_md["API.md"]
+f_docs_ARCHITECTURE_md["ARCHITECTURE.md"]
+f_docs_backlog_md["backlog.md"]
+d_docs_branches["branches/"]:::dir
+f_docs_branches_live_md["live.md"]
+f_docs_branches_main_md["main.md"]
+f_docs_branches_prod_md["prod.md"]
+f_docs_CHANGELOG_md["CHANGELOG.md"]
+d_docs_communications["communications/"]:::dir
+f_docs_communications_live_branch_md["live-branch.md"]
+d_docs_communications_prod_branch["prod-branch/"]:::dir
+f_docs_communications_prod_branch_README_md["README.md"]
+f_docs_communications_spec_kit_rollout_md["spec-kit-rollout.md"]
+d_docs_deployment["deployment/"]:::dir
+f_docs_deployment_raspberry_pi_md["raspberry-pi.md"]
+f_docs_DEPLOYMENT_md["DEPLOYMENT.md"]
+f_docs_development_md["development.md"]
+f_docs_DIAGRAMS_md["DIAGRAMS.md"]
+f_docs_GPS_md["GPS.md"]
+f_docs_H4M_md["H4M.md"]
+f_docs_HARDWARE_md["HARDWARE.md"]
+f_docs_IMPLEMENTATION_SUMMARY_md["IMPLEMENTATION_SUMMARY.md"]
+f_docs_index_md["index.md"]
+d_docs_live["live/"]:::dir
+f_docs_live_README_md["README.md"]
+f_docs_QUICKSTART_md["QUICKSTART.md"]
+f_docs_requirements_txt["requirements.txt"]
+d_docs_rfc["rfc/"]:::dir
+f_docs_rfc_RFC_000X_hw_onboarding_md["RFC-000X-hw-onboarding.md"]
+f_docs_secret_management_md["secret-management.md"]
+f_docs_SETUP_md["SETUP.md"]
+f_docs_spec_kit_migration_md["spec-kit-migration.md"]
+d_docs_tasks["tasks/"]:::dir
+f_docs_tasks_bot_integrations_md["bot-integrations.md"]
+f_docs_tasks_mcp_integration_md["mcp-integration.md"]
+f_docs_tasks_README_md["README.md"]
+f_docs_TELEMETRY_CONNECTORS_md["TELEMETRY_CONNECTORS.md"]
+d_docs_workflows["workflows/"]:::dir
+f_docs_workflows_build_image_live_md["build-image-live.md"]
+f_docs_workflows_main_discussion_summary_md["main-discussion-summary.md"]
+f_docs_workflows_prod_to_live_md["prod-to-live.md"]
+f_docs_workflows_project_backlog_plan_md["project-backlog-plan.md"]
+f_docs_workflows_project_done_discussion_md["project-done-discussion.md"]
+f_docs_workflows_project_ready_execute_md["project-ready-execute.md"]
+f_docs_workflows_publish_containers_md["publish-containers.md"]
+f_docs_workflows_spec_kit_integration_md["spec-kit-integration.md"]
+f_fly_toml["fly.toml"]
+d_frontend["frontend/"]:::dir
+f_frontend__env_example[".env.example"]
+f_frontend__eslintrc_cjs[".eslintrc.cjs"]
+f_frontend_Dockerfile["Dockerfile"]
+f_frontend_index_html["index.html"]
+f_frontend_nginx_conf["nginx.conf"]
+f_frontend_package_json["package.json"]
+f_frontend_playwright_config_ts["playwright.config.ts"]
+f_frontend_pnpm_lock_yaml["pnpm-lock.yaml"]
+f_frontend_README_md["README.md"]
+d_frontend_src["src/"]:::dir
+d_frontend_src_components["components/"]:::dir
+d_frontend_src_components_chatkit["chatkit/"]:::dir
+f_frontend_src_components_chatkit_ChatKitWidget_test_tsx["ChatKitWidget.test.tsx"]
+f_frontend_src_components_chatkit_ChatKitWidget_tsx["ChatKitWidget.tsx"]
+d_frontend_src_components_setup["setup/"]:::dir
+f_frontend_src_components_setup_SetupWizard_tsx["SetupWizard.tsx"]
+d_frontend_src_components_telemetry["telemetry/"]:::dir
+d_frontend_src_components_telemetry___snapshots__["__snapshots__/"]:::dir
+f_frontend_src_components_telemetry_MockTelemetryOverlay_tsx["MockTelemetryOverlay.tsx"]
+f_frontend_src_components_telemetry_StationTimelinePanel_test_tsx["StationTimelinePanel.test.tsx"]
+f_frontend_src_components_telemetry_StationTimelinePanel_tsx["StationTimelinePanel.tsx"]
+d_frontend_src_features["features/"]:::dir
+d_frontend_src_features_setup["setup/"]:::dir
+f_frontend_src_features_setup_SetupWizard_test_tsx["SetupWizard.test.tsx"]
+f_frontend_src_features_setup_SetupWizard_tsx["SetupWizard.tsx"]
+f_frontend_src_features_setup_types_ts["types.ts"]
+d_frontend_src_lib["lib/"]:::dir
+d_frontend_src_lib_chatkit["chatkit/"]:::dir
+f_frontend_src_lib_chatkit_client_test_ts["client.test.ts"]
+f_frontend_src_lib_chatkit_client_ts["client.ts"]
+f_frontend_src_main_tsx["main.tsx"]
+d_frontend_src_pages["pages/"]:::dir
+f_frontend_src_pages_App_tsx["App.tsx"]
+f_frontend_src_pages_Map_test_tsx["Map.test.tsx"]
+f_frontend_src_pages_Map_tsx["Map.tsx"]
+d_frontend_src_pages_stations["stations/"]:::dir
+f_frontend_src_pages_stations_TOCS1_tsx["TOCS1.tsx"]
+f_frontend_src_pages_stations_TOCS2_tsx["TOCS2.tsx"]
+f_frontend_src_pages_stations_TOCS3_tsx["TOCS3.tsx"]
+f_frontend_src_pages_stations_TOCS4_tsx["TOCS4.tsx"]
+f_frontend_src_router_tsx["router.tsx"]
+d_frontend_src_services["services/"]:::dir
+f_frontend_src_services_agentActions_ts["agentActions.ts"]
+f_frontend_src_services_api_timeline_test_tsx["api.timeline.test.tsx"]
+f_frontend_src_services_api_ts["api.ts"]
+f_frontend_src_styles_css["styles.css"]
+f_frontend_src_vite_env_d_ts["vite-env.d.ts"]
+d_frontend_tests["tests/"]:::dir
+f_frontend_tests_assistant_spec_ts["assistant.spec.ts"]
+f_frontend_tests_setup_wizard_spec_ts["setup-wizard.spec.ts"]
+f_frontend_tsconfig_json["tsconfig.json"]
+f_frontend_tsconfig_node_json["tsconfig.node.json"]
+f_frontend_vite_config_ts["vite.config.ts"]
+f_frontend_vitest_config_ts["vitest.config.ts"]
+d_infrastructure["infrastructure/"]:::dir
+d_infrastructure_ansible["ansible/"]:::dir
+f_infrastructure_ansible_inventory_ini["inventory.ini"]
+d_infrastructure_ansible_playbooks["playbooks/"]:::dir
+f_infrastructure_ansible_playbooks_deploy_yml["deploy.yml"]
+d_infrastructure_ansible_vars["vars/"]:::dir
+f_infrastructure_ansible_vars_defaults_yml["defaults.yml"]
+f_infrastructure_README_infra_md["README-infra.md"]
+f_infrastructure_README_md["README.md"]
+d_infrastructure_terraform["terraform/"]:::dir
+f_infrastructure_terraform_main_tf["main.tf"]
+f_infrastructure_terraform_outputs_tf["outputs.tf"]
+f_infrastructure_terraform_secrets_tf["secrets.tf"]
+f_infrastructure_terraform_supabase_tf["supabase.tf"]
+f_infrastructure_terraform_terraform_tfvars_example["terraform.tfvars.example"]
+f_infrastructure_terraform_variables_tf["variables.tf"]
+f_infrastructure_terraform_tfvars_example["terraform.tfvars.example"]
+f_LICENSE["LICENSE"]
+f_Makefile["Makefile"]
+d_mermaid["mermaid/"]:::dir
+f_mermaid_bpmnish_mmd["bpmnish.mmd"]
+f_mermaid_ci_sequence_mmd["ci-sequence.mmd"]
+f_mermaid_er_mmd["er.mmd"]
+f_mkdocs_yml["mkdocs.yml"]
+f_mypy_ini["mypy.ini"]
+d_n8n["n8n/"]:::dir
+d_n8n_workflows["workflows/"]:::dir
+f_n8n_workflows_operations_monitor_json["operations_monitor.json"]
+f_n8n_workflows_security_alert_handler_json["security_alert_handler.json"]
+d_pages["pages/"]:::dir
+f_pages_README_md["README.md"]
+f_README_dev_md["README.dev.md"]
+f_README_md["README.md"]
+d_scripts["scripts/"]:::dir
+f_scripts___init___py["__init__.py"]
+d_scripts_automation["automation/"]:::dir
+f_scripts_automation___init___py["__init__.py"]
+f_scripts_automation_backlog_plan_py["backlog_plan.py"]
+f_scripts_automation_backlog_py["backlog.py"]
+f_scripts_automation_codex_pr_review_py["codex_pr_review.py"]
+f_scripts_automation_commit_summary_py["commit_summary.py"]
+f_scripts_automation_local_bootstrap_py["local_bootstrap.py"]
+f_scripts_automation_protect_main_branch_sh["protect-main-branch.sh"]
+f_scripts_automation_spec_tasks_py["spec_tasks.py"]
+d_scripts_bootstrap["bootstrap/"]:::dir
+f_scripts_bootstrap___init___py["__init__.py"]
+f_scripts_bootstrap_cloud_py["cloud.py"]
+f_scripts_bootstrap_local_py["local.py"]
+f_scripts_bootstrap_cli_py["bootstrap_cli.py"]
+d_scripts_defaults["defaults/"]:::dir
+f_scripts_defaults_config_bundle_local_json["config_bundle.local.json"]
+f_scripts_dev_shell_sh["dev_shell.sh"]
+d_scripts_examples["examples/"]:::dir
+f_scripts_examples_container_json["container.json"]
+f_scripts_fly_deploy_sh["fly_deploy.sh"]
+f_scripts_generate_markmap_mjs["generate-markmap.mjs"]
+f_scripts_generate_mermaid_mjs["generate-mermaid.mjs"]
+f_scripts_inputs_schema_json["inputs.schema.json"]
+d_scripts_lib["lib/"]:::dir
+f_scripts_lib_config_validator_py["config_validator.py"]
+f_scripts_lib_prereqs_sh["prereqs.sh"]
+f_scripts_setup_cloud_sh["setup_cloud.sh"]
+f_scripts_setup_container_sh["setup_container.sh"]
+f_scripts_setup_local_sh["setup_local.sh"]
+f_scripts_setup_pi_sh["setup_pi.sh"]
+f_scripts_setup_sh["setup.sh"]
+d_scripts_spec_kit["spec_kit/"]:::dir
+f_scripts_spec_kit_check_prerequisites_ps1["check-prerequisites.ps1"]
+f_scripts_spec_kit_check_prerequisites_sh["check-prerequisites.sh"]
+f_scripts_spec_kit_common_ps1["common.ps1"]
+f_scripts_spec_kit_common_sh["common.sh"]
+f_scripts_spec_kit_create_new_feature_ps1["create-new-feature.ps1"]
+f_scripts_spec_kit_create_new_feature_sh["create-new-feature.sh"]
+f_scripts_spec_kit_setup_plan_ps1["setup-plan.ps1"]
+f_scripts_spec_kit_setup_plan_sh["setup-plan.sh"]
+f_scripts_spec_kit_update_agent_context_ps1["update-agent-context.ps1"]
+f_scripts_spec_kit_update_agent_context_sh["update-agent-context.sh"]
+d_scripts_tests["tests/"]:::dir
+f_scripts_tests___init___py["__init__.py"]
+d_scripts_tests_golden["golden/"]:::dir
+d_scripts_tests_golden_cloud["cloud/"]:::dir
+f_scripts_tests_golden_cloud_group_vars_all_yml["group_vars_all.yml"]
+f_scripts_tests_golden_cloud_inventory_ini["inventory.ini"]
+f_scripts_tests_golden_cloud_main_tf["main.tf"]
+f_scripts_tests_golden_cloud_outputs_tf["outputs.tf"]
+f_scripts_tests_golden_cloud_playbook_yml["playbook.yml"]
+f_scripts_tests_golden_cloud_variables_tf["variables.tf"]
+f_scripts_tests_test_bootstrap_cli_spec_py["test_bootstrap_cli_spec.py"]
+f_scripts_tests_test_cloud_generator_py["test_cloud_generator.py"]
+f_scripts_tests_test_config_validator_py["test_config_validator.py"]
+f_scripts_tests_test_local_bootstrap_py["test_local_bootstrap.py"]
+f_scripts_tests_test_setup_pi_py["test_setup_pi.py"]
+d_services["services/"]:::dir
+d_services_adsb_ingest["adsb-ingest/"]:::dir
+d_services_adsb_ingest_adsb_proxy["adsb_proxy/"]:::dir
+f_services_adsb_ingest_adsb_proxy___init___py["__init__.py"]
+f_services_adsb_ingest_adsb_proxy_config_py["config.py"]
+f_services_adsb_ingest_adsb_proxy_main_py["main.py"]
+f_services_adsb_ingest_adsb_proxy_proxy_py["proxy.py"]
+f_services_adsb_ingest_docker_compose_override_yml["docker-compose.override.yml"]
+f_services_adsb_ingest_Dockerfile["Dockerfile"]
+f_services_adsb_ingest_README_md["README.md"]
+f_services_adsb_ingest_requirements_txt["requirements.txt"]
+d_services_adsb_ingest_scripts["scripts/"]:::dir
+f_services_adsb_ingest_scripts_configure_readsb_py["configure_readsb.py"]
+d_services_adsb_ingest_templates["templates/"]:::dir
+f_services_adsb_ingest_templates_dump1090_conf_template["dump1090.conf.template"]
+f_services_adsb_ingest_templates_readsb_conf_template["readsb.conf.template"]
+d_services_adsb_ingest_tests["tests/"]:::dir
+f_services_adsb_ingest_tests___init___py["__init__.py"]
+f_services_adsb_ingest_tests_conftest_py["conftest.py"]
+d_services_adsb_ingest_tests_data["data/"]:::dir
+f_services_adsb_ingest_tests_data_sample_aircraft_json["sample_aircraft.json"]
+f_services_adsb_ingest_tests_test_configure_readsb_py["test_configure_readsb.py"]
+f_services_adsb_ingest_tests_test_proxy_py["test_proxy.py"]
+d_services_gps_ingest["gps-ingest/"]:::dir
+f_services_gps_ingest_Dockerfile["Dockerfile"]
+d_services_gps_ingest_gps_ingest["gps_ingest/"]:::dir
+f_services_gps_ingest_gps_ingest___init___py["__init__.py"]
+f_services_gps_ingest_gps_ingest___main___py["__main__.py"]
+f_services_gps_ingest_gps_ingest_config_py["config.py"]
+f_services_gps_ingest_gps_ingest_parser_py["parser.py"]
+f_services_gps_ingest_gps_ingest_service_py["service.py"]
+f_services_gps_ingest_pyproject_toml["pyproject.toml"]
+f_services_gps_ingest_README_md["README.md"]
+d_services_gps_ingest_tests["tests/"]:::dir
+f_services_gps_ingest_tests_test_parser_py["test_parser.py"]
+f_services_gps_ingest_tests_test_retry_py["test_retry.py"]
+d_services_h4m_bridge["h4m-bridge/"]:::dir
+d_services_h4m_bridge_h4m_bridge["h4m_bridge/"]:::dir
+f_services_h4m_bridge_h4m_bridge___init___py["__init__.py"]
+f_services_h4m_bridge_h4m_bridge_bridge_py["bridge.py"]
+f_services_h4m_bridge_h4m_bridge_cli_py["cli.py"]
+f_services_h4m_bridge_h4m_bridge_client_py["client.py"]
+f_services_h4m_bridge_h4m_bridge_dedup_py["dedup.py"]
+f_services_h4m_bridge_h4m_bridge_scanner_py["scanner.py"]
+f_services_h4m_bridge_README_md["README.md"]
+d_services_h4m_bridge_tests["tests/"]:::dir
+f_services_h4m_bridge_tests_conftest_py["conftest.py"]
+f_services_h4m_bridge_tests_test_bridge_py["test_bridge.py"]
+f_services_h4m_bridge_tests_test_scanner_py["test_scanner.py"]
+d_specs["specs/"]:::dir
+d_specs_001_bot_integrations_shared["001-bot-integrations-shared/"]:::dir
+d_specs_001_bot_integrations_shared_contracts["contracts/"]:::dir
+f_specs_001_bot_integrations_shared_contracts_shared_runtime_md["shared-runtime.md"]
+f_specs_001_bot_integrations_shared_plan_md["plan.md"]
+f_specs_001_bot_integrations_shared_quickstart_md["quickstart.md"]
+f_specs_001_bot_integrations_shared_research_md["research.md"]
+f_specs_001_bot_integrations_shared_spec_md["spec.md"]
+f_specs_001_bot_integrations_shared_tasks_md["tasks.md"]
+d_specs_002_bot_telegram["002-bot-telegram/"]:::dir
+d_specs_002_bot_telegram_contracts["contracts/"]:::dir
+f_specs_002_bot_telegram_contracts_telegram_command_contract_md["telegram-command-contract.md"]
+f_specs_002_bot_telegram_plan_md["plan.md"]
+f_specs_002_bot_telegram_quickstart_md["quickstart.md"]
+f_specs_002_bot_telegram_research_md["research.md"]
+f_specs_002_bot_telegram_spec_md["spec.md"]
+f_specs_002_bot_telegram_tasks_md["tasks.md"]
+d_specs_003_bot_slack["003-bot-slack/"]:::dir
+d_specs_003_bot_slack_contracts["contracts/"]:::dir
+f_specs_003_bot_slack_contracts_slack_events_contract_md["slack-events-contract.md"]
+f_specs_003_bot_slack_plan_md["plan.md"]
+f_specs_003_bot_slack_quickstart_md["quickstart.md"]
+f_specs_003_bot_slack_research_md["research.md"]
+f_specs_003_bot_slack_spec_md["spec.md"]
+f_specs_003_bot_slack_tasks_md["tasks.md"]
+d_specs_004_bot_discord["004-bot-discord/"]:::dir
+d_specs_004_bot_discord_contracts["contracts/"]:::dir
+f_specs_004_bot_discord_contracts_discord_command_contract_md["discord-command-contract.md"]
+f_specs_004_bot_discord_plan_md["plan.md"]
+f_specs_004_bot_discord_quickstart_md["quickstart.md"]
+f_specs_004_bot_discord_research_md["research.md"]
+f_specs_004_bot_discord_spec_md["spec.md"]
+f_specs_004_bot_discord_tasks_md["tasks.md"]
+d_specs_005_bot_docs_qa_rollout["005-bot-docs-qa-rollout/"]:::dir
+d_specs_005_bot_docs_qa_rollout_contracts["contracts/"]:::dir
+f__005_bot_docs_qa_rollout_contracts_rollout_checklist_contract_md["rollout-checklist-contract.md"]
+f_specs_005_bot_docs_qa_rollout_plan_md["plan.md"]
+f_specs_005_bot_docs_qa_rollout_quickstart_md["quickstart.md"]
+f_specs_005_bot_docs_qa_rollout_research_md["research.md"]
+f_specs_005_bot_docs_qa_rollout_spec_md["spec.md"]
+f_specs_005_bot_docs_qa_rollout_tasks_md["tasks.md"]
+d_specs_bot_integrations["bot-integrations/"]:::dir
+f_specs_bot_integrations_tasks_md["tasks.md"]
+d_stations["stations/"]:::dir
+f_stations_README_md["README.md"]
+d_stations_TOC_S1["TOC-S1/"]:::dir
+f_stations_TOC_S1_onboard_sh["onboard.sh"]
+f_stations_TOC_S1_README_md["README.md"]
+f_stations_TOC_S1_seed_py["seed.py"]
+d_stations_TOC_S2["TOC-S2/"]:::dir
+f_stations_TOC_S2_onboard_sh["onboard.sh"]
+f_stations_TOC_S2_README_md["README.md"]
+f_stations_TOC_S2_seed_py["seed.py"]
+d_stations_TOC_S3["TOC-S3/"]:::dir
+f_stations_TOC_S3_onboard_sh["onboard.sh"]
+f_stations_TOC_S3_README_md["README.md"]
+f_stations_TOC_S3_seed_py["seed.py"]
+d_stations_TOC_S4["TOC-S4/"]:::dir
+f_stations_TOC_S4_onboard_sh["onboard.sh"]
+f_stations_TOC_S4_README_md["README.md"]
+f_stations_TOC_S4_seed_py["seed.py"]
+d_traefik["traefik/"]:::dir
+d_traefik_dynamic["dynamic/"]:::dir
+f_traefik_dynamic_middlewares_yml["middlewares.yml"]
+f_traefik_traefik_yml["traefik.yml"]
+d__ --> d__codex
+d__codex --> d__codex_commands
+d__codex_commands --> f__codex_commands_analyze_md
+d__codex_commands --> f__codex_commands_checklist_md
+d__codex_commands --> f__codex_commands_clarify_md
+d__codex_commands --> f__codex_commands_constitution_md
+d__codex_commands --> f__codex_commands_implement_md
+d__codex_commands --> f__codex_commands_plan_md
+d__codex_commands --> f__codex_commands_specify_md
+d__codex_commands --> f__codex_commands_tasks_md
+d__ --> d__devcontainer
+d__devcontainer --> f__devcontainer_devcontainer_json
+d__devcontainer --> f__devcontainer_docker_compose_devcontainer_yml
+d__devcontainer --> f__devcontainer_Dockerfile
+d__ --> f__env_example
+d__ --> f__gitignore
+d__ --> f__markmapignore
+d__ --> f__mermaidignore
+d__ --> d__specify
+d__specify --> d__specify_templates
+d__specify_templates --> f__specify_templates_agent_file_template_md
+d__specify_templates --> f__specify_templates_checklist_template_md
+d__specify_templates --> d__specify_templates_commands
+d__specify_templates_commands --> f__specify_templates_commands_analyze_md
+d__specify_templates_commands --> f__specify_templates_commands_checklist_md
+d__specify_templates_commands --> f__specify_templates_commands_clarify_md
+d__specify_templates_commands --> f__specify_templates_commands_constitution_md
+d__specify_templates_commands --> f__specify_templates_commands_implement_md
+d__specify_templates_commands --> f__specify_templates_commands_plan_md
+d__specify_templates_commands --> f__specify_templates_commands_specify_md
+d__specify_templates_commands --> f__specify_templates_commands_tasks_md
+d__specify_templates --> f__specify_templates_plan_template_md
+d__specify_templates --> f__specify_templates_spec_template_md
+d__specify_templates --> f__specify_templates_tasks_template_md
+d__ --> d_agents
+d_agents --> f_agents___init___py
+d_agents --> d_agents_config
+d_agents_config --> f_agents_config_agentkit_yml
+d_agents --> d_agents_playbooks
+d_agents_playbooks --> f_agents_playbooks___init___py
+d_agents_playbooks --> f_agents_playbooks_timeline_summary_py
+d_agents --> d_agents_scraper
+d_agents_scraper --> f_agents_scraper___init___py
+d_agents_scraper --> f_agents_scraper_adsb_proxy_py
+d_agents_scraper --> f_agents_scraper_config_yaml
+d_agents_scraper --> f_agents_scraper_Dockerfile
+d_agents_scraper --> f_agents_scraper_gps_parser_py
+d_agents_scraper --> f_agents_scraper_main_py
+d_agents_scraper --> f_agents_scraper_requirements_txt
+d_agents --> d_agents_tests
+d_agents_tests --> d_agents_tests_data
+d_agents_tests_data --> f_agents_tests_data_sample_nmea_txt
+d_agents_tests --> f_agents_tests_test_adsb_proxy_py
+d_agents_tests --> f_agents_tests_test_gps_parser_py
+d_agents_tests --> f_agents_tests_test_timeline_summary_playbook_py
+d__ --> d_alembic
+d_alembic --> f_alembic_env_py
+d_alembic --> f_alembic_script_py_mako
+d_alembic --> d_alembic_supabase
+d_alembic_supabase --> f_alembic_supabase_0001_create_telemetry_tables_sql
+d_alembic --> d_alembic_versions
+d_alembic_versions --> f_alembic_versions_20240120_0001_initial_py
+d_alembic_versions --> f_alembic_versions_20240210_0002_agent_actions_py
+d_alembic_versions --> f_alembic_versions_20240210_0002_station_models_py
+d_alembic_versions --> f_alembic_versions_20240418_0001_agent_action_context_py
+d__ --> f_alembic_ini
+d__ --> d_backend
+d_backend --> d_backend_app
+d_backend_app --> f_backend_app___init___py
+d_backend_app --> f_backend_app_config_py
+d_backend_app --> f_backend_app_db_py
+d_backend_app --> f_backend_app_main_py
+d_backend_app --> f_backend_app_models_py
+d_backend_app --> d_backend_app_routers
+d_backend_app_routers --> f_backend_app_routers___init___py
+d_backend_app_routers --> f_backend_app_routers_agent_actions_py
+d_backend_app_routers --> f_backend_app_routers_hardware_py
+d_backend_app_routers --> d_backend_app_routers_stations
+d_backend_app_routers_stations --> f_backend_app_routers_stations___init___py
+d_backend_app_routers_stations --> f_backend_app_routers_stations_agentkit_py
+d_backend_app_routers_stations --> f_backend_app_routers_stations_dashboard_py
+d_backend_app_routers_stations --> f_backend_app_routers_stations_tasks_py
+d_backend_app_routers_stations --> f_backend_app_routers_stations_timeline_py
+d_backend_app_routers --> f_backend_app_routers_telemetry_py
+d_backend_app --> f_backend_app_schema_mixins_py
+d_backend_app --> f_backend_app_schemas_py
+d_backend_app --> d_backend_app_services
+d_backend_app_services --> f_backend_app_services___init___py
+d_backend_app_services --> f_backend_app_services_agentkit_py
+d_backend_app_services --> d_backend_app_services_hardware
+d_backend_app_services_hardware --> f_backend_app_services_hardware___init___py
+d_backend_app_services_hardware --> f_backend_app_services_hardware_manager_py
+d_backend_app_services --> f_backend_app_services_supabase_py
+d_backend_app --> d_backend_app_utils
+d_backend_app_utils --> f_backend_app_utils___init___py
+d_backend_app_utils --> f_backend_app_utils_stations_py
+d_backend --> d_backend_chatkit
+d_backend_chatkit --> f_backend_chatkit___init___py
+d_backend_chatkit --> d_backend_chatkit_actions
+d_backend_chatkit_actions --> f_backend_chatkit_actions___init___py
+d_backend_chatkit_actions --> f_backend_chatkit_actions_hardware_py
+d_backend --> f_backend_Dockerfile
+d_backend --> f_backend_README_md
+d_backend --> f_backend_requirements_dev_txt
+d_backend --> f_backend_requirements_runtime_txt
+d_backend --> f_backend_requirements_txt
+d_backend --> d_backend_tests
+d_backend_tests --> d_backend_tests_stations
+d_backend_tests_stations --> f_backend_tests_stations_test_timeline_py
+d_backend_tests --> f_backend_tests_test_agent_actions_py
+d_backend_tests --> f_backend_tests_test_chatkit_hardware_actions_py
+d_backend_tests --> f_backend_tests_test_hardware_manager_py
+d_backend_tests --> f_backend_tests_test_hardware_routes_py
+d_backend_tests --> f_backend_tests_test_schemas_py
+d_backend_tests --> f_backend_tests_test_station_agentkit_py
+d_backend_tests --> f_backend_tests_test_station_utils_py
+d_backend_tests --> f_backend_tests_test_supabase_repository_py
+d__ --> d_backlog
+d_backlog --> f_backlog_backlog_yaml
+d__ --> d_codex
+d_codex --> f_codex_backlog_json
+d_codex --> f_codex_README_md
+d__ --> f_CONTRIBUTING_md
+d__ --> d_database
+d_database --> f_database__env_example
+d_database --> d_database_init
+d_database_init --> f_database_init_01_init_sh
+d_database --> d_database_migrations
+d_database_migrations --> f_database_migrations_20240310_0003_extended_telemetry_py
+d__ --> d_deploy
+d_deploy --> d_deploy_udev
+d_deploy_udev --> f_deploy_udev_99_vtoc_rules
+d__ --> f_docker_compose_yml
+d__ --> f_docker_stack_yml
+d__ --> d_docs
+d_docs --> f_docs_ADSB_md
+d_docs --> f_docs_API_md
+d_docs --> f_docs_ARCHITECTURE_md
+d_docs --> f_docs_backlog_md
+d_docs --> d_docs_branches
+d_docs_branches --> f_docs_branches_live_md
+d_docs_branches --> f_docs_branches_main_md
+d_docs_branches --> f_docs_branches_prod_md
+d_docs --> f_docs_CHANGELOG_md
+d_docs --> d_docs_communications
+d_docs_communications --> f_docs_communications_live_branch_md
+d_docs_communications --> d_docs_communications_prod_branch
+d_docs_communications_prod_branch --> f_docs_communications_prod_branch_README_md
+d_docs_communications --> f_docs_communications_spec_kit_rollout_md
+d_docs --> d_docs_deployment
+d_docs_deployment --> f_docs_deployment_raspberry_pi_md
+d_docs --> f_docs_DEPLOYMENT_md
+d_docs --> f_docs_development_md
+d_docs --> f_docs_DIAGRAMS_md
+d_docs --> f_docs_GPS_md
+d_docs --> f_docs_H4M_md
+d_docs --> f_docs_HARDWARE_md
+d_docs --> f_docs_IMPLEMENTATION_SUMMARY_md
+d_docs --> f_docs_index_md
+d_docs --> d_docs_live
+d_docs_live --> f_docs_live_README_md
+d_docs --> f_docs_QUICKSTART_md
+d_docs --> f_docs_requirements_txt
+d_docs --> d_docs_rfc
+d_docs_rfc --> f_docs_rfc_RFC_000X_hw_onboarding_md
+d_docs --> f_docs_secret_management_md
+d_docs --> f_docs_SETUP_md
+d_docs --> f_docs_spec_kit_migration_md
+d_docs --> d_docs_tasks
+d_docs_tasks --> f_docs_tasks_bot_integrations_md
+d_docs_tasks --> f_docs_tasks_mcp_integration_md
+d_docs_tasks --> f_docs_tasks_README_md
+d_docs --> f_docs_TELEMETRY_CONNECTORS_md
+d_docs --> d_docs_workflows
+d_docs_workflows --> f_docs_workflows_build_image_live_md
+d_docs_workflows --> f_docs_workflows_main_discussion_summary_md
+d_docs_workflows --> f_docs_workflows_prod_to_live_md
+d_docs_workflows --> f_docs_workflows_project_backlog_plan_md
+d_docs_workflows --> f_docs_workflows_project_done_discussion_md
+d_docs_workflows --> f_docs_workflows_project_ready_execute_md
+d_docs_workflows --> f_docs_workflows_publish_containers_md
+d_docs_workflows --> f_docs_workflows_spec_kit_integration_md
+d__ --> f_fly_toml
+d__ --> d_frontend
+d_frontend --> f_frontend__env_example
+d_frontend --> f_frontend__eslintrc_cjs
+d_frontend --> f_frontend_Dockerfile
+d_frontend --> f_frontend_index_html
+d_frontend --> f_frontend_nginx_conf
+d_frontend --> f_frontend_package_json
+d_frontend --> f_frontend_playwright_config_ts
+d_frontend --> f_frontend_pnpm_lock_yaml
+d_frontend --> f_frontend_README_md
+d_frontend --> d_frontend_src
+d_frontend_src --> d_frontend_src_components
+d_frontend_src_components --> d_frontend_src_components_chatkit
+d_frontend_src_components_chatkit --> f_frontend_src_components_chatkit_ChatKitWidget_test_tsx
+d_frontend_src_components_chatkit --> f_frontend_src_components_chatkit_ChatKitWidget_tsx
+d_frontend_src_components --> d_frontend_src_components_setup
+d_frontend_src_components_setup --> f_frontend_src_components_setup_SetupWizard_tsx
+d_frontend_src_components --> d_frontend_src_components_telemetry
+d_frontend_src_components_telemetry --> d_frontend_src_components_telemetry___snapshots__
+d_frontend_src_components_telemetry --> f_frontend_src_components_telemetry_MockTelemetryOverlay_tsx
+d_frontend_src_components_telemetry --> f_frontend_src_components_telemetry_StationTimelinePanel_test_tsx
+d_frontend_src_components_telemetry --> f_frontend_src_components_telemetry_StationTimelinePanel_tsx
+d_frontend_src --> d_frontend_src_features
+d_frontend_src_features --> d_frontend_src_features_setup
+d_frontend_src_features_setup --> f_frontend_src_features_setup_SetupWizard_test_tsx
+d_frontend_src_features_setup --> f_frontend_src_features_setup_SetupWizard_tsx
+d_frontend_src_features_setup --> f_frontend_src_features_setup_types_ts
+d_frontend_src --> d_frontend_src_lib
+d_frontend_src_lib --> d_frontend_src_lib_chatkit
+d_frontend_src_lib_chatkit --> f_frontend_src_lib_chatkit_client_test_ts
+d_frontend_src_lib_chatkit --> f_frontend_src_lib_chatkit_client_ts
+d_frontend_src --> f_frontend_src_main_tsx
+d_frontend_src --> d_frontend_src_pages
+d_frontend_src_pages --> f_frontend_src_pages_App_tsx
+d_frontend_src_pages --> f_frontend_src_pages_Map_test_tsx
+d_frontend_src_pages --> f_frontend_src_pages_Map_tsx
+d_frontend_src_pages --> d_frontend_src_pages_stations
+d_frontend_src_pages_stations --> f_frontend_src_pages_stations_TOCS1_tsx
+d_frontend_src_pages_stations --> f_frontend_src_pages_stations_TOCS2_tsx
+d_frontend_src_pages_stations --> f_frontend_src_pages_stations_TOCS3_tsx
+d_frontend_src_pages_stations --> f_frontend_src_pages_stations_TOCS4_tsx
+d_frontend_src --> f_frontend_src_router_tsx
+d_frontend_src --> d_frontend_src_services
+d_frontend_src_services --> f_frontend_src_services_agentActions_ts
+d_frontend_src_services --> f_frontend_src_services_api_timeline_test_tsx
+d_frontend_src_services --> f_frontend_src_services_api_ts
+d_frontend_src --> f_frontend_src_styles_css
+d_frontend_src --> f_frontend_src_vite_env_d_ts
+d_frontend --> d_frontend_tests
+d_frontend_tests --> f_frontend_tests_assistant_spec_ts
+d_frontend_tests --> f_frontend_tests_setup_wizard_spec_ts
+d_frontend --> f_frontend_tsconfig_json
+d_frontend --> f_frontend_tsconfig_node_json
+d_frontend --> f_frontend_vite_config_ts
+d_frontend --> f_frontend_vitest_config_ts
+d__ --> d_infrastructure
+d_infrastructure --> d_infrastructure_ansible
+d_infrastructure_ansible --> f_infrastructure_ansible_inventory_ini
+d_infrastructure_ansible --> d_infrastructure_ansible_playbooks
+d_infrastructure_ansible_playbooks --> f_infrastructure_ansible_playbooks_deploy_yml
+d_infrastructure_ansible --> d_infrastructure_ansible_vars
+d_infrastructure_ansible_vars --> f_infrastructure_ansible_vars_defaults_yml
+d_infrastructure --> f_infrastructure_README_infra_md
+d_infrastructure --> f_infrastructure_README_md
+d_infrastructure --> d_infrastructure_terraform
+d_infrastructure_terraform --> f_infrastructure_terraform_main_tf
+d_infrastructure_terraform --> f_infrastructure_terraform_outputs_tf
+d_infrastructure_terraform --> f_infrastructure_terraform_secrets_tf
+d_infrastructure_terraform --> f_infrastructure_terraform_supabase_tf
+d_infrastructure_terraform --> f_infrastructure_terraform_terraform_tfvars_example
+d_infrastructure_terraform --> f_infrastructure_terraform_variables_tf
+d_infrastructure --> f_infrastructure_terraform_tfvars_example
+d__ --> f_LICENSE
+d__ --> f_Makefile
+d__ --> d_mermaid
+d_mermaid --> f_mermaid_bpmnish_mmd
+d_mermaid --> f_mermaid_ci_sequence_mmd
+d_mermaid --> f_mermaid_er_mmd
+d__ --> f_mkdocs_yml
+d__ --> f_mypy_ini
+d__ --> d_n8n
+d_n8n --> d_n8n_workflows
+d_n8n_workflows --> f_n8n_workflows_operations_monitor_json
+d_n8n_workflows --> f_n8n_workflows_security_alert_handler_json
+d__ --> d_pages
+d_pages --> f_pages_README_md
+d__ --> f_README_dev_md
+d__ --> f_README_md
+d__ --> d_scripts
+d_scripts --> f_scripts___init___py
+d_scripts --> d_scripts_automation
+d_scripts_automation --> f_scripts_automation___init___py
+d_scripts_automation --> f_scripts_automation_backlog_plan_py
+d_scripts_automation --> f_scripts_automation_backlog_py
+d_scripts_automation --> f_scripts_automation_codex_pr_review_py
+d_scripts_automation --> f_scripts_automation_commit_summary_py
+d_scripts_automation --> f_scripts_automation_local_bootstrap_py
+d_scripts_automation --> f_scripts_automation_protect_main_branch_sh
+d_scripts_automation --> f_scripts_automation_spec_tasks_py
+d_scripts --> d_scripts_bootstrap
+d_scripts_bootstrap --> f_scripts_bootstrap___init___py
+d_scripts_bootstrap --> f_scripts_bootstrap_cloud_py
+d_scripts_bootstrap --> f_scripts_bootstrap_local_py
+d_scripts --> f_scripts_bootstrap_cli_py
+d_scripts --> d_scripts_defaults
+d_scripts_defaults --> f_scripts_defaults_config_bundle_local_json
+d_scripts --> f_scripts_dev_shell_sh
+d_scripts --> d_scripts_examples
+d_scripts_examples --> f_scripts_examples_container_json
+d_scripts --> f_scripts_fly_deploy_sh
+d_scripts --> f_scripts_generate_markmap_mjs
+d_scripts --> f_scripts_generate_mermaid_mjs
+d_scripts --> f_scripts_inputs_schema_json
+d_scripts --> d_scripts_lib
+d_scripts_lib --> f_scripts_lib_config_validator_py
+d_scripts_lib --> f_scripts_lib_prereqs_sh
+d_scripts --> f_scripts_setup_cloud_sh
+d_scripts --> f_scripts_setup_container_sh
+d_scripts --> f_scripts_setup_local_sh
+d_scripts --> f_scripts_setup_pi_sh
+d_scripts --> f_scripts_setup_sh
+d_scripts --> d_scripts_spec_kit
+d_scripts_spec_kit --> f_scripts_spec_kit_check_prerequisites_ps1
+d_scripts_spec_kit --> f_scripts_spec_kit_check_prerequisites_sh
+d_scripts_spec_kit --> f_scripts_spec_kit_common_ps1
+d_scripts_spec_kit --> f_scripts_spec_kit_common_sh
+d_scripts_spec_kit --> f_scripts_spec_kit_create_new_feature_ps1
+d_scripts_spec_kit --> f_scripts_spec_kit_create_new_feature_sh
+d_scripts_spec_kit --> f_scripts_spec_kit_setup_plan_ps1
+d_scripts_spec_kit --> f_scripts_spec_kit_setup_plan_sh
+d_scripts_spec_kit --> f_scripts_spec_kit_update_agent_context_ps1
+d_scripts_spec_kit --> f_scripts_spec_kit_update_agent_context_sh
+d_scripts --> d_scripts_tests
+d_scripts_tests --> f_scripts_tests___init___py
+d_scripts_tests --> d_scripts_tests_golden
+d_scripts_tests_golden --> d_scripts_tests_golden_cloud
+d_scripts_tests_golden_cloud --> f_scripts_tests_golden_cloud_group_vars_all_yml
+d_scripts_tests_golden_cloud --> f_scripts_tests_golden_cloud_inventory_ini
+d_scripts_tests_golden_cloud --> f_scripts_tests_golden_cloud_main_tf
+d_scripts_tests_golden_cloud --> f_scripts_tests_golden_cloud_outputs_tf
+d_scripts_tests_golden_cloud --> f_scripts_tests_golden_cloud_playbook_yml
+d_scripts_tests_golden_cloud --> f_scripts_tests_golden_cloud_variables_tf
+d_scripts_tests --> f_scripts_tests_test_bootstrap_cli_spec_py
+d_scripts_tests --> f_scripts_tests_test_cloud_generator_py
+d_scripts_tests --> f_scripts_tests_test_config_validator_py
+d_scripts_tests --> f_scripts_tests_test_local_bootstrap_py
+d_scripts_tests --> f_scripts_tests_test_setup_pi_py
+d__ --> d_services
+d_services --> d_services_adsb_ingest
+d_services_adsb_ingest --> d_services_adsb_ingest_adsb_proxy
+d_services_adsb_ingest_adsb_proxy --> f_services_adsb_ingest_adsb_proxy___init___py
+d_services_adsb_ingest_adsb_proxy --> f_services_adsb_ingest_adsb_proxy_config_py
+d_services_adsb_ingest_adsb_proxy --> f_services_adsb_ingest_adsb_proxy_main_py
+d_services_adsb_ingest_adsb_proxy --> f_services_adsb_ingest_adsb_proxy_proxy_py
+d_services_adsb_ingest --> f_services_adsb_ingest_docker_compose_override_yml
+d_services_adsb_ingest --> f_services_adsb_ingest_Dockerfile
+d_services_adsb_ingest --> f_services_adsb_ingest_README_md
+d_services_adsb_ingest --> f_services_adsb_ingest_requirements_txt
+d_services_adsb_ingest --> d_services_adsb_ingest_scripts
+d_services_adsb_ingest_scripts --> f_services_adsb_ingest_scripts_configure_readsb_py
+d_services_adsb_ingest --> d_services_adsb_ingest_templates
+d_services_adsb_ingest_templates --> f_services_adsb_ingest_templates_dump1090_conf_template
+d_services_adsb_ingest_templates --> f_services_adsb_ingest_templates_readsb_conf_template
+d_services_adsb_ingest --> d_services_adsb_ingest_tests
+d_services_adsb_ingest_tests --> f_services_adsb_ingest_tests___init___py
+d_services_adsb_ingest_tests --> f_services_adsb_ingest_tests_conftest_py
+d_services_adsb_ingest_tests --> d_services_adsb_ingest_tests_data
+d_services_adsb_ingest_tests_data --> f_services_adsb_ingest_tests_data_sample_aircraft_json
+d_services_adsb_ingest_tests --> f_services_adsb_ingest_tests_test_configure_readsb_py
+d_services_adsb_ingest_tests --> f_services_adsb_ingest_tests_test_proxy_py
+d_services --> d_services_gps_ingest
+d_services_gps_ingest --> f_services_gps_ingest_Dockerfile
+d_services_gps_ingest --> d_services_gps_ingest_gps_ingest
+d_services_gps_ingest_gps_ingest --> f_services_gps_ingest_gps_ingest___init___py
+d_services_gps_ingest_gps_ingest --> f_services_gps_ingest_gps_ingest___main___py
+d_services_gps_ingest_gps_ingest --> f_services_gps_ingest_gps_ingest_config_py
+d_services_gps_ingest_gps_ingest --> f_services_gps_ingest_gps_ingest_parser_py
+d_services_gps_ingest_gps_ingest --> f_services_gps_ingest_gps_ingest_service_py
+d_services_gps_ingest --> f_services_gps_ingest_pyproject_toml
+d_services_gps_ingest --> f_services_gps_ingest_README_md
+d_services_gps_ingest --> d_services_gps_ingest_tests
+d_services_gps_ingest_tests --> f_services_gps_ingest_tests_test_parser_py
+d_services_gps_ingest_tests --> f_services_gps_ingest_tests_test_retry_py
+d_services --> d_services_h4m_bridge
+d_services_h4m_bridge --> d_services_h4m_bridge_h4m_bridge
+d_services_h4m_bridge_h4m_bridge --> f_services_h4m_bridge_h4m_bridge___init___py
+d_services_h4m_bridge_h4m_bridge --> f_services_h4m_bridge_h4m_bridge_bridge_py
+d_services_h4m_bridge_h4m_bridge --> f_services_h4m_bridge_h4m_bridge_cli_py
+d_services_h4m_bridge_h4m_bridge --> f_services_h4m_bridge_h4m_bridge_client_py
+d_services_h4m_bridge_h4m_bridge --> f_services_h4m_bridge_h4m_bridge_dedup_py
+d_services_h4m_bridge_h4m_bridge --> f_services_h4m_bridge_h4m_bridge_scanner_py
+d_services_h4m_bridge --> f_services_h4m_bridge_README_md
+d_services_h4m_bridge --> d_services_h4m_bridge_tests
+d_services_h4m_bridge_tests --> f_services_h4m_bridge_tests_conftest_py
+d_services_h4m_bridge_tests --> f_services_h4m_bridge_tests_test_bridge_py
+d_services_h4m_bridge_tests --> f_services_h4m_bridge_tests_test_scanner_py
+d__ --> d_specs
+d_specs --> d_specs_001_bot_integrations_shared
+d_specs_001_bot_integrations_shared --> d_specs_001_bot_integrations_shared_contracts
+d_specs_001_bot_integrations_shared_contracts --> f_specs_001_bot_integrations_shared_contracts_shared_runtime_md
+d_specs_001_bot_integrations_shared --> f_specs_001_bot_integrations_shared_plan_md
+d_specs_001_bot_integrations_shared --> f_specs_001_bot_integrations_shared_quickstart_md
+d_specs_001_bot_integrations_shared --> f_specs_001_bot_integrations_shared_research_md
+d_specs_001_bot_integrations_shared --> f_specs_001_bot_integrations_shared_spec_md
+d_specs_001_bot_integrations_shared --> f_specs_001_bot_integrations_shared_tasks_md
+d_specs --> d_specs_002_bot_telegram
+d_specs_002_bot_telegram --> d_specs_002_bot_telegram_contracts
+d_specs_002_bot_telegram_contracts --> f_specs_002_bot_telegram_contracts_telegram_command_contract_md
+d_specs_002_bot_telegram --> f_specs_002_bot_telegram_plan_md
+d_specs_002_bot_telegram --> f_specs_002_bot_telegram_quickstart_md
+d_specs_002_bot_telegram --> f_specs_002_bot_telegram_research_md
+d_specs_002_bot_telegram --> f_specs_002_bot_telegram_spec_md
+d_specs_002_bot_telegram --> f_specs_002_bot_telegram_tasks_md
+d_specs --> d_specs_003_bot_slack
+d_specs_003_bot_slack --> d_specs_003_bot_slack_contracts
+d_specs_003_bot_slack_contracts --> f_specs_003_bot_slack_contracts_slack_events_contract_md
+d_specs_003_bot_slack --> f_specs_003_bot_slack_plan_md
+d_specs_003_bot_slack --> f_specs_003_bot_slack_quickstart_md
+d_specs_003_bot_slack --> f_specs_003_bot_slack_research_md
+d_specs_003_bot_slack --> f_specs_003_bot_slack_spec_md
+d_specs_003_bot_slack --> f_specs_003_bot_slack_tasks_md
+d_specs --> d_specs_004_bot_discord
+d_specs_004_bot_discord --> d_specs_004_bot_discord_contracts
+d_specs_004_bot_discord_contracts --> f_specs_004_bot_discord_contracts_discord_command_contract_md
+d_specs_004_bot_discord --> f_specs_004_bot_discord_plan_md
+d_specs_004_bot_discord --> f_specs_004_bot_discord_quickstart_md
+d_specs_004_bot_discord --> f_specs_004_bot_discord_research_md
+d_specs_004_bot_discord --> f_specs_004_bot_discord_spec_md
+d_specs_004_bot_discord --> f_specs_004_bot_discord_tasks_md
+d_specs --> d_specs_005_bot_docs_qa_rollout
+d_specs_005_bot_docs_qa_rollout --> d_specs_005_bot_docs_qa_rollout_contracts
+d_specs_005_bot_docs_qa_rollout_contracts --> f__005_bot_docs_qa_rollout_contracts_rollout_checklist_contract_md
+d_specs_005_bot_docs_qa_rollout --> f_specs_005_bot_docs_qa_rollout_plan_md
+d_specs_005_bot_docs_qa_rollout --> f_specs_005_bot_docs_qa_rollout_quickstart_md
+d_specs_005_bot_docs_qa_rollout --> f_specs_005_bot_docs_qa_rollout_research_md
+d_specs_005_bot_docs_qa_rollout --> f_specs_005_bot_docs_qa_rollout_spec_md
+d_specs_005_bot_docs_qa_rollout --> f_specs_005_bot_docs_qa_rollout_tasks_md
+d_specs --> d_specs_bot_integrations
+d_specs_bot_integrations --> f_specs_bot_integrations_tasks_md
+d__ --> d_stations
+d_stations --> f_stations_README_md
+d_stations --> d_stations_TOC_S1
+d_stations_TOC_S1 --> f_stations_TOC_S1_onboard_sh
+d_stations_TOC_S1 --> f_stations_TOC_S1_README_md
+d_stations_TOC_S1 --> f_stations_TOC_S1_seed_py
+d_stations --> d_stations_TOC_S2
+d_stations_TOC_S2 --> f_stations_TOC_S2_onboard_sh
+d_stations_TOC_S2 --> f_stations_TOC_S2_README_md
+d_stations_TOC_S2 --> f_stations_TOC_S2_seed_py
+d_stations --> d_stations_TOC_S3
+d_stations_TOC_S3 --> f_stations_TOC_S3_onboard_sh
+d_stations_TOC_S3 --> f_stations_TOC_S3_README_md
+d_stations_TOC_S3 --> f_stations_TOC_S3_seed_py
+d_stations --> d_stations_TOC_S4
+d_stations_TOC_S4 --> f_stations_TOC_S4_onboard_sh
+d_stations_TOC_S4 --> f_stations_TOC_S4_README_md
+d_stations_TOC_S4 --> f_stations_TOC_S4_seed_py
+d__ --> d_traefik
+d_traefik --> d_traefik_dynamic
+d_traefik_dynamic --> f_traefik_dynamic_middlewares_yml
+d_traefik --> f_traefik_traefik_yml

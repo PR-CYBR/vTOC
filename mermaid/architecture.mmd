@@ -1,0 +1,17 @@
+architecture-beta
+group compose(cloud)[Docker Compose]
+group tf(cloud)[Terraform]
+service svc_database(server)[database] in compose
+service svc_environment(server)[environment] in compose
+service svc_volumes(server)[volumes] in compose
+service svc_healthcheck(server)[healthcheck] in compose
+service svc_backend(server)[backend] in compose
+service svc_ports(server)[ports] in compose
+service svc_depends_on(server)[depends_on] in compose
+service svc_frontend(server)[frontend] in compose
+service svc_scraper(server)[scraper] in compose
+service svc_gps_ingest(server)[gps-ingest] in compose
+service svc_devices(server)[devices] in compose
+service svc_adsb_ingest(server)[adsb-ingest] in compose
+service svc_h4m_bridge(server)[h4m-bridge] in compose
+service aws_instance_vtoc(database)[aws_instance.vtoc] in tf
