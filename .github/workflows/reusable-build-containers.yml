@@ -19,6 +19,7 @@ jobs:
   publish:
     name: Build, scan, and publish containers
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     env:
       GHCR_REGISTRY: ghcr.io
       GHCR_IMAGE_REPOSITORY: ${{ github.repository }}

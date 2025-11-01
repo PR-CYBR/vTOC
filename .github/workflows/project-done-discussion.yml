@@ -17,6 +17,7 @@ jobs:
   post-discussion:
     name: Create completion discussion
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       PROJECTS_TOKEN: ${{ secrets.PROJECTS_WORKFLOW_TOKEN != '' && secrets.PROJECTS_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
       DISCUSSION_CATEGORY_ID: ${{ vars.PROJECT_DONE_DISCUSSION_CATEGORY_ID }}

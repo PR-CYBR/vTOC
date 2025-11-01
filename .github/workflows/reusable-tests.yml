@@ -11,6 +11,7 @@ jobs:
   tests:
     name: Run test suites
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     outputs:
       status: ${{ steps.tests_summary.outputs.status }}
     steps:

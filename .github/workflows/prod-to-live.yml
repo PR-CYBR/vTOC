@@ -10,12 +10,12 @@ permissions:
   pull-requests: write
   actions: read
   checks: read
-  administration: write
 
 jobs:
   promote:
     name: Promote prod changes to live
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Check out prod branch
         uses: actions/checkout@v4

@@ -30,6 +30,7 @@ jobs:
   metadata:
     name: Publish run metadata
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs:
       - tests
       - build

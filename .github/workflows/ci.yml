@@ -21,6 +21,7 @@ jobs:
   alembic-migrations:
     name: Alembic migrations (${{ matrix.station.slug }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -81,6 +82,7 @@ jobs:
     permissions:
       packages: ${{ github.event_name == 'push' && 'write' || 'read' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     env:
       REGISTRY: ghcr.io
       IMAGE_PREFIX: ${{ github.repository }}
@@ -144,7 +146,7 @@ jobs:
             CLEAN_PATH="$(TF_DIR="$TF_DIR" python - <<'PY'
           import os
           import sys
-          
+
           path = os.environ.get('PATH', '')
           tf_dir = os.environ.get('TF_DIR')
           parts = []
