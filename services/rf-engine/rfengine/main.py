@@ -111,8 +111,11 @@ def rf_info() -> dict[str, Any]:
 
 
 # Future router includes will go here:
-# from .routers import devices, capture, classify, protocol, replay, archive
-# app.include_router(devices.router)
+from .devices.router import router as devices_router
+
+app.include_router(devices_router)
+
+# from .routers import capture, classify, protocol, replay, archive
 # app.include_router(capture.router)
 # app.include_router(classify.router)
 # app.include_router(protocol.router)
