@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import sys
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -97,7 +97,7 @@ def metrics() -> Response:
 
 
 @app.get("/api/v2/rf/info")
-def rf_info() -> dict[str, any]:
+def rf_info() -> dict[str, Any]:
     """Get RF engine configuration and status."""
     return {
         "station_id": settings.prcybr_station_id,
