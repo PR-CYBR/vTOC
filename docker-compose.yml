@@ -117,5 +117,44 @@ services:
     depends_on:
       - backend
 
+  rf-engine:
+    image: ${VTOC_IMAGE_REPO:-ghcr.io/pr-cybr/vtoc}/rf-engine:${VTOC_IMAGE_TAG:-main}
+    pull_policy: always
+    environment:
+      PRCYBR_STATION_ID: ${PRCYBR_STATION_ID:-vtoc-001}
+      PRCYBR_DIVISION: ${PRCYBR_DIVISION:-DIV-PR-001}
+      RF_DEVICES_ALLOWLIST: ${RF_DEVICES_ALLOWLIST:-rtlsdr,usrp,hackrf,limesdr}
+      RF_TX_ENABLED: ${RF_TX_ENABLED:-false}
+      RF_TX_WHITELIST_FREQS_MHZ: ${RF_TX_WHITELIST_FREQS_MHZ:-}
+      RF_SIGMF_ROOT: /data/sigmf
+      RF_S3_ENDPOINT: ${RF_S3_ENDPOINT:-http://minio:9000}
+      RF_S3_BUCKET: ${RF_S3_BUCKET:-prcybr-rf}
+      RF_S3_ACCESS_KEY: ${RF_S3_ACCESS_KEY:-prcybr_rf_access}
+      RF_S3_SECRET_KEY: ${RF_S3_SECRET_KEY:-}
+      RF_CLASSIFIER_MODEL_PATH: /models/spectro_cnn.onnx
+      RF_WS_SAMPLE_RATE_HZ: ${RF_WS_SAMPLE_RATE_HZ:-1000000}
+      RF_WS_FFT_SIZE: ${RF_WS_FFT_SIZE:-2048}
+      RF_MAX_CAPTURE_SECONDS: ${RF_MAX_CAPTURE_SECONDS:-3600}
+      BACKEND_BASE_URL: http://backend:8080
+      DATABASE_URL: postgresql+psycopg2://vtoc:vtocpass@database:5432/vtoc
+    ports:
+      - "8002:8000"
+    devices:
+      - "/dev/bus/usb:/dev/bus/usb"
+    volumes:
+      - rf_sigmf:/data/sigmf
+      - rf_models:/models
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      database:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
 volumes:
   postgres_data:
+  rf_sigmf:
+  rf_models:
