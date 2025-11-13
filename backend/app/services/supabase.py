@@ -283,8 +283,8 @@ class SupabaseRepository:
     @staticmethod
     def _normalize_timeline_telemetry(
         records: Iterable[Dict[str, Any]]
-    ) -> List[schemas.StationTimelineTelemetryEntry]:
-        entries: List[schemas.StationTimelineTelemetryEntry] = []
+    ) -> List[schemas.StationTimelineEntry]:
+        entries: List[schemas.StationTimelineEntry] = []
         for record in records:
             occurred_at = SupabaseRepository._parse_timestamp(
                 record.get("event_time")
@@ -298,13 +298,36 @@ class SupabaseRepository:
                 event_id = int(record["id"])
             except (KeyError, TypeError, ValueError):
                 continue
+            
+            status = record.get("status", "received")
+            payload = record.get("payload") or {}
+            
+            # Check if this is a POI/IMEI alert event
+            if status in ("imei_blacklist_hit", "imei_whitelist_seen") and payload.get("imei_watchlist_hit"):
+                imei = payload.get("imei") or payload.get("IMEI")
+                if imei:
+                    alert_type = "imei_blacklist_hit" if status == "imei_blacklist_hit" else "imei_whitelist_seen"
+                    entry = schemas.StationTimelinePoiAlertEntry(
+                        occurred_at=occurred_at,
+                        event_id=event_id,
+                        alert_type=alert_type,
+                        imei=imei,
+                        poi_id=payload.get("poi_id"),
+                        poi_name=payload.get("poi_name"),
+                        station_callsign=payload.get("station_callsign"),
+                        payload=payload,
+                    )
+                    entries.append(entry)
+                    continue
+            
+            # Regular telemetry entry
             entry = schemas.StationTimelineTelemetryEntry(
                 occurred_at=occurred_at,
                 event_id=event_id,
-                status=record.get("status"),
+                status=status,
                 source_slug=source.get("slug"),
                 source_name=source.get("name"),
-                payload=record.get("payload"),
+                payload=payload,
             )
             entries.append(entry)
         return entries
@@ -779,6 +802,32 @@ class SupabaseRepository:
         data["source_id"] = source.id
         if source.station_id and "station_id" not in data:
             data["station_id"] = source.station_id
+        
+        # Check for IMEI in payload and process watchlist alerts
+        imei = None
+        if payload.payload:
+            imei = payload.payload.get("imei") or payload.payload.get("IMEI")
+        
+        if imei:
+            # Check if IMEI is on watchlist
+            watch_entry = self.check_imei_watchlist(imei)
+            if watch_entry:
+                # Enrich payload with POI/watchlist information
+                if "payload" not in data:
+                    data["payload"] = {}
+                data["payload"]["imei_watchlist_hit"] = True
+                data["payload"]["imei_list_type"] = watch_entry.list_type
+                if watch_entry.linked_poi:
+                    data["payload"]["poi_id"] = watch_entry.linked_poi.id
+                    data["payload"]["poi_name"] = watch_entry.linked_poi.name
+                    data["payload"]["poi_risk_level"] = watch_entry.linked_poi.risk_level
+                
+                # Set event status based on list type
+                if watch_entry.list_type == "blacklist":
+                    data["status"] = "imei_blacklist_hit"
+                elif watch_entry.list_type == "whitelist":
+                    data["status"] = "imei_whitelist_seen"
+        
         response = self._request(
             "POST",
             "telemetry_events",
