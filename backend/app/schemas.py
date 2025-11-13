@@ -371,12 +371,6 @@ class StationTimelineAgentActionEntry(StationTimelineBase):
     error_message: Optional[str] = None
 
 
-StationTimelineEntry = Annotated[
-    Union[StationTimelineTelemetryEntry, StationTimelineAgentActionEntry],
-    Field(discriminator="entry_type"),
-]
-
-
 class StationTimelinePage(BaseModel):
     """Paginated collection of station timeline entries."""
 
@@ -384,3 +378,102 @@ class StationTimelinePage(BaseModel):
     limit: int
     offset: int
     total: Optional[int] = None
+
+
+# ============================================================================
+# POI (Person of Interest) Schemas
+# ============================================================================
+
+
+class PoiBase(BaseModel):
+    """Base schema for Person of Interest."""
+
+    name: str = Field(min_length=1, max_length=255)
+    category: str = Field(default="person")  # person, vehicle, device
+    risk_level: str = Field(default="info")  # info, watch, hostile
+    notes: Optional[str] = None
+    is_active: bool = True
+
+
+class PoiCreate(PoiBase):
+    pass
+
+
+PoiUpdate = create_partial_model("PoiUpdate", PoiBase)
+
+
+class PoiRead(ORMModelMixin, PoiBase, IdentifierMixin, TimestampsMixin):
+    identifiers: List["PoiIdentifierRead"] = Field(default_factory=list)
+
+
+class PoiIdentifierBase(BaseModel):
+    """Base schema for POI identifier."""
+
+    identifier_type: str = Field(min_length=1, max_length=100)  # imei, mac, callsign, phone
+    identifier_value: str = Field(min_length=1, max_length=255)
+    is_primary: bool = False
+
+
+class PoiIdentifierCreate(PoiIdentifierBase):
+    poi_id: int
+
+
+PoiIdentifierUpdate = create_partial_model("PoiIdentifierUpdate", PoiIdentifierBase, exclude={"poi_id"})
+
+
+class PoiIdentifierRead(ORMModelMixin, PoiIdentifierBase, IdentifierMixin, TimestampsMixin):
+    poi_id: int
+
+
+# ============================================================================
+# IMEI Watchlist Schemas
+# ============================================================================
+
+
+class ImeiWatchEntryBase(BaseModel):
+    """Base schema for IMEI watchlist entry."""
+
+    identifier_value: str = Field(min_length=1, max_length=255)
+    list_type: str = Field(pattern="^(whitelist|blacklist)$")  # whitelist or blacklist
+    label: Optional[str] = Field(None, max_length=255)
+    linked_poi_id: Optional[int] = None
+
+
+class ImeiWatchEntryCreate(ImeiWatchEntryBase):
+    pass
+
+
+ImeiWatchEntryUpdate = create_partial_model("ImeiWatchEntryUpdate", ImeiWatchEntryBase)
+
+
+class ImeiWatchEntryRead(ORMModelMixin, ImeiWatchEntryBase, IdentifierMixin, TimestampsMixin):
+    linked_poi: Optional[PoiRead] = None
+
+
+# ============================================================================
+# POI/IMEI Alert Timeline Entries
+# ============================================================================
+
+
+class StationTimelinePoiAlertEntry(StationTimelineBase):
+    """Timeline entry representing a POI/IMEI alert."""
+
+    entry_type: Literal["poi_imei_alert"] = "poi_imei_alert"
+    event_id: int
+    alert_type: str  # imei_blacklist_hit, imei_whitelist_seen
+    imei: str
+    poi_id: Optional[int] = None
+    poi_name: Optional[str] = None
+    station_callsign: Optional[str] = None
+    payload: Optional[dict[str, Any]] = None
+
+
+# Update the StationTimelineEntry union to include POI alerts
+StationTimelineEntry = Annotated[
+    Union[
+        StationTimelineTelemetryEntry,
+        StationTimelineAgentActionEntry,
+        StationTimelinePoiAlertEntry,
+    ],
+    Field(discriminator="entry_type"),
+]

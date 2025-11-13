@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import agent_actions, hardware, telemetry
+from .routers import agent_actions, hardware, imei_watchlist, poi, telemetry
 from .routers.stations import router as stations_router
 
 app = FastAPI(title="vTOC API", version="1.0.0")
@@ -21,6 +21,8 @@ app.include_router(telemetry.router)
 app.include_router(agent_actions.router)
 app.include_router(stations_router)
 app.include_router(hardware.router)
+app.include_router(poi.router)
+app.include_router(imei_watchlist.router)
 
 
 @app.get("/healthz")
