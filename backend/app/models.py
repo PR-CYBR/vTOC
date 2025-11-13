@@ -307,3 +307,59 @@ class TelemetryAircraftPosition(Base):
     source = relationship("TelemetrySource", back_populates="aircraft_positions")
     station = relationship("Station")
     device = relationship("Device", back_populates="aircraft_positions")
+
+
+class PersonOfInterest(Base):
+    """Person, vehicle, or device of interest for tracking."""
+    __tablename__ = "poi"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False, index=True)
+    category = Column(String(100), nullable=False, default="person")  # person, vehicle, device
+    risk_level = Column(String(100), nullable=False, default="info")  # info, watch, hostile
+    notes = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    identifiers = relationship(
+        "PoiIdentifier",
+        back_populates="poi",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    imei_watch_entries = relationship(
+        "ImeiWatchEntry",
+        back_populates="linked_poi",
+        foreign_keys="ImeiWatchEntry.linked_poi_id",
+    )
+
+
+class PoiIdentifier(Base):
+    """Identifier associated with a POI (IMEI, MAC, callsign, phone, etc)."""
+    __tablename__ = "poi_identifier"
+
+    id = Column(Integer, primary_key=True, index=True)
+    poi_id = Column(Integer, ForeignKey("poi.id", ondelete="CASCADE"), nullable=False)
+    identifier_type = Column(String(100), nullable=False)  # imei, mac, callsign, phone
+    identifier_value = Column(String(255), nullable=False, index=True)
+    is_primary = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    poi = relationship("PersonOfInterest", back_populates="identifiers")
+
+
+class ImeiWatchEntry(Base):
+    """IMEI watchlist entry for whitelist or blacklist."""
+    __tablename__ = "imei_watch_entry"
+
+    id = Column(Integer, primary_key=True, index=True)
+    identifier_value = Column(String(255), nullable=False, unique=True, index=True)
+    list_type = Column(String(50), nullable=False)  # whitelist or blacklist
+    label = Column(String(255), nullable=True)
+    linked_poi_id = Column(Integer, ForeignKey("poi.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    linked_poi = relationship("PersonOfInterest", back_populates="imei_watch_entries", foreign_keys=[linked_poi_id])

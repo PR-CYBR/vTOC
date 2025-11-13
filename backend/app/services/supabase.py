@@ -283,8 +283,8 @@ class SupabaseRepository:
     @staticmethod
     def _normalize_timeline_telemetry(
         records: Iterable[Dict[str, Any]]
-    ) -> List[schemas.StationTimelineTelemetryEntry]:
-        entries: List[schemas.StationTimelineTelemetryEntry] = []
+    ) -> List[schemas.StationTimelineEntry]:
+        entries: List[schemas.StationTimelineEntry] = []
         for record in records:
             occurred_at = SupabaseRepository._parse_timestamp(
                 record.get("event_time")
@@ -298,13 +298,36 @@ class SupabaseRepository:
                 event_id = int(record["id"])
             except (KeyError, TypeError, ValueError):
                 continue
+            
+            status = record.get("status", "received")
+            payload = record.get("payload") or {}
+            
+            # Check if this is a POI/IMEI alert event
+            if status in ("imei_blacklist_hit", "imei_whitelist_seen") and payload.get("imei_watchlist_hit"):
+                imei = payload.get("imei") or payload.get("IMEI")
+                if imei:
+                    alert_type = "imei_blacklist_hit" if status == "imei_blacklist_hit" else "imei_whitelist_seen"
+                    entry = schemas.StationTimelinePoiAlertEntry(
+                        occurred_at=occurred_at,
+                        event_id=event_id,
+                        alert_type=alert_type,
+                        imei=imei,
+                        poi_id=payload.get("poi_id"),
+                        poi_name=payload.get("poi_name"),
+                        station_callsign=payload.get("station_callsign"),
+                        payload=payload,
+                    )
+                    entries.append(entry)
+                    continue
+            
+            # Regular telemetry entry
             entry = schemas.StationTimelineTelemetryEntry(
                 occurred_at=occurred_at,
                 event_id=event_id,
-                status=record.get("status"),
+                status=status,
                 source_slug=source.get("slug"),
                 source_name=source.get("name"),
-                payload=record.get("payload"),
+                payload=payload,
             )
             entries.append(entry)
         return entries
@@ -779,6 +802,32 @@ class SupabaseRepository:
         data["source_id"] = source.id
         if source.station_id and "station_id" not in data:
             data["station_id"] = source.station_id
+        
+        # Check for IMEI in payload and process watchlist alerts
+        imei = None
+        if payload.payload:
+            imei = payload.payload.get("imei") or payload.payload.get("IMEI")
+        
+        if imei:
+            # Check if IMEI is on watchlist
+            watch_entry = self.check_imei_watchlist(imei)
+            if watch_entry:
+                # Enrich payload with POI/watchlist information
+                if "payload" not in data:
+                    data["payload"] = {}
+                data["payload"]["imei_watchlist_hit"] = True
+                data["payload"]["imei_list_type"] = watch_entry.list_type
+                if watch_entry.linked_poi:
+                    data["payload"]["poi_id"] = watch_entry.linked_poi.id
+                    data["payload"]["poi_name"] = watch_entry.linked_poi.name
+                    data["payload"]["poi_risk_level"] = watch_entry.linked_poi.risk_level
+                
+                # Set event status based on list type
+                if watch_entry.list_type == "blacklist":
+                    data["status"] = "imei_blacklist_hit"
+                elif watch_entry.list_type == "whitelist":
+                    data["status"] = "imei_whitelist_seen"
+        
         response = self._request(
             "POST",
             "telemetry_events",
@@ -992,6 +1041,181 @@ class SupabaseRepository:
         )
         record = self._ensure_single(response, not_found_message="Audit not found")
         return schemas.AgentActionAuditRead.model_validate(record)
+
+    # ------------------------------------------------------------------
+    # POI (Person of Interest)
+    # ------------------------------------------------------------------
+    def list_poi(self, is_active: bool | None = None) -> List[schemas.PoiRead]:
+        params: Dict[str, Any] = {
+            "select": "*,identifiers:poi_identifier(*)",
+            "order": "name.asc",
+        }
+        if is_active is not None:
+            params["is_active"] = f"eq.{is_active}"
+        response = self._request("GET", "poi", params=params)
+        data = self._json(response) or []
+        return [schemas.PoiRead.model_validate(item) for item in data]
+
+    def get_poi(self, poi_id: int) -> schemas.PoiRead:
+        params = {
+            "select": "*,identifiers:poi_identifier(*)",
+            "id": f"eq.{poi_id}",
+            "limit": 1,
+        }
+        response = self._request("GET", "poi", params=params)
+        record = self._ensure_single(response, not_found_message="POI not found")
+        return schemas.PoiRead.model_validate(record)
+
+    def create_poi(self, payload: schemas.PoiCreate) -> schemas.PoiRead:
+        response = self._request(
+            "POST",
+            "poi",
+            json=payload.model_dump(exclude_none=True),
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response, not_found_message="POI creation failed")
+        # Fetch full record with identifiers
+        return self.get_poi(record["id"])
+
+    def update_poi(self, poi_id: int, payload: schemas.PoiUpdate) -> schemas.PoiRead:
+        data = payload.model_dump(exclude_unset=True)
+        response = self._request(
+            "PATCH",
+            "poi",
+            params={"id": f"eq.{poi_id}"},
+            json=data,
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response, not_found_message="POI not found")
+        # Fetch full record with identifiers
+        return self.get_poi(record["id"])
+
+    def delete_poi(self, poi_id: int) -> None:
+        self.get_poi(poi_id)
+        self._request("DELETE", "poi", params={"id": f"eq.{poi_id}"})
+
+    # ------------------------------------------------------------------
+    # POI Identifiers
+    # ------------------------------------------------------------------
+    def list_poi_identifiers(self, poi_id: int) -> List[schemas.PoiIdentifierRead]:
+        params = {
+            "select": "*",
+            "poi_id": f"eq.{poi_id}",
+            "order": "is_primary.desc,identifier_type.asc",
+        }
+        response = self._request("GET", "poi_identifier", params=params)
+        data = self._json(response) or []
+        return [schemas.PoiIdentifierRead.model_validate(item) for item in data]
+
+    def create_poi_identifier(
+        self, payload: schemas.PoiIdentifierCreate
+    ) -> schemas.PoiIdentifierRead:
+        # Verify POI exists
+        self.get_poi(payload.poi_id)
+        response = self._request(
+            "POST",
+            "poi_identifier",
+            json=payload.model_dump(exclude_none=True),
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response, not_found_message="POI identifier creation failed")
+        return schemas.PoiIdentifierRead.model_validate(record)
+
+    def delete_poi_identifier(self, poi_id: int, identifier_id: int) -> None:
+        # Verify the identifier belongs to the POI
+        params = {
+            "select": "*",
+            "id": f"eq.{identifier_id}",
+            "poi_id": f"eq.{poi_id}",
+            "limit": 1,
+        }
+        response = self._request("GET", "poi_identifier", params=params)
+        self._ensure_single(response, not_found_message="POI identifier not found")
+        
+        self._request(
+            "DELETE",
+            "poi_identifier",
+            params={"id": f"eq.{identifier_id}"},
+        )
+
+    # ------------------------------------------------------------------
+    # IMEI Watchlist
+    # ------------------------------------------------------------------
+    def list_imei_watchlist(
+        self, list_type: str | None = None
+    ) -> List[schemas.ImeiWatchEntryRead]:
+        params: Dict[str, Any] = {
+            "select": "*,linked_poi:poi(*)",
+            "order": "identifier_value.asc",
+        }
+        if list_type:
+            params["list_type"] = f"eq.{list_type}"
+        response = self._request("GET", "imei_watch_entry", params=params)
+        data = self._json(response) or []
+        return [schemas.ImeiWatchEntryRead.model_validate(item) for item in data]
+
+    def get_imei_watch_entry(self, entry_id: int) -> schemas.ImeiWatchEntryRead:
+        params = {
+            "select": "*,linked_poi:poi(*)",
+            "id": f"eq.{entry_id}",
+            "limit": 1,
+        }
+        response = self._request("GET", "imei_watch_entry", params=params)
+        record = self._ensure_single(response, not_found_message="IMEI watch entry not found")
+        return schemas.ImeiWatchEntryRead.model_validate(record)
+
+    def check_imei_watchlist(self, imei: str) -> schemas.ImeiWatchEntryRead | None:
+        """Check if an IMEI is on the watchlist."""
+        params = {
+            "select": "*,linked_poi:poi(*)",
+            "identifier_value": f"eq.{imei}",
+            "limit": 1,
+        }
+        response = self._request("GET", "imei_watch_entry", params=params)
+        data = self._json(response) or []
+        if not data:
+            return None
+        return schemas.ImeiWatchEntryRead.model_validate(data[0])
+
+    def create_imei_watch_entry(
+        self, payload: schemas.ImeiWatchEntryCreate
+    ) -> schemas.ImeiWatchEntryRead:
+        # Verify linked POI exists if provided
+        if payload.linked_poi_id:
+            self.get_poi(payload.linked_poi_id)
+        
+        response = self._request(
+            "POST",
+            "imei_watch_entry",
+            json=payload.model_dump(exclude_none=True),
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response, not_found_message="IMEI watch entry creation failed")
+        # Fetch full record with linked POI
+        return self.get_imei_watch_entry(record["id"])
+
+    def update_imei_watch_entry(
+        self, entry_id: int, payload: schemas.ImeiWatchEntryUpdate
+    ) -> schemas.ImeiWatchEntryRead:
+        # Verify linked POI exists if provided in update
+        data = payload.model_dump(exclude_unset=True)
+        if "linked_poi_id" in data and data["linked_poi_id"]:
+            self.get_poi(data["linked_poi_id"])
+        
+        response = self._request(
+            "PATCH",
+            "imei_watch_entry",
+            params={"id": f"eq.{entry_id}"},
+            json=data,
+            headers={"Prefer": "return=representation"},
+        )
+        record = self._ensure_single(response, not_found_message="IMEI watch entry not found")
+        # Fetch full record with linked POI
+        return self.get_imei_watch_entry(record["id"])
+
+    def delete_imei_watch_entry(self, entry_id: int) -> None:
+        self.get_imei_watch_entry(entry_id)
+        self._request("DELETE", "imei_watch_entry", params={"id": f"eq.{entry_id}"})
 
 
 def resolve_station_slug(request: Request) -> Optional[str]:
