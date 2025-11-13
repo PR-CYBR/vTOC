@@ -48,6 +48,11 @@ build/
 .env.test.local
 .env.production.local
 
+# Next.js
+.next/
+out/
+next-env.d.ts
+
 # Terraform
 .terraform/
 *.tfstate

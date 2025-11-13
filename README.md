@@ -7,6 +7,10 @@ vTOC pairs a FastAPI backend, a map-first Vite frontend, and automation agents t
 This README now serves as the global navigation hub—follow the links below to get to the right branch guide, documentation, or
 collaboration surface quickly.
 
+## Live Demo
+
+🌐 **[https://pr-cybr.github.io/vTOC/demo](https://pr-cybr.github.io/vTOC/demo)** – Static Next.js demo dashboard showcasing four station command interfaces with mock telemetry, IMEI alerts, and timeline feeds.
+
 ## Branch playbooks
 
 - [`main` branch guide](docs/branches/main.md) – documentation-first branch that is only updated through the automated production

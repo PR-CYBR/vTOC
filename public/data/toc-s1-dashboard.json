@@ -1,0 +1,20 @@
+{
+  "station": { 
+    "name": "TOC-S1", 
+    "role": "Intel", 
+    "callsign": "Forward Coastal Ops" 
+  },
+  "metrics": {
+    "total_events": 42,
+    "active_sources": 3,
+    "last_event": {
+      "id": 999,
+      "occurred_at": "2025-11-13T09:05:00Z",
+      "type": "telemetry",
+      "title": "RF packet received",
+      "source": "RF-Sensor-1",
+      "summary": "Beacon frame observed",
+      "payload": { "rssi": -68, "freq_mhz": 915.0, "snr": 14.2 }
+    }
+  }
+}
