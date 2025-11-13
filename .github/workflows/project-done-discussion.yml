@@ -30,6 +30,17 @@ jobs:
       CODEX_RUN_FIELD_NAMES: ${{ vars.PROJECT_CODEX_RUN_FIELD_NAMES || 'Codex Run' }}
       RELATED_PRS_FIELD_NAMES: ${{ vars.PROJECT_RELATED_PRS_FIELD_NAMES || 'Related PRs,PR Links,PRs' }}
     steps:
+      - name: Check for required configuration
+        run: |
+          if [[ -z "${{ vars.PROJECT_DONE_DISCUSSION_CATEGORY_ID }}" ]]; then
+            echo "::warning::PROJECT_DONE_DISCUSSION_CATEGORY_ID variable is not set."
+            echo "::warning::This workflow creates discussions for completed project items."
+            echo "::warning::Please configure PROJECT_DONE_DISCUSSION_CATEGORY_ID in repository variables to enable this automation."
+            echo "::warning::Skipping discussion creation."
+            exit 0
+          fi
+          echo "✓ Discussion category ID is configured."
+      
       - name: Post discussion
         uses: actions/github-script@v7
         with:
