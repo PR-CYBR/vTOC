@@ -103,6 +103,23 @@ Playbook identifiers are defined under `agents/config/agentkit.yml`. The backend
 3. Backend writes events to the station-specific Supabase schema and publishes notifications to ChatKit threads.
 4. Frontend refreshes map overlays and mission intel panels.
 
+### POI and IMEI tracking
+
+The POI (Person of Interest) and IMEI tracking system provides automatic alerting when known device identifiers appear in telemetry:
+
+1. Operators create POI records via `/api/v1/poi` with associated identifiers (IMEI, MAC, callsign, phone).
+2. IMEIs are added to watchlists (blacklist or whitelist) via `/api/v1/imei-watchlist`.
+3. When telemetry contains an IMEI field:
+   - Backend checks IMEI against the watchlist during event creation.
+   - **Blacklist hits** generate `imei_blacklist_hit` events (high-severity alerts).
+   - **Whitelist sightings** generate `imei_whitelist_seen` events (tracking/informational).
+   - Event payload is enriched with POI context (name, risk level, category).
+4. Timeline queries return POI alert entries (`StationTimelinePoiAlertEntry`) alongside regular telemetry.
+5. ChatKit webhook posts alert messages to station channels for blacklist hits.
+6. Frontend displays alerts with visual indicators (red for blacklist, green for whitelist) and filtering options.
+
+The POI/IMEI pipeline integrates seamlessly with existing telemetry ingestion, requiring only that telemetry payloads include an `imei` or `IMEI` field. See [`docs/POI-IMEI.md`](POI-IMEI.md) for operator workflows and detailed usage.
+
 ### Station provisioning
 
 1. Operator runs `make setup-local` or `make setup-container`.
@@ -121,9 +138,11 @@ Playbook identifiers are defined under `agents/config/agentkit.yml`. The backend
 - **Database isolation** — Supabase schemas enforce row-level security per station. See
   [`docs/DEPLOYMENT.md`](DEPLOYMENT.md#multi-station-postgres-provisioning-with-supabase) for provisioning guidance.
 - **Network segmentation** — Traefik routes external traffic while AgentKit and telemetry connectors run on internal networks.
+- **POI/IMEI data** — POI records and watchlist entries contain sensitive intelligence. Access is restricted to authorized operators, and all operations are audited.
 
 ## Related documentation
 
 - [`docs/DIAGRAMS.md`](DIAGRAMS.md) — visual diagrams describing the same flows.
+- [`docs/POI-IMEI.md`](POI-IMEI.md) — POI tracking and IMEI alerting operator guide.
 - [`docs/TELEMETRY_CONNECTORS.md`](TELEMETRY_CONNECTORS.md) — connector catalog with AgentKit notes.
 - [`docs/CHANGELOG.md`](CHANGELOG.md) — migration guidance for ChatKit/AgentKit rollout.

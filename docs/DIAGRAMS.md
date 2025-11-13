@@ -74,6 +74,61 @@ Telemetry connector (optional) → Postgres event store → ChatKit thread updat
 Frontend refresh
 ```
 
+## POI/IMEI alerting flow
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Telemetry Event with IMEI                                           │
+│ { imei: "123456789012345", device_type: "mobile", ... }            │
+└─────────────────┬───────────────────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│ Backend: create_telemetry_event()                                   │
+│ - Extract IMEI from payload                                         │
+│ - Query imei_watch_entry table                                      │
+└─────────────────┬───────────────────────────────────────────────────┘
+                  │
+                  ├─── Not on watchlist ──────► Regular telemetry event
+                  │
+                  └─── On watchlist ───────────┐
+                                               │
+        ┌──────────────────────────────────────┴────────────────┐
+        │                                                        │
+        ▼ Blacklist                                   Whitelist ▼
+┌─────────────────────┐                      ┌──────────────────────┐
+│ High-Severity Alert │                      │ Tracking Event       │
+│ status: blacklist   │                      │ status: whitelist    │
+│ ⚠️  Notify ChatKit   │                      │ ℹ️  Timeline entry    │
+└─────────┬───────────┘                      └──────────┬───────────┘
+          │                                             │
+          └──────────────────┬──────────────────────────┘
+                             │
+                             ▼
+              ┌──────────────────────────────────┐
+              │ Enrich with POI context:         │
+              │ - poi_id, poi_name               │
+              │ - poi_risk_level, category       │
+              │ - imei_watchlist_hit: true       │
+              └──────────────┬───────────────────┘
+                             │
+                             ▼
+              ┌──────────────────────────────────┐
+              │ Store as StationTimelinePoiAlert │
+              │ - Alert type (blacklist/whitelist)│
+              │ - Full POI context               │
+              │ - Station, timestamp, location   │
+              └──────────────┬───────────────────┘
+                             │
+                             ▼
+                    ┌────────────────┐
+                    │ Frontend        │
+                    │ - Timeline view │
+                    │ - Map markers   │
+                    │ - Alert panel   │
+                    └────────────────┘
+```
+
 ## Leaflet mission overlay
 
 ```mermaid
