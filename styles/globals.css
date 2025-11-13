@@ -84,6 +84,12 @@ body { margin: 0; background: var(--bg); color: var(--fg); }
   justify-content:center; font-weight:600; color:var(--muted); 
 }
 
+.map-section {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+
 button {
   background: var(--accent); border: none; border-radius: 0.5rem;
   padding: 0.5rem 1rem; color: #0f172a; cursor: pointer;
@@ -92,4 +98,328 @@ button {
 
 button:hover {
   background: #0ea5e9;
+}
+
+/* Map styles */
+.map-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.map-view {
+  width: 100%;
+  height: 100%;
+}
+
+.map-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 280px;
+}
+
+.map-control-group {
+  background: var(--panel);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.map-control-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.map-control-buttons {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.map-control-btn {
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--fg);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-weight: 500;
+}
+
+.map-control-btn:hover {
+  background: rgba(148, 163, 184, 0.25);
+}
+
+.map-control-btn--active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: var(--accent);
+}
+
+.map-control-btn--primary {
+  background: var(--accent);
+  color: #0f172a;
+}
+
+.map-control-btn--primary:hover {
+  background: #0ea5e9;
+}
+
+.map-control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.map-geojson-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.map-input {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  color: var(--fg);
+  font-size: 0.875rem;
+  font-family: inherit;
+  width: 100%;
+}
+
+.map-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.map-input::placeholder {
+  color: var(--muted);
+}
+
+.map-error {
+  font-size: 0.75rem;
+  color: #f87171;
+  margin-top: 0.25rem;
+}
+
+.map-success {
+  font-size: 0.75rem;
+  color: #4ade80;
+  margin-top: 0.25rem;
+}
+
+/* Override Leaflet's default styles for dark theme */
+.leaflet-container {
+  background: #0f172a;
+  font-family: inherit;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+
+.leaflet-popup-content {
+  font-size: 0.875rem;
+}
+
+.leaflet-control-zoom a {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--fg);
+}
+
+.leaflet-control-zoom a:hover {
+  background: rgba(148, 163, 184, 0.25);
+}
+
+.leaflet-control-attribution {
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+/* Mission Console styles */
+.mission-console {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.mission-console-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+}
+
+.mission-form {
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mission-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mission-input {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  color: var(--fg);
+  font-size: 0.875rem;
+  font-family: inherit;
+  width: 100%;
+  resize: vertical;
+}
+
+.mission-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.mission-input::placeholder {
+  color: var(--muted);
+}
+
+.mission-btn {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.mission-btn--primary {
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: var(--accent);
+}
+
+.mission-btn--primary:hover {
+  background: rgba(56, 189, 248, 0.3);
+}
+
+.mission-btn--secondary {
+  background: rgba(139, 92, 246, 0.18);
+  border: 1px solid rgba(139, 92, 246, 0.45);
+  color: #a78bfa;
+}
+
+.mission-btn--secondary:hover {
+  background: rgba(139, 92, 246, 0.3);
+}
+
+.mission-status {
+  padding: 0 1rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mission-status-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.mission-status-value {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-indicator--simulated {
+  background: #fbbf24;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Toast notifications */
+.toast-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease-out;
+  pointer-events: auto;
+  min-width: 250px;
+}
+
+.toast--success {
+  border-left: 3px solid #4ade80;
+}
+
+.toast--info {
+  border-left: 3px solid var(--accent);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }

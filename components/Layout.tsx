@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { PropsWithChildren } from 'react';
+import MissionConsole from './MissionConsole';
 
 export default function Layout({ children }: PropsWithChildren) {
   const { pathname } = useRouter();
@@ -13,7 +14,7 @@ export default function Layout({ children }: PropsWithChildren) {
           <h1 style={{ margin: 0, fontSize: '1.05rem' }}>
             vTOC Station Command
           </h1>
-          <div style={{ fontSize: '.8rem', color: 'var(--muted)' }}>Demo dashboard (static)</div>
+          <div style={{ fontSize: '.8rem', color: 'var(--muted)' }}>Interactive Dashboard</div>
         </div>
         <nav className="station-nav">
           <Link href="/stations/toc-s1" className={active('/stations/toc-s1')}>TOC-S1</Link>
@@ -29,10 +30,7 @@ export default function Layout({ children }: PropsWithChildren) {
 
       <aside className="chatkit-console">
         <div className="chatkit-assistant">
-          <p style={{ padding: '0.75rem 1rem', margin: 0 }}>
-            <strong>Mission Console</strong><br/>
-            Placeholder (ChatKit not connected in demo).
-          </p>
+          <MissionConsole />
         </div>
       </aside>
     </div>
