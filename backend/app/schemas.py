@@ -371,15 +371,6 @@ class StationTimelineAgentActionEntry(StationTimelineBase):
     error_message: Optional[str] = None
 
 
-class StationTimelinePage(BaseModel):
-    """Paginated collection of station timeline entries."""
-
-    items: List[StationTimelineEntry]
-    limit: int
-    offset: int
-    total: Optional[int] = None
-
-
 # ============================================================================
 # POI (Person of Interest) Schemas
 # ============================================================================
@@ -477,3 +468,17 @@ StationTimelineEntry = Annotated[
     ],
     Field(discriminator="entry_type"),
 ]
+
+# Rebuild models with forward references
+PoiRead.model_rebuild()
+ImeiWatchEntryRead.model_rebuild()
+
+
+# Timeline page must be defined after StationTimelineEntry union
+class StationTimelinePage(BaseModel):
+    """Paginated collection of station timeline entries."""
+
+    items: List[StationTimelineEntry]
+    limit: int
+    offset: int
+    total: Optional[int] = None
