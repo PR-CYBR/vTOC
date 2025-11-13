@@ -1,0 +1,49 @@
+[
+  {
+    "id": 101,
+    "occurred_at": "2025-11-13T08:45:00Z",
+    "type": "imei_blacklist_hit",
+    "title": "Blacklist IMEI Detected",
+    "source": "RF-Sensor-1",
+    "summary": "IMEI 123456789012345 (Hostile UAV) detected",
+    "payload": { "imei": "123456789012345", "signal_strength": -75, "poi_name": "Hostile UAV" },
+    "icon": "⚠️"
+  },
+  {
+    "id": 102,
+    "occurred_at": "2025-11-13T08:40:00Z",
+    "type": "telemetry",
+    "title": "Cell probe",
+    "source": "Cell-Scout-A",
+    "summary": "LTE sweep completed",
+    "payload": { "band": 12, "earfcn": 5110, "cells_seen": 5 }
+  },
+  {
+    "id": 103,
+    "occurred_at": "2025-11-13T08:35:00Z",
+    "type": "agent_action",
+    "title": "Playbook run",
+    "source": "Ops-Agent",
+    "summary": "Set perimeter geofence",
+    "payload": { "radius_m": 500, "center": [18.4655, -66.1057] }
+  },
+  {
+    "id": 104,
+    "occurred_at": "2025-11-12T20:15:00Z",
+    "type": "imei_blacklist_hit",
+    "title": "Blacklist IMEI Alert",
+    "source": "RF-Sensor-2",
+    "summary": "IMEI 987654321098765 (Unknown Device) flagged",
+    "payload": { "imei": "987654321098765", "signal_strength": -82, "poi_name": "Unknown Device" },
+    "icon": "⚠️"
+  },
+  {
+    "id": 105,
+    "occurred_at": "2025-11-12T19:45:00Z",
+    "type": "telemetry",
+    "title": "WiFi scan",
+    "source": "WiFi-Scanner-B",
+    "summary": "Found 12 networks in vicinity",
+    "payload": { "networks": 12, "strongest_ssid": "NETGEAR_A5", "strongest_rssi": -55 }
+  }
+]

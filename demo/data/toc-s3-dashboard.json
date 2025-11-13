@@ -1,0 +1,20 @@
+{
+  "station": { 
+    "name": "TOC-S3", 
+    "role": "Logistics", 
+    "callsign": "Supply Chain Alpha" 
+  },
+  "metrics": {
+    "total_events": 35,
+    "active_sources": 2,
+    "last_event": {
+      "id": 777,
+      "occurred_at": "2025-11-13T11:20:00Z",
+      "type": "telemetry",
+      "title": "Supply status update",
+      "source": "Inventory-System",
+      "summary": "Battery levels reported",
+      "payload": { "item": "Battery-LiPo-5000", "quantity": 24, "status": "adequate" }
+    }
+  }
+}

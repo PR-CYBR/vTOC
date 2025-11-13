@@ -1,0 +1,49 @@
+[
+  {
+    "id": 201,
+    "occurred_at": "2025-11-13T09:30:00Z",
+    "type": "poi_alert",
+    "title": "POI Movement Detected",
+    "source": "GPS-Tracker-3",
+    "summary": "Known subject Alpha-9 moving eastbound",
+    "payload": { "poi_id": "Alpha-9", "velocity": 45.2, "direction": "E" },
+    "icon": "🎯"
+  },
+  {
+    "id": 202,
+    "occurred_at": "2025-11-13T09:10:00Z",
+    "type": "telemetry",
+    "title": "Radio intercept",
+    "source": "RF-Sensor-4",
+    "summary": "Voice traffic on 462.6 MHz",
+    "payload": { "frequency": 462.6, "modulation": "FM", "duration_sec": 42 }
+  },
+  {
+    "id": 203,
+    "occurred_at": "2025-11-13T08:50:00Z",
+    "type": "agent_action",
+    "title": "Alert dispatched",
+    "source": "Ops-Agent",
+    "summary": "Notified field team of POI activity",
+    "payload": { "team": "Bravo-1", "alert_type": "poi_movement" }
+  },
+  {
+    "id": 204,
+    "occurred_at": "2025-11-12T22:00:00Z",
+    "type": "imei_blacklist_hit",
+    "title": "Blacklist IMEI Found",
+    "source": "Cell-Scanner-C",
+    "summary": "IMEI 555111222333444 (Suspected Device) flagged",
+    "payload": { "imei": "555111222333444", "signal_strength": -70, "poi_name": "Suspected Device" },
+    "icon": "⚠️"
+  },
+  {
+    "id": 205,
+    "occurred_at": "2025-11-12T21:30:00Z",
+    "type": "telemetry",
+    "title": "Drone flight detected",
+    "source": "Aerial-Scanner",
+    "summary": "UAV activity in sector 7",
+    "payload": { "altitude_m": 150, "velocity_ms": 8.3, "sector": 7 }
+  }
+]
