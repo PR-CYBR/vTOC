@@ -23,6 +23,30 @@ jobs:
       DOCS_DISCUSSION_TITLE_PREFIX: ${{ vars.DOCS_DISCUSSION_TITLE_PREFIX }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: Check for required configuration
+        shell: bash
+        run: |
+          missing_config=false
+          if [[ -z "${{ secrets.CODEX_API_KEY }}" ]]; then
+            echo "::warning::CODEX_API_KEY secret is not set."
+            missing_config=true
+          fi
+          if [[ -z "${{ vars.CODEX_BASE_URL }}" ]]; then
+            echo "::warning::CODEX_BASE_URL variable is not set."
+            missing_config=true
+          fi
+          if [[ -z "${{ vars.DOCS_DISCUSSION_CATEGORY_ID }}" ]]; then
+            echo "::warning::DOCS_DISCUSSION_CATEGORY_ID variable is not set."
+            missing_config=true
+          fi
+          if [[ "$missing_config" == "true" ]]; then
+            echo "::warning::This workflow creates discussion summaries for main branch commits."
+            echo "::warning::Please configure the required secrets and variables to enable this automation."
+            echo "::warning::Skipping discussion summary creation."
+            exit 0
+          fi
+          echo "✓ Required configuration is present."
+      
       - name: Install required packages
         shell: bash
         run: |

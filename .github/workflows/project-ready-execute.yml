@@ -223,6 +223,21 @@ jobs:
       CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
       REVIEWERS_TO_NOTIFY: ${{ vars.PROJECT_READY_REVIEWERS || vars.REVIEW_TEAM || '' }}
     steps:
+      - name: Check for required configuration
+        shell: bash
+        run: |
+          if [[ -z "${CODEX_API_KEY:-}" ]]; then
+            echo "::error::CODEX_API_KEY secret is required but was not provided."
+            echo "::error::Please configure CODEX_API_KEY in repository secrets."
+            exit 1
+          fi
+          if [[ -z "${CODEX_BASE_URL:-}" ]]; then
+            echo "::error::CODEX_BASE_URL repository variable is required but was not provided."
+            echo "::error::Please configure CODEX_BASE_URL in repository variables."
+            exit 1
+          fi
+          echo "✓ Required configuration is present."
+      
       - name: Ensure Codex configuration is available
         shell: bash
         run: |
