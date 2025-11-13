@@ -1,0 +1,20 @@
+{
+  "station": { 
+    "name": "TOC-S2", 
+    "role": "Ops", 
+    "callsign": "Mountain Watch" 
+  },
+  "metrics": {
+    "total_events": 58,
+    "active_sources": 4,
+    "last_event": {
+      "id": 888,
+      "occurred_at": "2025-11-13T10:15:00Z",
+      "type": "telemetry",
+      "title": "GPS tracking update",
+      "source": "GPS-Tracker-3",
+      "summary": "Asset movement detected",
+      "payload": { "lat": 18.4721, "lon": -66.1023, "speed_kmh": 12.5, "heading": 270 }
+    }
+  }
+}

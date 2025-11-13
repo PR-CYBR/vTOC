@@ -1,0 +1,54 @@
+name: Deploy Demo (Next.js → GitHub Pages)
+
+on:
+  push:
+    branches: [ copilot/gh-pages-demo ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (static export)
+        run: pnpm run build
+
+      - name: Prepare publish dir
+        run: |
+          mkdir -p publish/demo
+          cp -r out/* publish/demo/
+          # Root index with link to /vTOC/demo
+          cat > publish/index.html <<'HTML'
+          <!doctype html><meta charset="utf-8">
+          <meta http-equiv="refresh" content="0; url=/vTOC/demo/">
+          <title>vTOC Demo</title>
+          <a href="/vTOC/demo/">Continue to vTOC Demo</a>
+          HTML
+
+      - name: Publish to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: publish
+          force_orphan: true
+          commit_message: "Deploy demo site"

@@ -1,0 +1,20 @@
+{
+  "station": { 
+    "name": "TOC-S4", 
+    "role": "Comms", 
+    "callsign": "Signal Hub" 
+  },
+  "metrics": {
+    "total_events": 67,
+    "active_sources": 5,
+    "last_event": {
+      "id": 666,
+      "occurred_at": "2025-11-13T12:05:00Z",
+      "type": "telemetry",
+      "title": "Network bandwidth check",
+      "source": "Network-Monitor",
+      "summary": "Link utilization nominal",
+      "payload": { "bandwidth_used_mbps": 45.2, "bandwidth_total_mbps": 100, "latency_ms": 18 }
+    }
+  }
+}

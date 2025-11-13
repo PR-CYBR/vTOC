@@ -11,6 +11,8 @@ downloads/
 eggs/
 .eggs/
 lib/
+!lib/
+!lib/**
 !scripts/lib/
 !scripts/lib/**
 !frontend/src/lib/
@@ -47,6 +49,11 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Next.js
+.next/
+out/
+next-env.d.ts
 
 # Terraform
 .terraform/
