@@ -7,7 +7,7 @@ We have shipped the Spec Kit workflow that unifies discovery, planning, and
 execution across backend, frontend, and automation teams. Please review the
 following resources before starting new work:
 
-- [README — Spec-driven development](../../README.md#spec-driven-development)
+- README — Spec-driven development (see main repository README)
 - [Backlog management lifecycle](../backlog.md#spec-artifact-lifecycle)
 - [Quick start step 5](../QUICKSTART.md#5-draft-specs-and-plans-with-spec-kit)
 - [Task authoring guide](../tasks/README.md)

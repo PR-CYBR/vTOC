@@ -179,8 +179,7 @@ actionable work:
    pipelines subscribe to the latest plan. The sync updates `backlog/backlog.yaml`, refreshes CI gating metadata, and posts a
    digest to `docs/workflows/spec-kit-integration.md` for historical reference.
 
-If you are iterating offline, you can run `pnpm --dir codex speckit --help` (see [`codex/README.md`](../codex/README.md) if
-available) to execute the same commands from the terminal. Commit the generated files with your feature branch so reviewers have
+If you are iterating offline, you can run `pnpm --dir codex speckit --help` to execute the same commands from the terminal. Commit the generated files with your feature branch so reviewers have
 full context.
 
 ### 5. Access applications
