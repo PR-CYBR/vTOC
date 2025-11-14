@@ -4,6 +4,17 @@ import { loadDashboard, loadTimeline } from '@/lib/data';
 import { groupByDate } from '@/lib/utils';
 import { TimelineGroup } from '@/components/Timeline';
 import { StationDashboard, TimelineEntry } from '@/lib/types';
+import dynamic from 'next/dynamic';
+
+// Dynamically import Map component to avoid SSR issues with Leaflet
+const Map = dynamic(() => import('@/components/Map'), {
+  ssr: false,
+  loading: () => (
+    <div className="map-placeholder">
+      Loading map...
+    </div>
+  ),
+});
 
 type Props = { slug: string; dash: StationDashboard; timeline: TimelineEntry[] };
 
@@ -55,8 +66,8 @@ export default function Station({ slug, dash, timeline }: Props) {
         </div>
       </aside>
 
-      <section className="map-placeholder">
-        Map / Ops Surface (placeholder)
+      <section className="map-section">
+        <Map />
       </section>
     </Layout>
   );
