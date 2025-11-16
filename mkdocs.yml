@@ -89,6 +89,7 @@ nav:
       - Planning Overview: MESH_PLANNING/OVERVIEW.md
       - LoRa Coverage Planning: MESH_PLANNING/LORA-COVERAGE.md
       - WiFi HaLow Coverage: MESH_PLANNING/HALOW-COVERAGE.md
+      - SDR Coverage Planning: MESH_PLANNING/SDR-COVERAGE.md
   - Operations & Workflows:
       - Build Image (Live): workflows/build-image-live.md
       - Main Discussion Summary: workflows/main-discussion-summary.md

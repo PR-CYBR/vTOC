@@ -265,6 +265,163 @@ addition to ancillary infrastructure. When using Terraform Cloud:
 Terraform Cloud variable sets can provide anon keys to frontend deploy pipelines while restricting service-role keys to backend
 workspaces.
 
+## Ingress
+
+When exposing vTOC to external traffic, configure TLS/HTTPS for secure communications:
+
+**Traefik (Docker Swarm/Compose):**
+- Enable ACME/Let's Encrypt in `traefik/traefik.yml`
+- Configure certificate resolvers for automatic TLS
+- Set up HTTP to HTTPS redirect rules
+- Example in `docker-compose.yml`: Traefik labels for `websecure` entrypoint
+
+**Fly.io:**
+- Automatic TLS certificates via Fly.io platform
+- Configure custom domains in `fly.toml`
+- Certificates managed by Fly proxy layer
+
+**Reverse Proxy (nginx/Caddy):**
+- Place reverse proxy in front of backend container
+- Configure TLS certificates (Let's Encrypt recommended)
+- Proxy pass to `http://localhost:8080/api/v1/`
+- Set appropriate headers (`X-Forwarded-For`, `X-Real-IP`)
+
+**Backend Configuration:**
+- Backend expects `X-Forwarded-Proto: https` when behind proxy
+- Configure CORS origins in `.env.local` to match your domain
+- Set `BACKEND_BASE_URL` to your public HTTPS endpoint
+
+## Hardening
+
+Security hardening checklist for production deployments:
+
+**System Level:**
+- Enable automatic security updates (`unattended-upgrades` on Debian/Ubuntu)
+- Configure firewall (UFW, iptables) to allow only necessary ports
+- Disable password authentication for SSH (use keys only)
+- Set up fail2ban for SSH brute force protection
+- Use non-root user for all services (`vtoc` user recommended)
+
+**Container Security:**
+- Run containers as non-root user (use `USER` directive in Dockerfile)
+- Apply resource limits (CPU, memory) in Docker Compose/Swarm
+- Enable Docker content trust for image verification
+- Regularly update base images and rebuild containers
+- Scan images for vulnerabilities (`docker scan` or Trivy)
+
+**Secrets Management:**
+- Never commit secrets to version control
+- Use Docker secrets (Swarm) or environment variable injection
+- Rotate ChatKit/AgentKit/Supabase credentials quarterly
+- Set restrictive file permissions on `.env` files (600)
+- Use secret management systems (Vault, AWS Secrets Manager) for production
+
+**Network Security:**
+- Segment vTOC services into isolated network (Docker network, VPC)
+- Use VLANs for sensor networks (separate from management)
+- Enable encryption for database connections (Supabase provides TLS)
+- Configure Traefik middleware for rate limiting and IP filtering
+- Set up monitoring and alerting for suspicious traffic
+
+**Application Security:**
+- Enable HTTPS for all external communications (see [Ingress](#ingress))
+- Configure Supabase RLS (Row Level Security) policies
+- Validate and sanitize all API inputs
+- Set secure session cookies (httpOnly, secure, sameSite)
+- Review ChatKit webhook signature validation
+
+**Access Control:**
+- Implement least privilege for database users
+- Use separate Supabase keys for frontend (anon) and backend (service role)
+- Configure station role-based access control
+- Enable audit logging for sensitive operations
+- Regular access reviews and permission cleanup
+
+**Monitoring:**
+- Set up log aggregation (Loki, ELK stack)
+- Configure alerts for failed login attempts
+- Monitor resource usage and set thresholds
+- Track API error rates and response times
+- Review ChatKit/AgentKit webhook failures
+
+## Network Topologies
+
+vTOC supports multiple network configurations for resilience and connectivity:
+
+**Single WAN Connection:**
+- Basic deployment with single internet uplink
+- Suitable for lab/development environments
+- Configure default route through primary gateway
+- Monitor uplink health with periodic health checks
+
+**Dual WAN Failover:**
+- Primary WAN (fiber/cable) + secondary WAN (LTE/Starlink)
+- Automatic failover on primary link failure
+- Implementation options:
+  - **Router-based:** Use router with WAN failover (pfSense, OPNsense)
+  - **Linux-based:** Use `mwan3` or custom routing scripts
+  - **Container-based:** HAProxy or Traefik with health checks
+
+**Example Failover Configuration (Linux):**
+```bash
+# Primary interface (eth0) and backup (wwan0)
+ip route add default via 192.168.1.1 dev eth0 metric 100
+ip route add default via 10.0.0.1 dev wwan0 metric 200
+
+# Monitor primary gateway
+while true; do
+  if ! ping -c 1 -W 2 8.8.8.8 -I eth0 > /dev/null 2>&1; then
+    ip route change default via 10.0.0.1 dev wwan0 metric 100
+  fi
+  sleep 10
+done
+```
+
+**VPN Overlay Networks:**
+- Use ZeroTier, Tailscale, or WireGuard for mesh connectivity
+- Enables station-to-station communication over public internet
+- Simplifies multi-site deployments without static IPs
+- Configure in `scripts/inputs.schema.json` under `services`
+
+**VLAN Segmentation:**
+- Separate management, telemetry sensors, and public traffic
+- Example VLANs:
+  - VLAN 10: Management (SSH, web UI)
+  - VLAN 20: Telemetry sensors (ADS-B, AIS)
+  - VLAN 30: Public/guest network
+- Configure on managed switch (see [Netgear GS105E](HARDWARE/NETGEAR-GS105E.md))
+- Tag compute node ports for multi-VLAN access
+
+**Load Balancing:**
+- Deploy multiple backend replicas in Docker Swarm
+- Use Traefik for HTTP load balancing
+- Configure health checks for automatic failover
+- Database load handled by Supabase (managed service)
+
+**Mesh Networking:**
+- LoRa/WiFi HaLow mesh for field operations
+- See [Mesh Planning Overview](MESH_PLANNING/OVERVIEW.md)
+- Integrate mesh nodes with vTOC telemetry APIs
+- Gateway nodes connect mesh to internet uplink
+
+**Example Multi-Site Topology:**
+```
+Internet
+   |
+   +-- [Firewall/Router] -- [Primary WAN: Fiber]
+   |                      \-- [Secondary WAN: LTE]
+   |
+   +-- [Traefik Load Balancer]
+   |      |
+   |      +-- [Backend Pod 1] -- [Supabase Postgres]
+   |      +-- [Backend Pod 2] -- [Supabase Postgres]
+   |
+   +-- [Frontend nginx]
+   |
+   +-- [VPN Gateway] -- [Remote Station 1]
+                     \-- [Remote Station 2]
+```
+
 ## ChatKit configuration steps
 
 1. Create or select a ChatKit organization and generate an API key with webhook permissions.

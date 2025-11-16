@@ -21,7 +21,7 @@ existing operators. Cross-links point to updated documentation for deeper detail
 2. **Regenerate environment files** — run `make setup-local` to create `.env.local` and `.env.station`. Provide the new ChatKit
    and AgentKit credentials when prompted.
 3. **Provision databases** — create `vtoc_<role>` databases or migrate existing schemas. See
-   [`docs/DEPLOYMENT.md`](DEPLOYMENT.md#multi-station-postgres) for SQL and Terraform examples.
+   [`docs/DEPLOYMENT.md`](DEPLOYMENT.md#multi-station-postgres-provisioning-with-supabase) for SQL and Terraform examples.
 4. **Run migrations** — execute `alembic upgrade head` for each station role to create the telemetry and chat tables.
 5. **Configure ChatKit webhook** — point ChatKit to `/api/v1/chatkit/webhook` and set the signature secret to match your
    environment variables.

@@ -14,7 +14,7 @@ This guide documents how the `live` branch fits into the deployment workflow and
 2. When a `main` commit is ready for production, create a release branch (for example, `release/<date>`), run validation (CI, smoke tests, Fly.io staging), and open a pull request targeting `live`.
 3. Tag the release commit (e.g., `vYYYY.MM.DD`) so Fly.io builds can reference an immutable image.
 4. Merge the release branch into `live` only after tests pass and the release has been approved by an operator.
-5. Deploy to Fly.io from the `live` branch using the GitHub Action (`fly-deploy.yml`) or the manual workflow described in [`docs/DEPLOYMENT.md`](../DEPLOYMENT.md#flyio).
+5. Deploy to Fly.io from the `live` branch using the GitHub Action (`fly-deploy.yml`) or the manual workflow described in [`docs/DEPLOYMENT.md`](../DEPLOYMENT.md#flyio-live-branch).
 6. After deployment, update the GitHub Discussion thread (see below) with the commit SHA, Fly.io release ID, and any notable runbook annotations.
 
 ## Rollback strategy
