@@ -30,9 +30,14 @@ runs:
         if [ -n "${{ inputs.base-url }}" ]; then
           echo "CODEX_BASE_URL=${{ inputs.base-url }}" >>"$GITHUB_ENV"
         fi
+        echo "LOGURU_AUTOINIT=0" >>"$GITHUB_ENV"
+        echo "PYTHONUNBUFFERED=1" >>"$GITHUB_ENV"
 
     - name: Install Codex CLI
       shell: bash
+      env:
+        LOGURU_AUTOINIT: "0"
+        PYTHONUNBUFFERED: "1"
       run: |
         set -euo pipefail
         VERSION="${{ inputs.version }}"
@@ -46,9 +51,23 @@ runs:
           "$PIPX_BIN" install "codex==$VERSION" --force
         fi
 
+    - name: Verify Codex installation
+      shell: bash
+      env:
+        LOGURU_AUTOINIT: "0"
+        PYTHONUNBUFFERED: "1"
+      run: |
+        set -euo pipefail
+        export PATH="$HOME/.local/bin:$PATH"
+        which codex || { echo "Codex CLI not found in PATH"; exit 1; }
+        codex --version
+
     - name: Capture Codex metadata
       id: codex-metadata
       shell: bash
+      env:
+        LOGURU_AUTOINIT: "0"
+        PYTHONUNBUFFERED: "1"
       run: |
         set -euo pipefail
         export PATH="$HOME/.local/bin:$PATH"

@@ -372,7 +372,11 @@ jobs:
             --context backlog/context.json \
             --backlog-file backlog/backlog.yaml \
             --skip-if-exists \
-            --result backlog/plan-result.json
+            --result backlog/plan-result.json > codex_plan.log 2>&1 || { 
+            echo "Codex plan generation failed — dumping log:" 
+            cat codex_plan.log 
+            exit 1 
+          }
 
       - name: Sync Spec Kit tasks
         if: steps.metadata.outputs.run == 'true'
