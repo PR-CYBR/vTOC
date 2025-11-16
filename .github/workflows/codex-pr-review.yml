@@ -22,20 +22,22 @@ jobs:
       LOGURU_AUTOINIT: "0"
       PYTHONUNBUFFERED: "1"
     steps:
-      - name: Check required Codex configuration
+      - name: Check Codex required configuration
         shell: bash
         run: |
           missing=0
           for var in CODEX_API_KEY CODEX_BASE_URL; do
             if [ -z "${!var}" ]; then
-              echo "$var is not set."
+              echo "::warning::$var is not set. Skipping Codex-driven automation."
               missing=1
             fi
           done
           if [ "$missing" -eq 1 ]; then
-            echo "Required Codex configuration missing. Skipping automation."
             exit 0
           fi
+        env:
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
 
       - name: Check out repository
         uses: actions/checkout@v4
@@ -58,14 +60,21 @@ jobs:
         run: |
           yamllint .github/workflows
 
-      - name: Run Codex review
+      - name: Run Codex review (one-shot mode)
         id: codex
+        shell: bash
         env:
           GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          LOGURU_AUTOINIT: "0"
+          PYTHONUNBUFFERED: "1"
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
+          CODEX_REVIEW_MODEL: ${{ vars.CODEX_REVIEW_MODEL }}
         run: |
           set -euo pipefail
           MODEL="${CODEX_REVIEW_MODEL:-gpt-4.1}"
+          # Use codex chat in one-shot mode via Python script
           python scripts/automation/codex_pr_review.py \
             --base "${GITHUB_BASE_SHA}" \
             --head "${GITHUB_HEAD_SHA}" \

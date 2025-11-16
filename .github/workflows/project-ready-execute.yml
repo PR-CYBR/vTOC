@@ -223,22 +223,24 @@ jobs:
       CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
       REVIEWERS_TO_NOTIFY: ${{ vars.PROJECT_READY_REVIEWERS || vars.REVIEW_TEAM || '' }}
     steps:
-      - name: Check for required configuration
+      - name: Check Codex required configuration
         shell: bash
         run: |
-          if [[ -z "${CODEX_API_KEY:-}" ]]; then
-            echo "::error::CODEX_API_KEY secret is required but was not provided."
-            echo "::error::Please configure CODEX_API_KEY in repository secrets."
+          missing=0
+          for var in CODEX_API_KEY CODEX_BASE_URL; do
+            if [ -z "${!var}" ]; then
+              echo "::error::$var is not set. Skipping Codex-driven automation."
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
             exit 1
           fi
-          if [[ -z "${CODEX_BASE_URL:-}" ]]; then
-            echo "::error::CODEX_BASE_URL repository variable is required but was not provided."
-            echo "::error::Please configure CODEX_BASE_URL in repository variables."
-            exit 1
-          fi
-          echo "✓ Required configuration is present."
+        env:
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
       
-      - name: Ensure Codex configuration is available
+      - name: Verify Codex configuration
         shell: bash
         run: |
           set -euo pipefail
@@ -250,6 +252,9 @@ jobs:
             echo "CODEX_BASE_URL repository variable is required but was not provided." >&2
             exit 1
           fi
+        env:
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
 
       - name: Decode Codex Cloud plan
         id: decode_plan
@@ -264,11 +269,15 @@ jobs:
             cp codex-plan.json codex-plan.pretty.json
           fi
 
-      - name: Execute Codex Cloud plan
+      - name: Execute Codex Cloud plan (one-shot mode)
         id: codex_run
         shell: bash
         env:
           PLAN_PATH: codex-plan.json
+          LOGURU_AUTOINIT: "0"
+          PYTHONUNBUFFERED: "1"
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
         run: |
           set -euo pipefail
           RESPONSE_FILE="codex-response.json"
@@ -276,7 +285,7 @@ jobs:
           API_ENDPOINT="${CODEX_BASE_URL%/}/api/cloud/runs"
 
           {
-            echo "# Codex Cloud execution"
+            echo "# Codex Cloud execution (one-shot mode)"
             echo "Endpoint: ${API_ENDPOINT}"
             echo "Timestamp: $(date --utc +"%Y-%m-%dT%H:%M:%SZ")"
           } >"${LOG_FILE}"
