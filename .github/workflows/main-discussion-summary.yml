@@ -17,36 +17,31 @@ jobs:
     container:
       image: python:3.11-slim
     env:
+      CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
       CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
       DOCS_DISCUSSION_CATEGORY_ID: ${{ vars.DOCS_DISCUSSION_CATEGORY_ID }}
       DOCS_DISCUSSION_LABELS: ${{ vars.DOCS_DISCUSSION_LABELS }}
       DOCS_DISCUSSION_TITLE_PREFIX: ${{ vars.DOCS_DISCUSSION_TITLE_PREFIX }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Check for required configuration
+      - name: Check Codex required configuration
         shell: bash
         run: |
-          missing_config=false
-          if [[ -z "${{ secrets.CODEX_API_KEY }}" ]]; then
-            echo "::warning::CODEX_API_KEY secret is not set."
-            missing_config=true
-          fi
-          if [[ -z "${{ vars.CODEX_BASE_URL }}" ]]; then
-            echo "::warning::CODEX_BASE_URL variable is not set."
-            missing_config=true
-          fi
-          if [[ -z "${{ vars.DOCS_DISCUSSION_CATEGORY_ID }}" ]]; then
-            echo "::warning::DOCS_DISCUSSION_CATEGORY_ID variable is not set."
-            missing_config=true
-          fi
-          if [[ "$missing_config" == "true" ]]; then
-            echo "::warning::This workflow creates discussion summaries for main branch commits."
-            echo "::warning::Please configure the required secrets and variables to enable this automation."
-            echo "::warning::Skipping discussion summary creation."
+          missing=0
+          for var in CODEX_API_KEY CODEX_BASE_URL DOCS_DISCUSSION_CATEGORY_ID; do
+            if [ -z "${!var}" ]; then
+              echo "::warning::$var is not set. Skipping Codex-driven automation."
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
             exit 0
           fi
-          echo "✓ Required configuration is present."
-      
+        env:
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
+          DOCS_DISCUSSION_CATEGORY_ID: ${{ vars.DOCS_DISCUSSION_CATEGORY_ID }}
+
       - name: Install required packages
         shell: bash
         run: |
@@ -61,10 +56,16 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Codex CLI
-        uses: ./.github/actions/setup-codex
-        with:
-          api-key: ${{ secrets.CODEX_API_KEY }}
-          base-url: ${{ vars.CODEX_BASE_URL }}
+        shell: bash
+        env:
+          LOGURU_AUTOINIT: "0"
+          PYTHONUNBUFFERED: "1"
+        run: |
+          pipx install codex
+          export PATH="$HOME/.local/bin:$PATH"
+          which codex
+          codex --version
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Determine commit range
         id: range
@@ -87,18 +88,28 @@ jobs:
           echo "before=${BEFORE}" >>"${GITHUB_OUTPUT}"
           echo "after=${AFTER}" >>"${GITHUB_OUTPUT}"
 
-      - name: Run commit summary script
+      - name: Run commit summary script (one-shot mode)
         if: steps.range.outputs.empty == 'false'
         id: summary
         shell: bash
+        env:
+          LOGURU_AUTOINIT: "0"
+          PYTHONUNBUFFERED: "1"
         run: |
           set -euo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
           BEFORE="${{ steps.range.outputs.before }}"
           AFTER="${{ steps.range.outputs.after }}"
-          python scripts/commit_summary.py "${BEFORE}" "${AFTER}" > discussion.md 2> commit_summary.log || { 
-            echo "Commit summary failed — dumping log:" 
-            cat commit_summary.log 
-            exit 1 
+          # Use codex chat in one-shot mode via Python script
+          python scripts/automation/commit_summary.py \
+            --base "${BEFORE}" \
+            --head "${AFTER}" \
+            --repo "${{ github.repository }}" \
+            --discussion-category-id "${{ vars.DOCS_DISCUSSION_CATEGORY_ID }}" \
+            --output discussion.md > commit_summary.log 2>&1 || {
+            echo "Commit summary failed — dumping log:"
+            cat commit_summary.log
+            exit 1
           }
           cat discussion.md
 
