@@ -1,10 +1,52 @@
 site_name: vTOC Documentation
 site_description: Technical and operational guides for the vTOC platform.
-repo_url: https://github.com/vasa-dev/vTOC
+repo_url: https://github.com/PR-CYBR/vTOC
 repo_name: vTOC
+site_url: https://pr-cybr.github.io/vTOC/
 
 docs_dir: docs
 site_dir: site
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
 
 nav:
   - Home: index.md
@@ -27,6 +69,26 @@ nav:
       - Hardware Overview: HARDWARE.md
       - H4M Hardware: H4M.md
       - Hardware Onboarding RFC: rfc/RFC-000X-hw-onboarding.md
+      - Compute & Networking:
+          - Raspberry Pi 5: HARDWARE/RASPBERRY-PI-5.md
+          - Netgear GS105E Switch: HARDWARE/NETGEAR-GS105E.md
+      - RF & Wireless:
+          - RTL-SDR Receiver: HARDWARE/RTL-SDR.md
+          - LoRa MANET Node: HARDWARE/LORA-MANET.md
+          - WiFi HaLow Bridge: HARDWARE/WIFI-HALOW-BRIDGE.md
+          - Heltec HaLow ESP32: HARDWARE/HELTEC-HALOW.md
+      - Tracking & Telemetry:
+          - BYONICS PiCon (APRS): HARDWARE/BYONICS-PICON.md
+          - Trekker Bravo: HARDWARE/TREKKER-BRAVO.md
+          - Trekker Mini: HARDWARE/TREKKER-MINI.md
+          - LiLIGO Paxcounter: HARDWARE/LILIGO-PAXCOUNTER.md
+      - Aerial Systems:
+          - Spec5 Copilot (Drone): HARDWARE/SPEC5-COPILOT.md
+      - Antenna Systems: HARDWARE/ANTENNAS.md
+  - Mesh Network Planning:
+      - Planning Overview: MESH_PLANNING/OVERVIEW.md
+      - LoRa Coverage Planning: MESH_PLANNING/LORA-COVERAGE.md
+      - WiFi HaLow Coverage: MESH_PLANNING/HALOW-COVERAGE.md
   - Operations & Workflows:
       - Build Image (Live): workflows/build-image-live.md
       - Main Discussion Summary: workflows/main-discussion-summary.md
@@ -42,7 +104,9 @@ nav:
       - Change Log: CHANGELOG.md
 
 plugins:
-  - search
+  - search:
+      lang: en
+      separator: '[\s\-\.]'
 
 markdown_extensions:
   - admonition
@@ -52,3 +116,45 @@ markdown_extensions:
   - md_in_html
   - toc:
       permalink: true
+      toc_depth: 3
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/PR-CYBR/vTOC
+  analytics:
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/thumb-up-outline
+          name: This page was helpful
+          data: 1
+          note: >-
+            Thanks for your feedback!
+        - icon: material/thumb-down-outline
+          name: This page could be improved
+          data: 0
+          note: >-
+            Thanks for your feedback!
