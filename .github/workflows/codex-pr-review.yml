@@ -79,10 +79,10 @@ jobs:
             --base "${GITHUB_BASE_SHA}" \
             --head "${GITHUB_HEAD_SHA}" \
             --model "${MODEL}" \
-            --output review.json > codex_review.log 2>&1 || { 
-            echo "Codex review failed — dumping log:" 
-            cat codex_review.log 
-            exit 1 
+            --output review.json > codex_review.log 2>&1 || {
+            echo "Codex review failed — dumping log:"
+            cat codex_review.log
+            exit 1
           }
 
       - name: Post Codex findings

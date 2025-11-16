@@ -44,7 +44,7 @@ jobs:
           fi
         env:
           PROJECT_DONE_DISCUSSION_CATEGORY_ID: ${{ vars.PROJECT_DONE_DISCUSSION_CATEGORY_ID }}
-      
+
       - name: Post discussion
         uses: actions/github-script@v7
         with:

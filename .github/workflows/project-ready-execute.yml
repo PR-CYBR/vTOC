@@ -239,7 +239,7 @@ jobs:
         env:
           CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
           CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
-      
+
       - name: Verify Codex configuration
         shell: bash
         run: |

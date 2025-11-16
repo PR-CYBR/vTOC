@@ -17,6 +17,8 @@ jobs:
     timeout-minutes: 30
     env:
       PROJECTS_TOKEN: ${{ secrets.PROJECTS_WORKFLOW_TOKEN != '' && secrets.PROJECTS_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
+      CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+      CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
     steps:
       - name: Check Codex required configuration
         shell: bash
@@ -34,7 +36,7 @@ jobs:
         env:
           CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
           CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
-      
+
       - name: Gather project item metadata
         id: metadata
         uses: actions/github-script@v7
@@ -363,11 +365,12 @@ jobs:
         env:
           LOGURU_AUTOINIT: "0"
           PYTHONUNBUFFERED: "1"
-          PATH: ${{ runner.temp }}/.local/bin:${{ env.PATH }}
         run: |
           pipx install codex
+          export PATH="$HOME/.local/bin:$PATH"
           which codex
           codex --version
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Generate Codex plan (one-shot mode)
         if: steps.metadata.outputs.run == 'true'
@@ -377,19 +380,17 @@ jobs:
           SPECIFY_FEATURE: ${{ steps.metadata.outputs.spec_feature }}
           LOGURU_AUTOINIT: "0"
           PYTHONUNBUFFERED: "1"
-          PATH: ${{ runner.temp }}/.local/bin:${{ env.PATH }}
-          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
-          CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           # Use codex cloud tasks plan in one-shot mode via Python script
           python scripts/automation/backlog_plan.py \
             --context backlog/context.json \
             --backlog-file backlog/backlog.yaml \
             --skip-if-exists \
-            --result backlog/plan-result.json > codex_plan.log 2>&1 || { 
-            echo "Codex plan generation failed — dumping log:" 
-            cat codex_plan.log 
-            exit 1 
+            --result backlog/plan-result.json > codex_plan.log 2>&1 || {
+            echo "Codex plan generation failed — dumping log:"
+            cat codex_plan.log
+            exit 1
           }
 
       - name: Sync Spec Kit tasks

@@ -17,6 +17,7 @@ jobs:
     container:
       image: python:3.11-slim
     env:
+      CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
       CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
       DOCS_DISCUSSION_CATEGORY_ID: ${{ vars.DOCS_DISCUSSION_CATEGORY_ID }}
       DOCS_DISCUSSION_LABELS: ${{ vars.DOCS_DISCUSSION_LABELS }}
@@ -40,7 +41,7 @@ jobs:
           CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
           CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
           DOCS_DISCUSSION_CATEGORY_ID: ${{ vars.DOCS_DISCUSSION_CATEGORY_ID }}
-      
+
       - name: Install required packages
         shell: bash
         run: |
@@ -59,11 +60,12 @@ jobs:
         env:
           LOGURU_AUTOINIT: "0"
           PYTHONUNBUFFERED: "1"
-          PATH: ${{ runner.temp }}/.local/bin:${{ env.PATH }}
         run: |
           pipx install codex
+          export PATH="$HOME/.local/bin:$PATH"
           which codex
           codex --version
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Determine commit range
         id: range
@@ -93,11 +95,9 @@ jobs:
         env:
           LOGURU_AUTOINIT: "0"
           PYTHONUNBUFFERED: "1"
-          PATH: ${{ runner.temp }}/.local/bin:${{ env.PATH }}
-          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
-          CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
         run: |
           set -euo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
           BEFORE="${{ steps.range.outputs.before }}"
           AFTER="${{ steps.range.outputs.after }}"
           # Use codex chat in one-shot mode via Python script
@@ -106,10 +106,10 @@ jobs:
             --head "${AFTER}" \
             --repo "${{ github.repository }}" \
             --discussion-category-id "${{ vars.DOCS_DISCUSSION_CATEGORY_ID }}" \
-            --output discussion.md > commit_summary.log 2>&1 || { 
-            echo "Commit summary failed — dumping log:" 
-            cat commit_summary.log 
-            exit 1 
+            --output discussion.md > commit_summary.log 2>&1 || {
+            echo "Commit summary failed — dumping log:"
+            cat commit_summary.log
+            exit 1
           }
           cat discussion.md
 
