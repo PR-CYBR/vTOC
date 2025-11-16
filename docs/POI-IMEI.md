@@ -430,4 +430,4 @@ Operators can query POI/IMEI status via ChatKit commands:
 - [Architecture Overview](ARCHITECTURE.md)
 - [Telemetry Connectors](TELEMETRY_CONNECTORS.md)
 - [Station Timeline](QUICKSTART.md#station-timeline-ui)
-- [ChatKit Integration](ARCHITECTURE.md#chatkit--agentkit-workflow)
+- [ChatKit Integration](ARCHITECTURE.md#chatkit-agentkit-workflow)

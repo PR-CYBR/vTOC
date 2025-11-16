@@ -77,6 +77,48 @@ Playbook identifiers are defined under `agents/config/agentkit.yml`. The backend
 
 ## Data flows
 
+### ChatKit & AgentKit Workflow
+
+The ChatKit and AgentKit integration enables operators to coordinate missions and execute automated workflows through chat commands:
+
+**Architecture:**
+1. **ChatKit Channels:** Each station has a dedicated channel (e.g., `#ops-toc-s1`) where operators collaborate
+2. **Webhook Integration:** ChatKit sends events to `/api/v1/chatkit/webhook` when messages are posted
+3. **Backend Processing:** FastAPI validates webhook signatures and routes commands to appropriate handlers
+4. **AgentKit Playbooks:** Backend triggers AgentKit playbooks based on message content and station role
+5. **Result Publishing:** Playbook outputs are posted back to ChatKit and stored in Supabase
+
+**Command Flow:**
+```
+Operator types: @agent check status
+    ↓
+ChatKit webhook → Backend validates → Resolves station role
+    ↓
+Backend triggers: AgentKit playbook "timeline_summary"
+    ↓
+Playbook queries: /api/v1/stations/{slug}/timeline
+    ↓
+Results posted: Back to ChatKit thread + stored in Postgres
+    ↓
+Frontend updates: Map overlays and mission console
+```
+
+**Key Components:**
+- **ChatKit Organization:** Shared workspace for all stations and operators
+- **Station Channels:** Role-specific channels (`ops`, `intel`, `logistics`)
+- **AgentKit Playbooks:** Automated workflows defined in `agents/config/agentkit.yml`
+- **Webhook Handler:** FastAPI endpoint processing ChatKit events
+- **Audit Trail:** All AgentKit invocations logged in Supabase with chat context
+
+**Supported Operations:**
+- Mission planning and coordination
+- Telemetry data queries and analysis
+- Station status checks and timeline summaries
+- POI/IMEI watchlist management
+- Report generation and intelligence briefings
+
+See [`docs/POI-IMEI.md`](POI-IMEI.md) for POI tracking workflows and [`docs/DEPLOYMENT.md`](DEPLOYMENT.md#chatkit-configuration-steps) for ChatKit setup.
+
 ### Operator coordination
 
 1. Operator sends a message in the station ChatKit channel.
