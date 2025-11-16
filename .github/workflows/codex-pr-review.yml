@@ -19,7 +19,24 @@ jobs:
       CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
       CODEX_BASE_URL: ${{ vars.CODEX_BASE_URL }}
       CODEX_REVIEW_MODEL: ${{ vars.CODEX_REVIEW_MODEL }}
+      LOGURU_AUTOINIT: "0"
+      PYTHONUNBUFFERED: "1"
     steps:
+      - name: Check required Codex configuration
+        shell: bash
+        run: |
+          missing=0
+          for var in CODEX_API_KEY CODEX_BASE_URL; do
+            if [ -z "${!var}" ]; then
+              echo "$var is not set."
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            echo "Required Codex configuration missing. Skipping automation."
+            exit 0
+          fi
+
       - name: Check out repository
         uses: actions/checkout@v4
         with:
@@ -53,7 +70,11 @@ jobs:
             --base "${GITHUB_BASE_SHA}" \
             --head "${GITHUB_HEAD_SHA}" \
             --model "${MODEL}" \
-            --output review.json
+            --output review.json > codex_review.log 2>&1 || { 
+            echo "Codex review failed — dumping log:" 
+            cat codex_review.log 
+            exit 1 
+          }
 
       - name: Post Codex findings
         if: steps.codex.outcome == 'success'

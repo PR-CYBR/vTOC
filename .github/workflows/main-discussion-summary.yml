@@ -95,7 +95,12 @@ jobs:
           set -euo pipefail
           BEFORE="${{ steps.range.outputs.before }}"
           AFTER="${{ steps.range.outputs.after }}"
-          python scripts/commit_summary.py "${BEFORE}" "${AFTER}" | tee discussion.md
+          python scripts/commit_summary.py "${BEFORE}" "${AFTER}" > discussion.md 2> commit_summary.log || { 
+            echo "Commit summary failed — dumping log:" 
+            cat commit_summary.log 
+            exit 1 
+          }
+          cat discussion.md
 
       - name: Upload discussion markdown
         if: steps.range.outputs.empty == 'false'
