@@ -150,7 +150,7 @@ def build_prompt(
 
 def determine_cli_path() -> str:
     env = os.environ
-    path = env.get("CODEX_BIN") or env.get("code") or "code"
+    path = env.get("CODEX_BIN") or env.get("code") or "codex"
     return path
 
 

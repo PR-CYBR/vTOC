@@ -57,6 +57,7 @@ jobs:
 
       - name: Setup Codex CLI
         shell: bash
+        timeout-minutes: 5
         env:
           LOGURU_AUTOINIT: "0"
           PYTHONUNBUFFERED: "1"
@@ -65,7 +66,6 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           pipx install codex
           which codex
-          codex --version
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Determine commit range
@@ -92,6 +92,7 @@ jobs:
       - name: Run commit summary script (one-shot mode)
         if: steps.range.outputs.empty == 'false'
         id: summary
+        timeout-minutes: 10
         shell: bash
         env:
           LOGURU_AUTOINIT: "0"

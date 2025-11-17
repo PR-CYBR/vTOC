@@ -362,6 +362,7 @@ jobs:
       - name: Setup Codex CLI
         if: steps.metadata.outputs.run == 'true'
         shell: bash
+        timeout-minutes: 5
         env:
           LOGURU_AUTOINIT: "0"
           PYTHONUNBUFFERED: "1"
@@ -369,12 +370,12 @@ jobs:
           pipx install codex
           export PATH="$HOME/.local/bin:$PATH"
           which codex
-          codex --version
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Generate Codex plan (one-shot mode)
         if: steps.metadata.outputs.run == 'true'
         id: plan
+        timeout-minutes: 15
         shell: bash
         env:
           SPECIFY_FEATURE: ${{ steps.metadata.outputs.spec_feature }}
